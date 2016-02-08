@@ -1,3 +1,30 @@
 \chapter{INTRODUCTION} \label{ch:intro}
 
-Steve.
+Programmers all know that there are many different programming languages. Many of these programming languages can be described as "generic," e.g. C++, Java, python, etc.  These "generic" programming languages can be used to write programs which solve problems over a virtually infinite number of problem domains. However, sometimes it is necessary to have a programming language which is tailored to solve problems in one specific problem domain. These languages are known as Domain Specific Languages (DSL). This paper presents one such DSL named “Steve” and its respective compiler.
+
+Steve is a programming language tailored toward writing programs for \textbf{network packet processing} on \textbf{software-defined networking (SDN) devices}.
+
+\textbf{What is a packet?} A network packet is a formatted chunk of data used to send information across computer networks. Packets are comprised of headers and a payload. Headers contain instructions on where to send a packet across a network much like addresses on envelopes. When a network device (e.g. routers, switches, etc) receives a packet, it must decode these headers to determine where the packet must be sent next. Payloads are akin to the content of those envelopes. 
+
+\textbf{What is SDN?} Traditional networking architectures are comprised of two major components: the control plane and the data plane. The control plane provides a set of rules which determine how and where network traffic gets sent on a network device, i.e. forwarded, based on the content of that packet’s headers. The control plane manages the data plane which holds the network traffic and performs the action of moving that network traffic. In the majority of current networking hardware (switches and routers), these two components are implemented as firmware installed directly onto the networking device. SDN aims to “decouple” these two components. The implementation of the control plane is removed from the firmware and its functionality is implemented as software, allowing the networking control to become programmable \cite{onf_sdn_def}. The underlying hardware resources become abstracted away, allowing for networking applications to be written for SDN networking devices.
+
+SDN devices are not bound by the limitations of its firmware or the difficulty of installing new firmware like conventional networking devices. SDN devices are flexible and scalable. They allow network administrators to easily write programs which provide new functionality into existing network devices and to distribute these changes across large parts of networks. They allow for brand new network protocols to be introduced, even allowing for organizations to use their own customized internal network protocols without special networking devices.
+
+\textbf{Why Steve?} Steve is a language designed to make writing these networking applications easier. Even though SDN architectures provide fresh programmability to network devices, the actual practice of programming these devices is incredibly difficult and error prone. These applications, often written in C, must directly work with low-level software and hardware resources. This “low-level” code is often complex enough for programmers to easily make mistakes which can lead to logical errors, program crashes, undefined behavior, memory leakage, and ultimately network downtime which are not acceptable on backbone networking devices.
+
+The Steve programming language and its runtime system (Flowpath) abstracts away this low-level code, making many of the more fine-grained details, such as resource acquisition and control plane interfacing, of the networking device opaque to the programmer. Steve lets programmers focus primarily on the control and forwarding behavior of the application. It also enforces a set of logical and correctness guarantees, making it more difficult for programmers to “shoot themselves in the foot,” as the saying goes.
+
+Specifically, Steve provides the following features.
+
+\begin{itemize}
+\item The ability to specify a packet processing pipeline which is composed of decoding stages and table matching stages.
+
+\item Decoding stages allow programmers to specify which headers get decoded and which fields in those respective headers get decoded. They also provide the mechanics to reason about which packet header comes next in a packet based on conditions satisfied by the current packet header.
+
+\item 
+Table matching stages allow programmers to specify how packets which all meet some common criteria get modified, and are ultimately forwarded. This is done through a mechanism known as flow tables which contain a set of flows. Flows are a set of user-defined actions (things to be done to the packet) which are applied to all packets which match a certain common criteria.
+
+\item
+Actions provide a way to modify fields within the packet. Users can change the values of certain decoded fields within a packet, apply arithmetic to them, and use them in logical conditionals. Actions can also be used to forward the packet through a port on the system.
+
+\end{itemize}
