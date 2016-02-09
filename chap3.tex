@@ -8,9 +8,16 @@ The pipeline is thus a state machine. Each processing stage denotes a state in t
 
 When a packet is received, it is simply a chunk of raw, uninterpreted data. Before a packet can be processed and routed, its headers and fields must be decoded and extracted so that meaningful decisions can be made about what to do with the packet. The decoding stage is responsible for ensuring this happens.
 
-Steve allows for programmers to specify how and what fields are extracted from packet headers. Unlike hardware packet processors or other packet processing languages, Steve allows for the partial decoding of packet contents. In other paradigms, the entire packet is decoded from start to finish; then all fields are saved. This is known as a full decode. After this full decode, the decision making process on the packet begins using those saved fields. However, this method is inherently inefficient. Only certain fields and headers within a packet are ever really needed during the routing process. To compound this, different switches may care about different subsets of fields within a given packet. Decoding all of these fields does not make sense when only a smaller subset is ever necessary. 
+Steve allows for programmers to specify \textit{how} and \textit{which} fields are extracted from packet headers. In other paradigms, the \textit{entire} packet is decoded from start to finish; then all fields are saved. This is known as a \textbf{full decode}. After this full decode, the decision making process on the packet begins using those saved fields. However, this method is inherently inefficient. Only certain fields and headers within a packet are ever really needed during the routing process. To compound this, different switches may care about different subsets of fields within a given packet. Decoding all of these fields does not make sense when only a smaller subset is ever necessary. 
 
 Full decodes waste valuable processing time. Efficiency is important when dealing with networking equipment which has to processes between 10Gbps to 40Gbps. Decoding fields which are not needed is equivalent to wasting clock cycles on the CPU. This could translate to drastically slower performance.
+
+This inherent inefficiency is why Steve proposes the idea of a \textit{partial decode}. Unlike other similar languages, Steve is designed to allow programmers to specify the extraction of only specific fields rather than an entire header. Though the specification may be verbose in some cases, it makes programmers think very carefully about which fields they need and which fields they do not.
+
+\subsection{Packet Context}
+
+As fields get extracted in the decoding stage, the offsets and lengths of those fields are saved into a data structure know as the packet \emph{context}. Each packet making its way through a packet processing pipeline is assigned its own context.
+
 
 \section{Table Stage}
 
