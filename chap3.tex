@@ -2,7 +2,21 @@
 
 The Steve programming language uses a pipeline model for processing packets. A pipeline is a composition of two types of processing stages: decoding stages and table matching stages. Each stage performs a set of operations on a packet, known as actions, and decides where to move the packet next based on certain conditions that the packet meets. A packet can be moved to another processing stage or it can be sent out of the pipeline.
 
-The pipeline is thus a state machine. Each processing stage denotes a state in the machine. Each state has a set of conditions which, when met, causes the packet to transition states. This can be represented as a graph where each processing stage is a node on the graph and each state transition is an edge connecting stages. 
+The pipeline is thus a state machine. Each processing stage denotes a state in the machine. Each state has a set of conditions which, when met, causes the packet to transition states. This can be represented as a graph where each processing stage is a node on the graph and each state transition is an edge connecting stages.
+
+\section{Decoding Stage}
+
+When a packet is received, it is simply a chunk of raw, uninterpreted data. Before a packet can be processed and routed, its headers and fields must be decoded and extracted so that meaningful decisions can be made about what to do with the packet. The decoding stage is responsible for ensuring this happens.
+
+Steve allows for programmers to specify how and what fields are extracted from packet headers. Unlike hardware packet processors or other packet processing languages, Steve allows for the partial decoding of packet contents. In other paradigms, the entire packet is decoded from start to finish; then all fields are saved. This is known as a full decode. After this full decode, the decision making process on the packet begins using those saved fields. However, this method is inherently inefficient. Only certain fields and headers within a packet are ever really needed during the routing process. To compound this, different switches may care about different subsets of fields within a given packet. Decoding all of these fields does not make sense when only a smaller subset is ever necessary. 
+
+Full decodes waste valuable processing time. Efficiency is important when dealing with networking equipment which has to processes between 10Gbps to 40Gbps. Decoding fields which are not needed is equivalent to wasting clock cycles on the CPU. This could translate to drastically slower performance.
+
+\section{Table Stage}
+
+Table stages handle matching the extracted fields, i.e. classification, and perform actions on like-classified packets.
+
+\section{Pipeline Composition}
 
 Kinds of processing stages can be interleaved together in any order within the pipeline. This means that Steve is capable of supporting different packet processing paradigms found in other research such as POF and P4. With the Steve pipeline specification language a user can specify that a pipeline does:
 
