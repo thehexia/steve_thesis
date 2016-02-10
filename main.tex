@@ -16,6 +16,7 @@
 % List of any packages you use.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
+\usepackage[nounderscore]{syntax}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{epsfig}
@@ -62,12 +63,13 @@
 \facreader{NAME 2}
 
 \begin{document}
-
+\graphicspath{ {images/} } 
 \maketitle
 \input{chap1}
 \input{chap2}
 \input{chap3}
 \input{chap4}
+\input{chap5}
 \bibliographystyle{unsrt}
 \bibliography{bio}
 %If you have n appendices, then use the \appendices{n} command below

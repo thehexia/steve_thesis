@@ -1,8 +1,25 @@
-\chapter{APPENDIX TITLE GOES HERE} \label{ap:a}
+\chapter{Syntax Reference} \label{ap:a}
 
 
-{\bf DO NOT SECTION OR SUBSECTION AN APPENDIX OR APPENDICS}
+\begin{grammar}
 
+<program> ::= <declaration-sequence>
 
+<declaration-sequence> ::= <global-declaration> <declaration-sequence> | <global-declaration>
+
+<global-declaration> :: = 
+<port-decl>
+\alt <decoder-decl>
+\alt <table-decl>
+\alt <event-decl>
+
+%<test-statement> ::= <ident> `=' <expr> 
+%\alt `for' <ident> `=' <expr> `to' <expr> `do' <statement> 
+%\alt `{' <stat-list> `}' 
+%\alt <empty> 
+%
+%<stat-list> ::= <statement> `;' <stat-list> | <statement> 
+
+\end{grammar}
 
 %%%%%%% DO NOT SECTION APPENDICES
