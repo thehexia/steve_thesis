@@ -3,9 +3,12 @@
 This appendix provides a complete guide of all syntax supported by the Steve programming language. All syntax is written in BNF (Backus-Naur Form). A few rules to keep in mind when reading the guide:
 
 \begin{itemize}
-\item All terms with the "-sequence" suffix refers to a comma separated list of the stem.
-\item All terms with the "-name" suffix refers to the name given to a declaration.
-\item All terms with the "-id" suffix are identifiers. The identifier must match a valid declaration name of the same kind as the stem.
+\item All terms with the "-sequence" suffix refers to a comma separated list of the stem term. For example \texttt{\textless expr-sequence\textgreater} means a comma seperated list of expressions.
+\item All terms with the "-name" suffix refers to a lexical name given to a declaration. For example \texttt{\textless variable-name\textgreater} means a variable name.
+\item All terms with the "-id" suffix are identifier expressions. These lexically refer to some declaration of the same kind as the stem term with a matching name. For example \texttt{\textless variable-id\textgreater} is a lexical identifier to some variable declaration.
+\item Terms encapsulated by square brackets (i.e. \texttt{[\textless term\textgreater]} ) means the term is optional.
+\item Terms followed by the plus token (i.e. \texttt{\textless term\textgreater +} ) means that "one or more of this term kind can appear here."
+\item All \textbf{bold} terms are terminal terms, e.g. terms which do not expand further.
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -43,10 +46,11 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 \textbf{\}}
 
 <field-decl> ::=
-<field-name> \textbf{\{} <scalar-type> \textbf{\{}
+<field-name> \textbf{:} <type> \textbf{;}
 
 <decoder-decl> ::=
 \textbf{decoder} <decoder-name> [\textbf{start}] 
+\textbf{(} <layout-id> \textbf{)}
 <block-statement>
 
 <table-decl> ::=
@@ -84,6 +88,7 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 
 <port-decl> ::=
 \textbf{Port} <port-name> \textbf{;}
+\alt \textbf{Port} <port-name> \textbf{=} <string-literal> \textbf{;}
 
 <extract-decl> ::=
 \textbf{extract} <field-name-expr> \textbf{;}
@@ -124,15 +129,14 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 \begin{grammar}
 
 <expr> ::=
-<field-name-expr>
+<id>
+\alt <field-name-expr>
 \alt <field-access-expr>
-\alt <in-port-expr>
-\alt <in-phys-port_expr>
-\alt <all-port-expr>
-\alt <controller-port-expr>
-\alt <reflow-port-expr>
 \alt <binary-expr>
 \alt <unary-expr>
+\alt <literal-expr>
+
+<id> ::= \textbf{*lexical identifier for a declaration}
 
 <field-name-expr> ::=
 <layout-id> \textbf{.} <field-id>
@@ -141,6 +145,15 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 <field-access-expr> ::=
 <layout-id> \textbf{.} <field-id>
 \alt <field-access-expr> \textbf{.} <field-id>
+
+<port-expr> ::=
+<port-id>
+\alt <in-port-expr>
+\alt <in-phys-port_expr>
+\alt <all-port-expr>
+\alt <controller-port-expr>
+\alt <reflow-port-expr>
+\alt <egress-port-expr>
 
 <in-port-expr> ::= \textbf{in\_port}
 
@@ -152,6 +165,8 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 
 <reflow-port-expr> ::= \textbf{reflow}
 
+<egress-port-expr> :: \textbf{egress}
+
 <binary-expr> ::= <expr>  + | - | / | *  <expr>
 \alt <expr>  \&\& | $\|$  <expr>
 \alt <expr> == | != <expr>
@@ -161,6 +176,162 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 <unary-expr> ::= 
 ! <expr>
 \alt - <expr>
+
+<literal-expr> ::=
+<decimal-literal>
+\alt <binary-literal>
+\alt <hexadecimal-literal>
+\alt <string-literal>
+
+<decimal-digit> ::= \textbf{0} | \textbf{1} | \textbf{2} | \textbf{3} | \textbf{4} | \textbf{5} | \textbf{6} | \textbf{7} | \textbf{8} | \textbf{9}
+
+<hexadecimal-digit> ::= \textbf{\_} | <decimal-digit> | \textbf{a} | \textbf{b} | \textbf{c} | \textbf{d} | \textbf{e} | \textbf{f}             
+
+<decimal-digit> ::= \textbf{\_} | \textbf{0} | \textbf{1}
+
+<character> ::= \textbf{* all available UTF-8 encoded characters}
+
+<decimal-literal> ::=
+<decimal-digit> +
+
+<hexadecimal-literal> ::=
+\textbf{0x} <hexadecimal-digit> +
+
+<binary-literal> ::=
+\textbf{0b} <binary-digit> +
+
+<string-literal> ::=
+\textbf{\"} [ <character> + ] \textbf{\"} 
+
+\end{grammar}
+\end{mdframed}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Statements & Actions
+
+\begin{mdframed}
+\begin{grammar}
+
+<stmt> ::=
+<expr-stmt>
+\alt <decl-stmt>
+\alt <block-stmt>
+\alt <return-stmt>
+\alt <assign-stmt>
+\alt <match-stmt>
+\alt <case-stmt>
+\alt <if-then-stmt>
+\alt <if-else-stmt>
+\alt <while-stmt>
+\alt <break-stmt>
+\alt <continue-stmt>
+\alt <action-stmt>
+
+<expr-stmt> ::= <expr> \textbf{;}
+
+<decl-stmt> ::= <decl> \textbf{;}
+
+<block-stmt> ::= 
+\textbf{\{}
+	[ <stmt> + ]
+\textbf{\}}
+
+<return-stmt> ::= \textbf{return;}
+
+<assign-stmt> ::= <decl-id> \textbf{=} <expr>
+
+<match-stmt> ::= \textbf{match} \textbf{(} <expr> \textbf{)}
+\textbf{\{}
+	[ <case-stmt> + ]
+\textbf{\}}
+
+<case-stmt> ::=
+\textbf{case} <literal-expr> \textbf{:} <stmt>
+\alt \textbf{miss:} <stmt>
+
+<if-then-stmt> ::= \textbf{if} \textbf{(} <expr> \textbf{)}
+<stmt>
+
+<if-else-stmt> ::= \textbf{if} \textbf{(} <expr> \textbf{)}
+<stmt> \textbf{else} <stmt>
+
+<while-stmt> ::= \textbf{while} \textbf{(} <expr> \textbf{)}
+<stmt>
+
+<break-stmt> ::= \textbf{break;}
+
+<continue-stmt> ::= \textbf{continue;}
+
+<action-stmt> ::=
+<decode-action>
+\alt <goto-action>
+\alt <output-action>
+\alt <drop-action>
+\alt <flood-action>
+\alt <clear-action>
+\alt <set-field-action>
+\alt <insert-flow-action>
+\alt <remove-flow-action>
+\alt <raise-action>
+\alt <write-action>
+
+<decode-action> ::=
+\textbf{decode} <decoder-decl-id> \textbf{;}
+
+<goto-action> ::=
+\textbf{goto} <table-decl-id> \textbf{;}
+
+<output-action> ::=
+\textbf{output} <port-expr> \textbf{;}
+
+<drop-action> ::= \textbf{drop;}
+
+<flood-action> ::= \textbf{flood;}
+
+<clear-action> ::= \textbf{clear;}
+
+<set-field-action> ::= \textbf{set} <field-access-expr> \textbf{=} <expr> \textbf{;}
+
+<insert-flow-action> ::= \textbf{insert} <flow-decl> \textbf{into} <table-id> \textbf{;}
+
+<remove-flow-action> ::= \textbf{remove} \textbf{\{} [ <expr> + ] \textbf{\}}
+\textbf{from} <table-id> \textbf{;}
+
+<raise-action> ::= \textbf{raise} <event-id> \textbf{;}
+
+<write-action> ::= \textbf{write} <action-stmt>
+
+\end{grammar}
+\end{mdframed}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Types
+
+\begin{mdframed}
+\begin{grammar}
+
+<type> ::=
+<scalar-type>
+\alt <aggregate-type>
+\alt <void-type>
+
+<scalar-type> ::=
+<integer-type>
+\alt <bool-type>
+
+<integer-type> ::=
+\textbf{int} [ \textbf{(} <decimal-literal> \textbf{)} ]
+\alt \textbf{uint} [ \textbf{(} <decimal-literal> \textbf{)} ]
+
+<bool-type> ::=
+\textbf{bool}
+
+<aggregate-type> ::=
+<struct-decl-id>
+
+<void-type> ::=
+\textbf{void}
 
 \end{grammar}
 \end{mdframed}

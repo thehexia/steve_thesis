@@ -8,16 +8,21 @@ For a complete reference of all Steve syntax, see Appendix \ref{ap:a}.
 
 \section{Layouts} \label{layout_tut}
 
-Before pipeline processing stages can be written, programmers must specify the physical structure of a packet header. To do this, they must make a layout declaration. A layout declaration is composed of a sequence of field declaration. Each field corresponds to a field in the header, and the type of each field must be given as a scalar type (most often unsigned integer) whose length corresponds to the field's length. Figure \ref{fg:layout_syntax} provides the syntax for layout declarations in BNF syntax.
+Before pipeline processing stages can be written, programmers must specify the physical structure of a packet header. To do this, they must use a \textbf{layout declaration}. A layout declaration is composed of a sequence of field declarations. Each field declaration corresponds to a field in the header. The type of each field must be given as a scalar type (usually integer) whose length corresponds to the field's length or a layout type (to allow nested headers). Figure \ref{fg:layout_syntax} provides the syntax for layout declarations in BNF notation.
 
 \begin{figure}
 \begin{mdframed}
 \begin{grammar}
+
 <layout-declaration> ::=
 \textbf{layout} <layout-name> 
 \textbf{\{}
 	<field-declaration> +
 \textbf{\}}
+
+<field-decl> ::=
+<field-name> \textbf{:} <type> \textbf{;}
+
 \end{grammar}
 \end{mdframed}
 \caption{Layout syntax for Steve in BNF.}
@@ -25,16 +30,18 @@ Before pipeline processing stages can be written, programmers must specify the p
 \end{figure}
 
 
-An example of this can be seen in Figure \ref{fg:ethernet_layout_ex} which declares a layout corresponding to the Ethernet II MAC header. An IPv4 header example can be seen in Figure \ref{fg:ipv4_layout_ex}.
+An example can be seen in Figure \ref{fg:ethernet_layout_ex} which declares a layout corresponding to the Ethernet II MAC header. 
 
-The ordering of field declarations in a layout must match the ordering that the corresponding fields appear in a real instance of that header. Keep in mind that a layout, though similar to a class, is not truly a class, and thus objects of layout type can never be created. Layouts are use to determine two things: what the offset of a given field is relative to the beginning of the header and the length of the field. These two pieces of information are important during decoding stages where these fields are extracted.
+The ordering of field declarations in a layout must match the ordering that the corresponding fields appear in a real instance of that header for layouts to function correctly during decoding stages. 
+
+Keep in mind that a layout, though similar to a class, is not a class. Objects of layout type can never be created, they cannot contain member functions, and their fields must all be of scalar or layout type. Layouts are use to determine two things: what the offset of a given field is relative to the beginning of the header and the length of the field. These two pieces of information are important during decoding stages where these fields are extracted. In this way, layouts more closely translate to extraction rules used during the decoding process. Classes, on the other hand, define the shape of objects in memory.
 
 \begin{figure}
-\begin{lstlisting}[frame=single]
+\begin{lstlisting}
 layout eth
 {
-  src : uint(48);
-  dst : uint(48);
+  dst  : uint(48);
+  src  : uint(48);
   type : uint(16);
 }
 \end{lstlisting}
@@ -42,4 +49,107 @@ layout eth
 \label{fg:ethernet_layout_ex}
 \end{figure}
 
+The primary reason for this differentiation in Steve are dynamically-sized fields in packet headers. Headers potentially have fields whose memory size is predicated upon some value discovered during runtime. These fields are said to have \textbf{dynamically sized type}. Some examples of this are the \texttt{options} fields in IPv4, IPv6, and TCP headers. Consider that when objects of any type are constructed, stack space must be allocated for them. Except, it is impossible to stack allocate an object whose size is not known during compilation without some hint about its maximum size. Such objects can only be heap allocated, which Steve does not currently support. 
 
+Furthermore, accessing these dynamically-sized fields, recovering their values, and performing operations on them would have to be done through special pointers to ensure the safety of such operations. For further details on layout limitations, refer to Section \ref{layout_guide} in the User's Guide.
+
+Steve does not currently support dynamically sized types. This is a language feature that will eventually be added, but is outside the scope of this thesis. Because of this, fields whose lengths are dynamic cannot currently be declared, extracted, nor used. 
+
+An IPv4 header example can be seen in Figure \ref{fg:ipv4_layout_ex}. Though most fields can be declared correctly, the \texttt{options} field is skipped due to this limitation.
+
+\begin{figure}
+\begin{lstlisting}
+layout ipv4
+{
+  version_ihl : uint(8);
+  dscp_ecn    : uint(8);
+  len         : uint(16);
+  id          : uint(16);
+  fragment    : uint(16);
+  ttl         : uint(8);
+  protocol    : uint(8);
+  checksum    : uint(16);
+  src         : uint(32);
+  dst         : uint(32);
+}
+\end{lstlisting}
+\caption{An example of how the IPv4 header is written in Steve. Note that the "options" field is not included because Steve does not currently support extraction or usage of dynamic length fields.}
+\label{fg:ipv4_layout_ex}
+\end{figure}
+
+\section{Decoders} \label{decoder_tut}
+
+\textbf{Decoders}, also referred to as decoding stages in the pipeline processing model,  are special purpose functions in Steve used to handle decoding and extracting fields in a given header. By chaining multiple decoders together, a user can construct a set of functions used to parse an entire packet. \textbf{Decoder declarations} are Steve's way of defining decoding stages. Figure \ref{fg:decoder_syntax} presents the syntax used to write decoders. Decoder declarations provide users the ability to:
+
+\begin{itemize}
+\item Declare which header is being decoded and which fields to extract from it.
+\item Perform arithmetic and logical operations on fields.
+\item Perform actions on the header. See Section \label{action_tut} for examples of action usage.
+\item Decide what processing stage comes next. Either the next header is determined and the packet is dispatched to that decoding stage, or the packet is dispatch to table matching.
+\end{itemize}
+
+\begin{figure}
+\begin{mdframed}
+\begin{grammar}
+
+<decoder-decl> ::=
+\textbf{decoder} <decoder-name> [\textbf{start}] 
+\textbf{(} <layout-id> \textbf{)}
+<block-statement>
+
+<extract-decl> ::=
+\textbf{extract} <field-name-expr> \textbf{;}
+
+<rebind-decl> ::=
+\textbf{extract} <field-name-expr> \textbf{as} <field-name-expr> \textbf{;}
+
+<field-name-expr> ::=
+<layout-id> \textbf{.} <field-id>
+\alt <field-name-expr> \textbf{.} <field-id>
+
+<field-access-expr> ::=
+<layout-id> \textbf{.} <field-id>
+\alt <field-access-expr> \textbf{.} <field-id>
+
+\end{grammar}
+\end{mdframed}
+\caption{Decoder syntax for Steve in BNF.}
+\label{fg:decoder_syntax}
+\end{figure}
+
+\subsection{Extractions} \label{decoder_extract_tut}
+
+The primary goal of decoders is to extract fields from headers. Assume we wanted to write a decoder to extract the \texttt{src} and \texttt{dst} fields from an ethernet header. We will need to use the layout defined in Figure \ref{fg:ethernet_layout_ex}. This layout will be used to determine the offset (location) and length of each field in the packet during decoding. More details on this process can be found in Section \ref{decoder_guide}. Remember, as stated in Section \ref{decoder_desc}, Steve allows for the partial decoding of packets, so if we do not need a field, in this case \texttt{type}, its not necessary to extract it.
+
+Figure \ref{fg:extract_ex} demonstrated how the extraction is written. The optional \texttt{start} keyword is used in the declaration to denote that this decoder is the first stage in the pipeline. Ethernet is the most commonly used data link layer protocol, making it the most common header to start with \cite{something}. There can only be one starting decoder. 
+
+To extract a field, the programmer writes an \textbf{extract declaration} which requires that a field be specified using a \textbf{field name}. A field name is used to refer to a field of a layout. In this case, \texttt{eth.dst} refers to the \texttt{dst} field of the \texttt{eth} layout.  Note that this is distinctly different from member access as the \texttt{eth} layout is not an object. 
+
+In Figure \ref{fg:extract_ex}, the first extract declaration (\texttt{extract eth.dst;}) says that the decoder extracts the \texttt{dst} field of the \texttt{eth} header. The second extract declaration (\texttt{extract eth.src;}) says that the decoder extracts the \texttt{src} field of the \text{eth} header. 
+
+A decoder can only extract fields from a single header. If an attempt is made to extract a field from a different header than the one specified for that decoder, a compiler error is emitted.
+
+\begin{figure}
+\begin{lstlisting}
+decoder start eth_decode(eth)
+{
+  extract eth.dst;
+  extract eth.src;
+  // More code to follow...
+}
+\end{lstlisting}
+\caption{An example of how to extract \texttt{src} and \texttt{dst} fields from the ethernet header using a decoder. Note we do not extract the \texttt{type} field here.}
+\label{fg:extract_ex}
+\end{figure}
+
+\subsection{Accessing Extracted Fields} \label{decoder_access_tut}
+
+\subsection{Moving to Other Stages} \label{decoder_next_tut}
+
+\section{Tables} \label{table_tut}
+
+\section{Actions} \label{action_tut}
+
+\section{Events} \label{event_tut}
+
+\section{Examples} \label{examples_tut}

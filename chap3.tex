@@ -4,7 +4,7 @@ The Steve programming language uses a pipeline model for processing packets. A p
 
 The pipeline is thus a state machine. Each processing stage denotes a state in the machine. Each state has a set of conditions which, when met, causes the packet to transition states. This can be represented as a graph where each processing stage is a node on the graph and each state transition is an edge connecting stages.
 
-\section{Decoding Stage}
+\section{Decoding Stage} \label{decoder_desc}
 
 When a packet is received, it is simply a chunk of raw, uninterpreted data. Before a packet can be processed and routed, its headers and fields must be decoded and extracted so that meaningful decisions can be made about what to do with the packet. The decoding stage is responsible for ensuring this happens.
 
@@ -15,7 +15,7 @@ Full decodes waste valuable processing time. Efficiency is important when dealin
 This inherent inefficiency is why Steve proposes the idea of a \textit{partial decode}. Unlike other similar languages, Steve is designed to allow programmers to specify the extraction of only specific fields rather than an entire header. Though the specification may be verbose in some cases, it makes programmers think very carefully about which fields they need and which fields they do not.
 
 Additionally, Steve proposes that not all headers need to be decoded. For example, if a networking application only needs to forward using MAC addresses, there is no reason to waste time extracting fields from IPv4 or IPv6 headers, and so on.
-
+ 
 \subsection{Packet Context}
 
 As a packet moves between stages, information such as the position and length of fields and headers must be saved so that they can be recovered when needed in later stages of the pipeline. Remember, tables classify packets and perform actions on them based on the values of extracted fields. To save this information, Steve applications uses a data structure called the packet \textbf{context}. Specifically, a Steve context saves the following data:
@@ -45,7 +45,7 @@ The implementation of environments in Steve is a fixed-sized array where each el
 
 Figure \ref{fg:ContextEnvWorking} demonstrates how data is stored in the context as it is being decoded. The example is a packet which contains an encapsulated IPv4 header commonly used in IP tunneling. In the ethernet decoding stage which extract the \texttt{src}, \texttt{dst}, and \texttt{type} field are extracted and stored in the context. Next we determine that IPv4 follows based on the \texttt{type} field. We extract IPv4 \texttt{dst} and \texttt{protocol}. The \texttt{protocol} field tells us we have another IPv4 header after the current one. We move to decode that and once again we extract IPv4 \texttt{dst} and \texttt{protocol}. Note how the new values of IPv4 are pushed on top of the binding stack. Any further usage of those fields will use the latest values extracted for those fields. Keep in mind that this means any usage of the first set of IPv4 \texttt{dst} and \texttt{protocol} must occur before the decoding of the second IPv4 header.
 
-\section{Table Stage}
+\section{Table Stage} \label{table_desc}
 
 Table stages handle matching the extracted fields, i.e. classification, and perform a sequence of desired actions on like-classified packets. Tables used in the Steve runtime use similar semantics to the OpenFlow specification \cite{openflow_spec}. A table stage is comprised of two parts: the table and a set of unique flow entries.
 
@@ -60,7 +60,7 @@ When a packet reaches a table matching stage, the value of the fields that the t
 If no such flow entry matches the packet's key, the \textbf{miss case} flow entry is applied to the packet instead. By default, a miss in a table results in the packet being dropped. With Steve, a programmer can also specify a user-defined miss case. Miss cases always have the lowest possible priority amongst flow entries and each sub-key can be considered a wildcard value.
 
 
-\section{Pipeline Composition}
+\section{Pipeline Composition} \label{pipeline_comp_desc}
 
 Kinds of processing stages can be interleaved together in any order within the pipeline. This means that Steve is capable of supporting different packet processing paradigms found in other research such as POF and P4. With the Steve pipeline specification language a user can specify that a pipeline does:
 
