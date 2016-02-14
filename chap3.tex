@@ -36,7 +36,7 @@ Since any given packet can contain one or more of any field or header with the s
 
 The implementation of environments in Steve is a fixed-sized array where each element in the array is a fixed-sized binding stack. Each index in the array represents a unique field or header name extracted by the Steve application. The compiler is responsible for associating all unique fields extracted during the decoding stage to unique integer indices into the array. The same is done for all unique headers. This provides constant time lookup of field bindings without the overhead of hashing found in environments which use complex name mappings.
 
-\begin{figure}[ht]
+\begin{figure}
 \centering
 		\includegraphics[scale=0.75]{context}
 \caption{The binding environment inside a context used to store the length and offset of fields, or the offset of headers. On the left, fields one through sixteen represent the fields that can be extracted. Each field maintains a binding list (stack). Each element in the binding list is a binding which stores the offset and length where each instance of that field can be found in the packet. }

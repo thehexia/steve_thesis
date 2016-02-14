@@ -6,7 +6,40 @@ Throughout this chapter there be small semantic details mentioned when necessary
 
 For a complete reference of all Steve syntax, see Appendix \ref{ap:a}.
 
-\section{Layouts} \label{Layout_tut}
+\section{Layouts} \label{layout_tut}
 
-Before pipeline processing stages can be written, programmers must specify the physical structure of a packet header. 
+Before pipeline processing stages can be written, programmers must specify the physical structure of a packet header. To do this, they must make a layout declaration. A layout declaration is composed of a sequence of field declaration. Each field corresponds to a field in the header, and the type of each field must be given as a scalar type (most often unsigned integer) whose length corresponds to the field's length. Figure \ref{fg:layout_syntax} provides the syntax for layout declarations in BNF syntax.
+
+\begin{figure}
+\begin{mdframed}
+\begin{grammar}
+<layout-declaration> ::=
+\textbf{layout} <layout-name> 
+\textbf{\{}
+	<field-declaration> +
+\textbf{\}}
+\end{grammar}
+\end{mdframed}
+\caption{Layout syntax for Steve in BNF.}
+\label{fg:layout_syntax}
+\end{figure}
+
+
+An example of this can be seen in Figure \ref{fg:ethernet_layout_ex} which declares a layout corresponding to the Ethernet II MAC header. An IPv4 header example can be seen in Figure \ref{fg:ipv4_layout_ex}.
+
+The ordering of field declarations in a layout must match the ordering that the corresponding fields appear in a real instance of that header. Keep in mind that a layout, though similar to a class, is not truly a class, and thus objects of layout type can never be created. Layouts are use to determine two things: what the offset of a given field is relative to the beginning of the header and the length of the field. These two pieces of information are important during decoding stages where these fields are extracted.
+
+\begin{figure}
+\begin{lstlisting}[frame=single]
+layout eth
+{
+  src : uint(48);
+  dst : uint(48);
+  type : uint(16);
+}
+\end{lstlisting}
+\caption{An example of how the ethernet header is written in Steve.}
+\label{fg:ethernet_layout_ex}
+\end{figure}
+
 

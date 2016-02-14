@@ -1,25 +1,168 @@
 \chapter{Syntax Reference} \label{ap:a}
 
+This appendix provides a complete guide of all syntax supported by the Steve programming language. All syntax is written in BNF (Backus-Naur Form). A few rules to keep in mind when reading the guide:
 
+\begin{itemize}
+\item All terms with the "-sequence" suffix refers to a comma separated list of the stem.
+\item All terms with the "-name" suffix refers to the name given to a declaration.
+\item All terms with the "-id" suffix are identifiers. The identifier must match a valid declaration name of the same kind as the stem.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Declarations
+
+\begin{mdframed}
 \begin{grammar}
 
-<program> ::= <declaration-sequence>
+<program> ::= <global-decl> +
 
-<declaration-sequence> ::= <global-declaration> <declaration-sequence> | <global-declaration>
+<decl> ::=
+<global-decl>
+\alt <key-decl>
+\alt <extract-decl>
+\alt <rebind-decl>
+\alt <field-decl>
+\alt <method-decl>
+\alt <parameter-decl>
 
-<global-declaration> :: = 
+<global-decl> :: =
 <port-decl>
+\alt <layout-decl>
 \alt <decoder-decl>
 \alt <table-decl>
 \alt <event-decl>
+\alt <port-decl>
+\alt <variable-decl>
+\alt <function-decl>
+\alt <struct-decl>
 
-%<test-statement> ::= <ident> `=' <expr> 
-%\alt `for' <ident> `=' <expr> `to' <expr> `do' <statement> 
-%\alt `{' <stat-list> `}' 
-%\alt <empty> 
-%
-%<stat-list> ::= <statement> `;' <stat-list> | <statement> 
+<layout-decl> ::=
+\textbf{layout} <layout-name> 
+\textbf{\{}
+	<field-decl> +
+\textbf{\}}
+
+<field-decl> ::=
+<field-name> \textbf{\{} <scalar-type> \textbf{\{}
+
+<decoder-decl> ::=
+\textbf{decoder} <decoder-name> [\textbf{start}] 
+<block-statement>
+
+<table-decl> ::=
+\textbf{table} <table-name> \textbf{(} <key-decl-sequence> \textbf{)} 
+[ <requires-clause> ]
+\textbf{\{} 
+<flow-decl> + 
+\textbf{\}}
+
+<key-decl> ::=
+<layout-id> \textbf{.} <field-id>
+\alt <key-decl> \textbf{.} <field-id>
+\alt \textbf{in\_port}
+\alt \textbf{in\_phys\_port}
+
+<requires-clause> ::=
+\textbf{requires} \textbf{(} <field-name-expr-sequence> \textbf{)}
+
+<flow-decl> ::=
+\textbf{\{} [<expr-sequence>] \textbf{\}} \textbf{-\textgreater}
+\textbf{\{} 
+<action> +
+\textbf{\}}
+\alt <miss-flow-decl>
+
+<miss-flow-decl> ::=
+\textbf{miss} \textbf{-\textgreater}
+\textbf{\{} 
+<action> +
+\textbf{\}}
+
+<event-decl> ::=
+\textbf{event} <event-name> <requires-clause> 
+<block-statement>
+
+<port-decl> ::=
+\textbf{Port} <port-name> \textbf{;}
+
+<extract-decl> ::=
+\textbf{extract} <field-name-expr> \textbf{;}
+
+<rebind-decl> ::=
+\textbf{extract} <field-name-expr> \textbf{as} <field-name-expr> \textbf{;}
+
+<function-decl> ::=
+\textbf{def} <function-name> \textbf{-\textgreater} <type> 
+\textbf{(} [<parameter-decl-sequence>] \textbf{)} <block-statement>
+
+<parameter-decl> ::=
+<parameter-name> \textbf{:} <type-id>
+
+<variable-decl> ::=
+\textbf{var} <variable-name> \textbf{:} <type-id> \textbf{=} <expression>
+
+<struct-decl> ::=
+\textbf{struct} <struct-name>
+\textbf{\{}
+	<member-decl> +
+\textbf{\}}
+
+<member-decl> ::=
+<field-decl>
+\alt <method-decl>
+
+<method-decl> ::= <function-decl>
+
 
 \end{grammar}
+\end{mdframed}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Expressions
+
+\begin{mdframed}
+\begin{grammar}
+
+<expr> ::=
+<field-name-expr>
+\alt <field-access-expr>
+\alt <in-port-expr>
+\alt <in-phys-port_expr>
+\alt <all-port-expr>
+\alt <controller-port-expr>
+\alt <reflow-port-expr>
+\alt <binary-expr>
+\alt <unary-expr>
+
+<field-name-expr> ::=
+<layout-id> \textbf{.} <field-id>
+\alt <field-name-expr> \textbf{.} <field-id>
+
+<field-access-expr> ::=
+<layout-id> \textbf{.} <field-id>
+\alt <field-access-expr> \textbf{.} <field-id>
+
+<in-port-expr> ::= \textbf{in\_port}
+
+<in-phys-port-expr> ::=  \textbf{in\_phys\_port}
+
+<all-port-expr> ::= \textbf{all}
+
+<controller-port-expr> ::= \textbf{controller}
+
+<reflow-port-expr> ::= \textbf{reflow}
+
+<binary-expr> ::= <expr>  + | - | / | *  <expr>
+\alt <expr>  \&\& | $\|$  <expr>
+\alt <expr> == | != <expr>
+\alt <expr>  \textless | \textless= | \textgreater | \textgreater=  <expr>
+\alt <expr>  \& | \string^ | \textbar  <expr>
+
+<unary-expr> ::= 
+! <expr>
+\alt - <expr>
+
+\end{grammar}
+\end{mdframed}
 
 %%%%%%% DO NOT SECTION APPENDICES
