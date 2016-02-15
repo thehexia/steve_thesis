@@ -38,7 +38,7 @@ The implementation of environments in Steve is a fixed-sized array where each el
 
 \begin{figure}
 \centering
-		\includegraphics[scale=0.75]{context}
+		\includegraphics[scale=0.75,natwidth=203,natheight=298]{context.png}
 \caption{The binding environment inside a context used to store the length and offset of fields, or the offset of headers. On the left, fields one through sixteen represent the fields that can be extracted. Each field maintains a binding list (stack). Each element in the binding list is a binding which stores the offset and length where each instance of that field can be found in the packet. }
 \label{fg:ContextEnv}
 \end{figure}

@@ -30,7 +30,7 @@ Before pipeline processing stages can be written, programmers must specify the p
 \end{figure}
 
 
-An example can be seen in Figure \ref{fg:ethernet_layout_ex} which declares a layout corresponding to the Ethernet II MAC header. 
+An example can be seen in Figure \ref{fg:ethernet_layout_ex} which declares a layout corresponding to the ethernet header \cite{eth_std}. 
 
 The ordering of field declarations in a layout must match the ordering that the corresponding fields appear in a real instance of that header for layouts to function correctly during decoding stages. 
 
@@ -55,7 +55,7 @@ Furthermore, accessing these dynamically-sized fields, recovering their values, 
 
 Steve does not currently support dynamically sized types. This is a language feature that will eventually be added, but is outside the scope of this thesis. Because of this, fields whose lengths are dynamic cannot currently be declared, extracted, nor used. 
 
-An IPv4 header example can be seen in Figure \ref{fg:ipv4_layout_ex}. Though most fields can be declared correctly, the \texttt{options} field is skipped due to this limitation.
+An IPv4 header example can be seen in Figure \ref{fg:ipv4_layout_ex}. Though most fields can be declared correctly, the \texttt{options} field is skipped due to this limitation. Also note that Steve does not support non-byte aligned data types, and thus the precision of all integers are multiples of 8.
 
 \begin{figure}
 \begin{lstlisting}
@@ -77,6 +77,30 @@ layout ipv4
 \label{fg:ipv4_layout_ex}
 \end{figure}
 
+Layouts can be nested together in case a programmer must deal with a header with structures nested inside them. In this case, a field declaration is used whose type is given as the identifier to layout declaration. Figure \ref{fg:nested_layout_ex} gives a trivial example of nested layouts.
+
+
+\begin{figure}
+\begin{lstlisting}
+layout eth
+{
+  dst  : uint(48);
+  src  : uint(48);
+  vlan_tag : vlan;
+  type : uint(16);
+}
+
+layout vlan
+{
+  tpid : uint(16);
+  tci  : uint(16);
+}
+\end{lstlisting}
+\caption{An example of a layout being nested inside another layout.}
+\label{fg:ethernet_layout_ex}
+\end{figure}
+
+
 \section{Decoders} \label{decoder_tut}
 
 \textbf{Decoders}, also referred to as decoding stages in the pipeline processing model,  are special purpose functions in Steve used to handle decoding and extracting fields in a given header. By chaining multiple decoders together, a user can construct a set of functions used to parse an entire packet. \textbf{Decoder declarations} are Steve's way of defining decoding stages. Figure \ref{fg:decoder_syntax} presents the syntax used to write decoders. Decoder declarations provide users the ability to:
@@ -84,7 +108,7 @@ layout ipv4
 \begin{itemize}
 \item Declare which header is being decoded and which fields to extract from it.
 \item Perform arithmetic and logical operations on fields.
-\item Perform actions on the header. See Section \label{action_tut} for examples of action usage.
+\item Perform actions on the header. See Section \ref{action_tut} for examples of action usage.
 \item Decide what processing stage comes next. Either the next header is determined and the packet is dispatched to that decoding stage, or the packet is dispatch to table matching.
 \end{itemize}
 
@@ -98,14 +122,14 @@ layout ipv4
 <block-statement>
 
 <extract-decl> ::=
-\textbf{extract} <field-name-expr> \textbf{;}
+\textbf{extract} <field-name> \textbf{;}
 
 <rebind-decl> ::=
-\textbf{extract} <field-name-expr> \textbf{as} <field-name-expr> \textbf{;}
+\textbf{extract} <field-name> \textbf{as} <field-name-expr> \textbf{;}
 
-<field-name-expr> ::=
+<field-name> ::=
 <layout-id> \textbf{.} <field-id>
-\alt <field-name-expr> \textbf{.} <field-id>
+\alt <field-name> \textbf{.} <field-id>
 
 <field-access-expr> ::=
 <layout-id> \textbf{.} <field-id>
@@ -143,6 +167,93 @@ decoder start eth_decode(eth)
 \end{figure}
 
 \subsection{Accessing Extracted Fields} \label{decoder_access_tut}
+
+After extracting a field from a header, a programmer will almost certainly want to use the field in some kind of operation whether that be arithmetic or logical. To use the \textit{value} of an extracted field, a programmer uses a \textbf{field access expression}. Field access expressions have the same grammar as field names, but they can be used wherever any expression is valid. The behaviour of field access expressions is similar to how the name of a variable can be used to mean the value stored in that variable in C-like languages.
+
+Figure \ref{fg:access_ex} demonstrates how the value of extracted fields can be used in Steve. In this scenario, we extract \texttt{eth.type} and use the value as a condition in a C-like if-else statement. We use this if-else statement to determine what the \texttt{type} field means. The IEEE ethernet standard says that if the \texttt{type} field is greater than or equal to hexadecimal \texttt{0x600}, then the value of the field is used to determine the kind of header encapsulated by the ethernet header \cite{eth_std}. Otherwise, if the \texttt{type} field is less than hexadecimal \texttt{0x05dc} used to refer to the length of the ethernet frame.
+
+\begin{figure}
+\begin{lstlisting}
+decoder start eth_decode(eth)
+{
+  extract eth.type;
+  
+  // Using a field access expression 
+  // with logical operator >=
+  if (eth.type >= 0x600)
+  {
+    // Then this is determines what 
+  }
+  // Using a field access expression 
+  // with logical operator <=
+  else if (eth.type <= 0x05dc)
+  {
+    // Then this is the length field.
+  }
+}
+\end{lstlisting}
+\caption{An example of accessing a field using the field access expression in an if-else statement.}
+\label{fg:access_ex}
+\end{figure}
+
+Field access expressions can also be used in arithmetic operations, bitwise operations, and can be stored and assigned to in local variables. Figure \ref{fg:assign_arith_ex} demonstrates how this can be done using an IPv4 decoder as an example. First it's shown that it's possible to assign the value of the header's \texttt{len} field to a local variable named \texttt{pktlen}. Next the example shows how to recover \texttt{ihl} and \texttt{version} from a single field (to deal with the limitation of only supporting byte-aligned fields) and store them in variables, as well as demonstrating bitwise-and and left-shift operations on fields. After that, the example demonstrates subtraction on the \texttt{ipv4.len} field to determine what the time-to-live will be after the packet leaves the current device.
+
+\begin{figure}
+\begin{lstlisting}
+decoder ipv4_decode(ipv4)
+{
+  extract ipv4.len;
+  extract ipv4.version_ihl;
+  extract ipv4.ttl;
+  
+  // We can assign to variables
+  var pktlen : uint = ipv4.len;
+  
+  // We can perform bitwise operations.
+  var ihl : uint(8) = ipv4.version_ihl & 0x0f;
+  // We can also perform shifts.
+  var version : uint(8) = (ipv4.version_ihl & 0xf0) >> 4;
+  
+  // Determine what the Time-to-Live is after this
+  // device finishes with the packet.
+  var next_ttl : uint = ipv4.ttl - 1;
+}
+\end{lstlisting}
+\caption{Using arithmetic operations, bitwise operations, and variable assignment with fields in a Steve program.}
+\label{fg:assign_arith_ex}
+\end{figure}
+
+Field access expressions do have a number of limitations.
+A field access expression can only be used \textit{after} an extract declaration is used for that field. After all, it is impossible to recover the value of a field which has not been extracted. They cannot be used in decoders which have not extracted that field. A decoder focuses on exactly one header and has no knowledge of previous headers or extractions. Field access expressions cannot be assigned to. To modify the value of a field in a header, an action must be used (see Section \ref{action_tut}). Figure \ref{fg:bad_access_ex} shows incorrect usage of field access expressions.
+
+\begin{figure}
+\begin{lstlisting}
+decoder start eth_decode(eth)
+{
+  // Error: Cannot use eth.type before its extracted.
+  if (eth.type >= 0x600) 
+  {
+    // Do something...
+  }
+  
+  extract eth.type;
+  
+  // Error: Cannot assign to a field this way.
+  eth.type = 0x800;
+}
+
+decoder ipv4_decode(ipv4)
+{
+  // Error: eth.type was not extracted by this decoder.
+  if (eth.type == 0x800)
+  {
+    // Do something...
+  }
+}
+\end{lstlisting}
+\caption{An example of incorrect field access.}
+\label{fg:bad_access_ex}
+\end{figure}
 
 \subsection{Moving to Other Stages} \label{decoder_next_tut}
 

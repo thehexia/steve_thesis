@@ -67,14 +67,25 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 \alt \textbf{in\_phys\_port}
 
 <requires-clause> ::=
-\textbf{requires} \textbf{(} <field-name-expr-sequence> \textbf{)}
+\textbf{requires} \textbf{(} <field-name-sequence> \textbf{)}
 
 <flow-decl> ::=
+<properties-block>
 \textbf{\{} [<expr-sequence>] \textbf{\}} \textbf{-\textgreater}
 \textbf{\{} 
 <action> +
 \textbf{\}}
 \alt <miss-flow-decl>
+
+<properties-block> ::=
+\textbf{[} <property-sequence> \textbf{]}
+
+<property> ::=
+<property-kind> \textbf{=} <expr>
+
+<property-kind> ::=
+\textbf{timeout}
+\alt \textbf{egress}
 
 <miss-flow-decl> ::=
 \textbf{miss} \textbf{-\textgreater}
@@ -91,10 +102,10 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 \alt \textbf{Port} <port-name> \textbf{=} <string-literal> \textbf{;}
 
 <extract-decl> ::=
-\textbf{extract} <field-name-expr> \textbf{;}
+\textbf{extract} <field-name> \textbf{;}
 
 <rebind-decl> ::=
-\textbf{extract} <field-name-expr> \textbf{as} <field-name-expr> \textbf{;}
+\textbf{extract} <field-name> \textbf{as} <field-name> \textbf{;}
 
 <function-decl> ::=
 \textbf{def} <function-name> \textbf{-\textgreater} <type> 
@@ -130,7 +141,6 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 
 <expr> ::=
 <id>
-\alt <field-name-expr>
 \alt <field-access-expr>
 \alt <binary-expr>
 \alt <unary-expr>
@@ -138,9 +148,9 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 
 <id> ::= \textbf{*lexical identifier for a declaration}
 
-<field-name-expr> ::=
+<field-name> ::=
 <layout-id> \textbf{.} <field-id>
-\alt <field-name-expr> \textbf{.} <field-id>
+\alt <field-name> \textbf{.} <field-id>
 
 <field-access-expr> ::=
 <layout-id> \textbf{.} <field-id>
