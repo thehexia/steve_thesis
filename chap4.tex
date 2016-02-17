@@ -386,9 +386,9 @@ Figure \ref{fg:table_syntax} provides the syntax for writing tables and flow ent
 
 To write a complete exact match table, the programmer must specify 1) what fields are being used for classification, 2) what additional fields need to be extracted by a decoder before reaching the table, and 3) a set of flow entries. 
 
-A basic static routing table can found in Figure \ref{fg:basic_table_ex}. This code declares a table named \texttt{route} which matches on \texttt{ipv4.dst} and \texttt{ipv4.protocol}. In addition, it requires that \texttt{ipv4.ttl} be extracted. All fields which are part of the table's key are implicitly required to be extracted. Assume that the system has some preconfigured ports with the configuration given in \texttt{p1} and \texttt{p2}. We define two initial flow entries and a miss case for when packets cannot be classified as either entry. 
+A basic static routing table can found in Figure \ref{fg:basic_table_ex}. This code declares a table named \texttt{route} whose key is composed of \texttt{ipv4.dst} and \texttt{ipv4.protocol}. This table is said to \textit{match} on these two fields. In addition, this table requires that \texttt{ipv4.ttl} be extracted. All fields which are part of the table's key are implicitly required to be extracted.
 
-The first flow entry matches packets whose IP destination address is 69.89.31.226 and whose data protocol is UDP (0x11). The first flow entry matches packets whose IP destination address is 10.24.200.50 and whose data protocol is also UDP.
+Assume that the system has some preconfigured ports with the configuration given in \texttt{p1} and \texttt{p2}. We define two initial flow entries and a miss case for when packets cannot be classified as either entry. The first flow entry matches packets whose IP destination address is 69.89.31.226 and whose data protocol is UDP (0x11). Packets with these properties are egressed out port \texttt{p1}. The second flow entry matches packets whose IP destination address is 10.24.200.50 and whose data protocol is also UDP. Packets with these properties are egressed out port \texttt{p2}. In both cases, the \texttt{ipv4.ttl} is decremented by 1 using the \texttt{set} action which is discussed in Section \ref{set_action_tut}.
 
 \begin{figure}
 \begin{lstlisting}
@@ -406,6 +406,7 @@ exact_table t1(ipv4.dst, ipv4.protocol)
   { 0x45_59_1f_e2, 0x11 } ->
   // This block defines the sequence of actions.
   {
+    // Setting a field in the header.
     set ipv4.ttl = ipv4.ttl - 1;
     // output the packet to port p1
     output p1;
@@ -432,9 +433,13 @@ exact_table t1(ipv4.dst, ipv4.protocol)
 \end{figure}
 
 
+It \textit{is} possible to have tables which match on fields from different headers, even though this example does not. Unlike decoders, tables have a wider perspective on packets, beyond just a single header.
+
+Note that \textbf{field access expressions} can appear inside flows. The only limitation is that field access can only occur on fields which the table either matches on or requires explicitly.
+
 \section{Actions} \label{action_tut}
 
-Actions are used to change packets, action sets, and the pipeline. Steve supports ten actions with more anticipated in the future.
+Actions are used to change packets, action sets, and the pipeline. Steve supports eleven actions with more anticipated in the future. Actions can be used in both decoders and flows in Steve. Figure \ref{fg:action_syntax} gives the Steve syntax for supported actions.
 
 \begin{figure}
 \begin{mdframed}
@@ -483,6 +488,146 @@ Actions are used to change packets, action sets, and the pipeline. Steve support
 \caption{Action syntax for Steve in BNF.}
 \label{fg:action_syntax}
 \end{figure}
+
+\subsection{Decode Action} \label{decode_action_tut}
+
+The \texttt{decode} action is used to move a packet from the current stage to a decoding stage. Assume we want to move to an IPv4 decoder named \texttt{ipv4\_decode}, the action would be written as:
+
+\begin{lstlisting}
+decode ipv4_decode;
+\end{lstlisting}
+
+Remember that there is also an optional \texttt{advance} clause which can occur if the "view" of the packet must be explicitly shifted by some special number of bytes. For example, if the current decoder is for IPv4, and the next decoder is named \texttt{udp\_decode}, the action would be written as:
+
+\begin{lstlisting}
+decode udp_decode advance (ipv4.version_ihl & 0x0f) * 4
+\end{lstlisting}
+
+\subsection{Goto Action} \label{goto_action_tut}
+
+The \texttt{goto} action is used to move a packet from the current stage to a table matching stage. Assume we want to move to a table named \texttt{t1}, the action would be written as:
+
+\begin{lstlisting}
+goto t1;
+\end{lstlisting}
+
+Similar to the \texttt{decode} action, the \texttt{goto} action also supports an optional advance clause. For example, if the current decoder is for IPv4, and the table the programmer wants to dispatch to is named \texttt{t1}, the action would be written as:
+
+\begin{lstlisting}
+goto t1 advance (ipv4.version_ihl & 0x0f) * 4
+\end{lstlisting}
+
+\subsection{Output Action} \label{output_action_tut}
+
+The \texttt{output} action is used to egress the packet on a certain port. The action requires that either a user-declared or reserved port is specified. Assuming that a port named \texttt{p1} was declared, to output to this port the action would be written as:
+
+\begin{lstlisting}
+output p1;
+\end{lstlisting}
+
+Every packet implicitly has an \texttt{in\_port} and \texttt{in\_phys\_port} which can be used as such:
+
+\begin{lstlisting}
+output in_port;
+
+output in_phys_port;
+\end{lstlisting}
+
+Flow entries all have an \texttt{egress} port property which can be set by the programmer. When executing a flow, if this property has been set, the packet can be output to this \texttt{egress} port using:
+
+\begin{lstlisting}
+output egress;
+\end{lstlisting}
+
+Steve also supports the number of reserved ports which can be used.
+
+\begin{lstlisting}[float]
+// Outputs to all ports on the system.
+output all; 
+
+// Outputs to a controller
+output controller; 
+
+// Sends the packet back to the beginning of the pipeline
+output reflow; 
+\end{lstlisting}
+
+\subsection{Drop Action} \label{drop_action_tut}
+
+A packet can be dropped by the Steve application using:
+
+\begin{lstlisting}
+drop;
+\end{lstlisting}
+
+No further processing can be done on a dropped packet.
+
+\subsection{Flood Action} \label{flood_action_tut}
+
+A packet can be flooded to all ports except the packet's ingress port using the \texttt{flood} action.
+
+\begin{lstlisting}
+flood;
+\end{lstlisting}
+
+\subsection{Set Action} \label{set_action_tut}
+
+A \texttt{set} action can be used to write to any extracted field within a packet. The \texttt{set} action is only valid if the field given by the field access expression is valid in that stage.
+
+\begin{lstlisting}[float]
+set ipv4.ttl = ipv4.ttl - 1;
+\end{lstlisting}
+
+\subsection{Insert Flow Action} \label{insert_flow_action_tut}
+
+Inserting flow entries into a table is a Steve action not explicitly supported by the OpenFlow standard. Flow entries can be inserted with static key values and no properties.
+
+\begin{lstlisting}[float]
+insert
+{ 0x10_10_10_10, 0x11 } ->
+{
+  output p1;
+} into t1;
+\end{lstlisting}
+
+They can also be inserted with field values of the current packet and with optional properties.
+
+\begin{lstlisting}[float]
+insert
+[timeout = 1000, egress = in_port]
+{ ipv4.src, ipv4.protocol } ->
+{
+  output egress;
+} into t1;
+\end{lstlisting}
+
+In this case, the flow entry uses the \texttt{ipv4.src} and \texttt{ipv4.dst} fields of current packet as values for the inserted flow entry's key. It also sets the timeout to 1000 and sets the \texttt{egress} property to the current packet's \texttt{in_port}, making the \texttt{output egress} action valid.
+
+\subsection{Remove Flow Action} \label{remove_flow_action_tut}
+
+A flow entry can be removed from a table by providing a key and the name of the table to remove the flow entry from. This can be done with static values or dynamic field values of the current packet.
+
+\begin{lstlisting}[float]
+// Removal with static values
+remove { 0x10_10_10_10, 0x11 } from t1;
+
+// Or dynamic values.
+remove {ipv4.dst, ipv4.protocol } from t1;
+\end{lstlisting}
+
+\subsection{Write Action} \label{write_action_tut}
+
+The context data structure which is used to retain information about a packet keeps an action set. This action set is a set of actions which are written to the context using the \texttt{write} action. All actions in this section except the \texttt{raise} action can be written to an action set.
+
+\subsection{Clear Action} \label{clear_action_tut}
+
+The clear action removes all actions from the context's action set. The action is written as:
+
+\begin{lstlisting}
+clear;
+\end{lstlisting}
+
+\subsection{Raise Action} \label{raise_action_tut}
 
 \section{Events} \label{event_tut}
 
