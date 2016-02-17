@@ -188,7 +188,7 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 \alt - <expr>
 
 <literal-expr> ::=
-<decimal-literal>
+<integer-literal>
 \alt <binary-literal>
 \alt <hexadecimal-literal>
 \alt <string-literal>
@@ -197,11 +197,11 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 
 <hexadecimal-digit> ::= \textbf{\_} | <decimal-digit> | \textbf{a} | \textbf{b} | \textbf{c} | \textbf{d} | \textbf{e} | \textbf{f}             
 
-<decimal-digit> ::= \textbf{\_} | \textbf{0} | \textbf{1}
+<binary-digit> ::= \textbf{\_} | \textbf{0} | \textbf{1}
 
 <character> ::= \textbf{* all available UTF-8 encoded characters}
 
-<decimal-literal> ::=
+<integer-literal> ::=
 <decimal-digit> +
 
 <hexadecimal-literal> ::=
@@ -331,14 +331,15 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 \alt <bool-type>
 
 <integer-type> ::=
-\textbf{int} [ \textbf{(} <decimal-literal> \textbf{)} ]
-\alt \textbf{uint} [ \textbf{(} <decimal-literal> \textbf{)} ]
+\textbf{int} [ \textbf{(} <integer-literal> \textbf{)} ]
+\alt \textbf{uint} [ \textbf{(} <integer-literal> \textbf{)} ]
 
 <bool-type> ::=
 \textbf{bool}
 
 <aggregate-type> ::=
 <struct-decl-id>
+<layout-decl-id>
 
 <void-type> ::=
 \textbf{void}
