@@ -2,6 +2,8 @@
 
 This chapter provides a tutorial on the syntax of Steve and using its language features. Steve's primary focus is to provide language features for declaring, specifying, and constructing the pipeline processing stages described in Chapter \ref{pipeline_model}. This chapter will explain how to represent packet headers, how to write decoding stages, how to write table stages, and how to use actions.
 
+By the end of this chapter, a user should be able to write many basic network applications using Steve. Two such applications will be presented; a simple learning switch and a simple learning router. Each example will be composed of smaller components described in this tutorial. 
+
 Throughout this chapter there be small semantic details mentioned when necessary. For complete details on the semantics of Steve, see the User's Guide in Chapter \ref{users_guide}.
 
 For a complete reference of all Steve syntax, see Appendix \ref{ap:a}.
@@ -9,8 +11,6 @@ For a complete reference of all Steve syntax, see Appendix \ref{ap:a}.
 \section{Layouts} \label{layout_tut}
 
 Before pipeline processing stages can be written, a \textbf{layout} is used to describe the physical structure of a packet header, i.e. what fields they have and the respective lengths of those fields. Figure \ref{fg:layout_syntax} provides the syntax for layout declarations in BNF notation.
-
-A \textbf{layout declaration} is composed of a sequence of \textbf{field declarations}. Each field declaration corresponds to a field in a header. The type of each field declaration defines the length of the corresponding field in a header. Each field declaration in a layout must be written in the same order with which the field appears in a real instance of the header. If the ordering does not match, layouts will not function correctly during decoding stages. 
 
 \begin{figure}
 \begin{mdframed}
@@ -44,7 +44,8 @@ A \textbf{layout declaration} is composed of a sequence of \textbf{field declara
 \label{fg:layout_syntax}
 \end{figure}
 
-A field declaration within a layout is limited to being one of two different types. The first of these types is scalar type (most often a signed/unsigned integer type). Integer types can be given with an optional bit-length precision, with the default being 32-bits if no precision is specified. This bit-length precision is used to determine the length of the field. An example of a layout corresponding to the ethernet header \cite{eth_std} can be seen in Figure \ref{fg:ethernet_layout_ex}. The \texttt{src} and \texttt{dst} fields are 48-bits, or 6 bytes, long. The \texttt{type} field is 16-bits, or 2 bytes, long.
+
+An example of a layout declaration corresponding to the ethernet header \cite{eth_std} can be seen in Figure \ref{fg:ethernet_layout_ex}. The \texttt{src} and \texttt{dst} fields are 48-bits, or 6 bytes, long. The \texttt{type} field is 16-bits, or 2 bytes, long.
 
 \begin{figure}
 \begin{lstlisting}
@@ -58,6 +59,10 @@ layout eth
 \caption{An example of how the ethernet header is written in Steve.}
 \label{fg:ethernet_layout_ex}
 \end{figure}
+
+A \textbf{layout declaration} is composed of a sequence of \textbf{field declarations}. Each field declaration corresponds to a field in a header. The type of each field declaration defines the length of the corresponding field in a header. Each field declaration in a layout must be written in the same order with which the field appears in a real instance of the header. If the ordering does not match, layouts will not function correctly during decoding stages. 
+
+A field declaration within a layout is limited to being one of two different types. The first of these types is scalar type (most often a signed/unsigned integer type). Integer types can be given with an optional bit-length precision, with the default being 32-bits if no precision is specified. This bit-length precision is used to determine the length of the field.
 
 The second supported type is layout type. This allows layouts to be nested together in case a programmer must deal with a header with structures nested inside them. In this case, a field declaration is used whose type is given as the identifier to layout declaration. Figure \ref{fg:nested_layout_ex} gives a trivial example of nested layouts.
 
@@ -601,7 +606,7 @@ insert
 } into t1;
 \end{lstlisting}
 
-In this case, the flow entry uses the \texttt{ipv4.src} and \texttt{ipv4.dst} fields of current packet as values for the inserted flow entry's key. It also sets the timeout to 1000 and sets the \texttt{egress} property to the current packet's \texttt{in_port}, making the \texttt{output egress} action valid.
+In this case, the flow entry uses the \texttt{ipv4.src} and \texttt{ipv4.dst} fields of current packet as values for the inserted flow entry's key. It also sets the timeout to 1000 and sets the \texttt{egress} property to the current packet's \texttt{in\_port}, making the \texttt{output egress} action valid.
 
 \subsection{Remove Flow Action} \label{remove_flow_action_tut}
 
