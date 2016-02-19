@@ -2,6 +2,12 @@
 
 \section{Layouts} \label{layout_guide}
 
+First of all, the reason each field must be of scalar or layout type is because it makes no sense to have types which cannot appear 
+
+The primary reason for this differentiation in Steve are dynamically-sized fields in packet headers. Headers potentially have fields whose memory size is predicated upon some value discovered during runtime. These fields are said to have \textbf{dynamically sized type}. Some examples of this are the \texttt{options} fields in IPv4, IPv6, and TCP headers. Consider that when objects of any type are constructed, stack space must be allocated for them. Except, it is impossible to stack allocate an object whose size is not known during compilation without some hint about its maximum size. Such objects can only be heap allocated, which Steve does not currently support. 
+
+Furthermore, accessing these dynamically-sized fields, recovering their values, and performing operations on them would have to be done through special pointers to ensure the safety of such operations.
+
 \section{Decoders} \label{decoder_guide}
 
 \section{Tables} \label{table_guide}

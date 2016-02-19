@@ -4,15 +4,186 @@ This chapter provides a tutorial on the syntax of Steve and using its language f
 
 By the end of this chapter, a user should be able to write many basic network applications using Steve. Two such applications will be presented; a simple learning switch and a simple learning router. Each example will be composed of smaller components described in this tutorial. 
 
-Throughout this chapter there be small semantic details mentioned when necessary. For complete details on the semantics of Steve, see the User's Guide in Chapter \ref{users_guide}.
+This chapter will briefly mention semantic details and limitations of each language feature. For complete look at the semantics and limitations of Steve, see the User's Guide in Chapter \ref{users_guide}. For a complete reference of all Steve syntax, see Appendix \ref{ap:a}.
 
-For a complete reference of all Steve syntax, see Appendix \ref{ap:a}.
+\section{General Purpose Language Features} \label{gen_purp_tut}
+
+\begin{figure}
+\begin{mdframed}
+\begin{grammar}
+
+<function-decl> ::=
+\textbf{def} <function-name> \textbf{-\textgreater} <type> 
+\textbf{(} [<parameter-decl-sequence>] \textbf{)} <block-statement>
+
+<parameter-decl> ::=
+<parameter-name> \textbf{:} <type-id>
+
+<variable-decl> ::=
+\textbf{var} <variable-name> \textbf{:} <type-id> \textbf{=} <expression>
+
+<stmt> ::=
+<expr-stmt>
+\alt <decl-stmt>
+\alt <block-stmt>
+\alt <return-stmt>
+\alt <assign-stmt>
+\alt <match-stmt>
+\alt <case-stmt>
+\alt <if-then-stmt>
+\alt <if-else-stmt>
+\alt <while-stmt>
+\alt <break-stmt>
+\alt <continue-stmt>
+
+<expr-stmt> ::= <expr> \textbf{;}
+
+<decl-stmt> ::= <decl> \textbf{;}
+
+
+<block-stmt> ::= 
+\textbf{\{}
+	[ <stmt> + ]
+\textbf{\}}
+
+<return-stmt> ::= \textbf{return;}
+
+<assign-stmt> ::= <decl-id> \textbf{=} <expr>
+
+<match-stmt> ::= \textbf{match} \textbf{(} <expr> \textbf{)}
+\textbf{\{}
+	[ <case-stmt> + ]
+\textbf{\}}
+
+<case-stmt> ::=
+\textbf{case} <literal-expr> \textbf{:} <stmt>
+\alt \textbf{miss:} <stmt>
+
+<if-then-stmt> ::= \textbf{if} \textbf{(} <expr> \textbf{)}
+<stmt>
+
+<if-else-stmt> ::= \textbf{if} \textbf{(} <expr> \textbf{)}
+<stmt> \textbf{else} <stmt>
+
+<while-stmt> ::= \textbf{while} \textbf{(} <expr> \textbf{)}
+<stmt>
+
+<break-stmt> ::= \textbf{break;}
+
+<continue-stmt> ::= \textbf{continue;}
+
+\end{grammar}
+\end{mdframed}
+\caption{"General purpose" language feature syntax for Steve in BNF.}
+\label{fg:general_syntax}
+\end{figure}
+
+Figure \ref{fg:general_syntax} provides syntax for these features in BNF notation. Before we delve into language features specifically designed for packet processing, first we must mention a few language features which are more "general purpose." These language features are common to most programming languages and are not explicitly for packet processing, though they are useful and can appear in parts of Steve. These language features are provided as part of the Beaker programming language \footnote{https://github.com/asutton/beaker} from which Steve derives.
+
+\subsection{Variables} \label{variable_tut}
+
+Suppose we wanted to write a variable named \texttt{x} which holds an integer value \texttt{10}. We would write it as follows.
+
+\begin{lstlisting}
+var x : int = 10;
+\end{lstlisting}
+
+We can assign a new value to it.
+
+\begin{lstlisting}
+x = 1;
+\end{lstlisting}
+
+We can perform arithmetic and bitwise operations as well. The complete set of arithmetic and bitwise operations can be found in Appendex \cite{ap:a}.
+
+\begin{lstlisting}
+var y : int = 2;
+var z : int = 3;
+y = x + y; // Adding
+z = y + z + 1; 
+z = z << 4; // Left shift.
+var a : int = y & z; // bitwise and
+\end{lstlisting}
+
+\subsection{Conditional Statements} \label{condition_tut}
+
+Steve supports three conditional statements: the if-statement, the if-else statement, and match-statement.
+
+An if-statements and if-else statements can be written as follows.
+
+\begin{lstlisting}
+var a : bool = true;
+var b : bool = false;
+
+// If statement
+if (a || b) { }
+
+// If else statement
+if (a && b) { }
+else if (a) { }
+else { }
+\end{lstlisting}
+
+A match statement is similar to a C-like switch statement with an implied \texttt{break} after every case. The condition and labels must be integers just like in C. A match statements can be written as follows.
+
+\begin{lstlisting}
+// Assuming there are integer variables named x and y.
+match (x)
+{
+  case 0: x = x + 1;
+  // Multiple statements following the label must be enclosed in a block.
+  case 1:
+  {
+    x = x + 1;
+    y = y * x;
+  }
+  // The default case statement.
+  miss: x = 0;
+}
+\end{lstlisting}
+
+\subsection{While Loops} \label{while_tut}
+
+While loops appear in Steve just like they appear in C-like languages. They also support the \texttt{break} and \texttt{continue} statements for limited branching abilities inside a loop.
+
+\begin{lstlisting}
+var x : int = 0;
+var z : int = 0;
+while (x < 5) {
+  x = x + 1;
+  if (x == 3)
+    continue;
+	
+  if (z == 3) 
+    break;
+  z = z + 1;
+}
+\end{lstlisting}
+
+\subsection{Functions} \label{function_tut}
+
+Suppose we wanted to write a function named \texttt{sum} which takes two integers, \texttt{a} and \texttt{b}, and returned an integer which is the sum of those two integers. We would write \texttt{sum} as follows.
+
+\begin{lstlisting}
+def sum(a : int, b : int) -> int
+{
+  return a + b;
+}
+\end{lstlisting}
+
+To call that function we would write the following.
+
+\begin{lstlisting}
+var x : int = 1;
+var y : int = 2;
+var z : int = sum(x, y);
+\end{lstlisting}
 
 \section{Layouts} \label{layout_tut}
 
-Before pipeline processing stages can be written, a \textbf{layout} is used to describe the physical structure of a packet header, i.e. what fields they have and the respective lengths of those fields. Figure \ref{fg:layout_syntax} provides the syntax for layout declarations in BNF notation.
+Before pipeline processing stages can be written, a \textbf{layout} is used to describe the physical structure of a packet header, i.e. what fields they have and the respective lengths of those fields. Steve decoding stages use these layouts to determine two things: what the offset of a given field is relative to the beginning of the header and the length of the field. This information is used to guide the process of extracting fields during decoding stages like a blueprint might be used to find places in a building.
 
-\begin{figure}
+\begin{figure}[ht]
 \begin{mdframed}
 \begin{grammar}
 
@@ -44,31 +215,30 @@ Before pipeline processing stages can be written, a \textbf{layout} is used to d
 \label{fg:layout_syntax}
 \end{figure}
 
+Suppose we wanted to write a standard ethernet header in Steve \cite{eth_std}. An ethernet header has three fields; \texttt{dst} and \texttt{src} which are both 6 bytes (or 48-bits) long, and a type field which is 2 bytes (or 16-bits long). To write this in Steve, we would use a \texttt{layout} declaration as in Figure \ref{fg:eth_layout_ex}.
 
-An example of a layout declaration corresponding to the ethernet header \cite{eth_std} can be seen in Figure \ref{fg:ethernet_layout_ex}. The \texttt{src} and \texttt{dst} fields are 48-bits, or 6 bytes, long. The \texttt{type} field is 16-bits, or 2 bytes, long.
-
-\begin{figure}
+\begin{figure}[ht]
 \begin{lstlisting}
-layout eth
+layout ethernet
 {
   dst  : uint(48);
   src  : uint(48);
   type : uint(16);
 }
 \end{lstlisting}
-\caption{An example of how the ethernet header is written in Steve.}
-\label{fg:ethernet_layout_ex}
+\caption{An example of the ethernet layout in Steve.}
+\label{fg:eth_layout_ex}
 \end{figure}
 
-A \textbf{layout declaration} is composed of a sequence of \textbf{field declarations}. Each field declaration corresponds to a field in a header. The type of each field declaration defines the length of the corresponding field in a header. Each field declaration in a layout must be written in the same order with which the field appears in a real instance of the header. If the ordering does not match, layouts will not function correctly during decoding stages. 
+A \textbf{\texttt{layout} declaration} is composed of a sequence of \textbf{field declarations}. Each field declaration corresponds to a field in a header. The type of each field declaration defines the length of the corresponding field in a header. Each field declaration in a layout must be written in the same order with which the field appears in a real instance of the header. If the ordering does not match, layouts will not function correctly during decoding stages.   
 
-A field declaration within a layout is limited to being one of two different types. The first of these types is scalar type (most often a signed/unsigned integer type). Integer types can be given with an optional bit-length precision, with the default being 32-bits if no precision is specified. This bit-length precision is used to determine the length of the field.
+A field declaration within a layout is limited to being one of two different types. The first of these types is scalar type (most often a signed/unsigned integer type). Integer types can be given with an optional bit-length precision, with the default being 32-bits if no precision is specified. This bit-length precision is used to determine the length of the field. With Figure \ref{fg:eth_layout_ex} we have a layout composed of fields of only integer type.
 
-The second supported type is layout type. This allows layouts to be nested together in case a programmer must deal with a header with structures nested inside them. In this case, a field declaration is used whose type is given as the identifier to layout declaration. Figure \ref{fg:nested_layout_ex} gives a trivial example of nested layouts.
+The second supported type is layout type. This allows layouts to be nested together in case a programmer must deal structures nested within headers. In this case, a field declaration is used whose type is given as the identifier to layout declaration. In Figure \ref{fg:nested_layout_ex} we give a trivial extension of the ethernet example where we nest a \texttt{vlan} tag.
 
-\begin{figure}
+\begin{figure}[ht]
 \begin{lstlisting}
-layout eth
+layout ethernet
 {
   dst  : uint(48);
   src  : uint(48);
@@ -82,21 +252,19 @@ layout vlan
   tci  : uint(16);
 }
 \end{lstlisting}
-\caption{An example of a layout being nested inside another layout.}
+\caption{An example of the ethernet layout with a nested vlan in Steve.}
 \label{fg:nested_layout_ex}
 \end{figure}
 
-Keep in mind that a layout, though similar to a class, is not a class. Objects of layout type can never be created, they cannot contain member functions, and their fields must all be of scalar or layout type. Layouts are use to determine two things: what the offset of a given field is relative to the beginning of the header and the length of the field. These two pieces of information are important during decoding stages where these fields are extracted. In this way, layouts more closely translate to extraction rules used during the decoding process. 
+When using layouts it is important to know that there exist distinct differences between layouts and C++-like classes. A layout, though similar to a class, is not a class. Their fields must all be of scalar or layout type. Objects of layout type can never be created and they cannot contain member functions. For further details on layout limitations, refer to Section \ref{layout_guide} in the User's Guide.
 
-The primary reason for this differentiation in Steve are dynamically-sized fields in packet headers. Headers potentially have fields whose memory size is predicated upon some value discovered during runtime. These fields are said to have \textbf{dynamically sized type}. Some examples of this are the \texttt{options} fields in IPv4, IPv6, and TCP headers. Consider that when objects of any type are constructed, stack space must be allocated for them. Except, it is impossible to stack allocate an object whose size is not known during compilation without some hint about its maximum size. Such objects can only be heap allocated, which Steve does not currently support. 
+Another important note is that Steve does not currently support dynamically sized types (DST) which are types whose size is predicated upon some value known only during program runtime). These DSTs are used to represent header fields whose lengths are dynamic, e.g. predicated upon some value found earlier in the header. Some examples of fields whose types are represented using DSTs are the \texttt{options} fields in IPv4, IPv6, and TCP headers, or the \texttt{ICV} field in the IPSec header.
 
-Furthermore, accessing these dynamically-sized fields, recovering their values, and performing operations on them would have to be done through special pointers to ensure the safety of such operations. For further details on layout limitations, refer to Section \ref{layout_guide} in the User's Guide.
+DSTs are a language feature that will eventually be added, but is outside the scope of this thesis. Because of this, fields whose lengths are dynamic cannot currently be declared, extracted, nor used. The existence and eventual support of DSTs is one of the reasons why objects of layout type cannot be created which is further discussed in Section \ref{layout_guide}.
 
-Steve does not currently support dynamically sized types. This is a language feature that will eventually be added, but is outside the scope of this thesis. Because of this, fields whose lengths are dynamic cannot currently be declared, extracted, nor used. 
+An IPv4 header example can be seen in Figure \ref{fg:ipv4_layout_ex}. Note that the \texttt{options} field is skipped due to the lack of DSTs. Also note that Steve does not support non-byte aligned data types, and thus the precision of all integers are multiples of 8. Fields which are non-byte aligned must be merged to byte alignment and recovered using arithmetic operations (see Figure \ref{fg:assign_arith_ex} in Section \ref{decoder_tut} for an example). 
 
-An IPv4 header example can be seen in Figure \ref{fg:ipv4_layout_ex}. Note that the \texttt{options} field is skipped due to the lack of dynamically sized types. Also note that Steve does not support non-byte aligned data types, and thus the precision of all integers are multiples of 8. Fields which are non-byte aligned must be merged to byte alignment and recovered using arithmetic operations (see Figure \ref{fg:assign_arith_ex} in Section \ref{decoder_tut} for an example). 
-
-\begin{figure}
+\begin{figure}[ht]
 \begin{lstlisting}
 layout ipv4
 {
@@ -116,10 +284,9 @@ layout ipv4
 \label{fg:ipv4_layout_ex}
 \end{figure}
 
-
 \section{Decoders} \label{decoder_tut}
 
-\textbf{Decoders}, also referred to as decoding stages in the pipeline processing model,  are special purpose functions used to handle decoding and extracting fields in a given header. By chaining multiple decoders together, a user can construct a set of functions used to parse an entire packet. \textbf{Decoder declarations} are Steve's way of defining decoding stages. Figure \ref{fg:decoder_syntax} presents the syntax used to write decoders. Decoder declarations provide users the ability to:
+\textbf{Decoders} represent the decoding stages in the pipeline. In Steve these decoders  are special purpose functions used to handle decoding and extracting fields in a given header. By chaining multiple decoders together, a user can construct a set of functions used to parse an entire packet. \textbf{Decoder declarations} are Steve's way of defining decoding stages. Decoder declarations provide users the ability to:
 
 \begin{itemize}
 \item Declare which header is being decoded and which fields to extract from it.
@@ -128,7 +295,7 @@ layout ipv4
 \item Decide what processing stage comes next. Either the next header is determined and the packet is dispatched to that decoding stage, or the packet is dispatch to table matching.
 \end{itemize}
 
-\begin{figure}
+\begin{figure}[ht]
 \begin{mdframed}
 \begin{grammar}
 
@@ -159,22 +326,18 @@ layout ipv4
 
 \subsection{Extractions} \label{decoder_extract_tut}
 
-The primary goal of decoders is to extract fields from headers. Assume we wanted to write a decoder to extract the \texttt{src} and \texttt{dst} fields from an ethernet header. Remember, Steve allows for the partial decoding of packets, so if we do not need a field, in this case \texttt{type}, its not necessary to extract it. 
+The primary goal of decoders is to extract fields from headers. Assume we wanted to write a decoder to extract the \texttt{src} and \texttt{dst} fields from the ethernet header. Remember, Steve allows for the partial decoding of packets, so if we do not need a field, in this case \texttt{type}, its not necessary to extract it. 
 
-First, a layout for the ethernet header must be defined. In this case, the layout defined in Figure \ref{fg:ethernet_layout_ex} can be used. This layout will be used to determine the offset (location) and length of each field in the header during decoding. More details on this process can be found in Section \ref{decoder_guide}. 
+First, a layout for the ethernet header must be defined. Steve decoders use layouts to determine where fields are relative to the beginning of the header and how long those fields are. More details on this process can be found in Section \ref{decoder_guide}. Here we can use the layout defined in Figure \ref{fg:eth_layout_ex}. 
 
-After that, we can proceed to writing the decoder declaration. Figure \ref{fg:extract_ex} demonstrates how the extraction is written. We give this decoder declaration the name \texttt{eth\_decode} and specify the layout used to decode in the parenthesis following the name (in this case \texttt{eth}). A decoder can only extract fields from a header defined by this layout. If an attempt is made to extract a field from a different header a compiler error is emitted. The optional \texttt{start} keyword is attached to this decoder to denote that this decoder is the first stage in the pipeline. Ethernet is the most commonly used data link layer protocol, making it the most common header to start with. There can only be one starting decoder. 
+After that, we can proceed to writing the decoder declaration. Figure \ref{fg:extract_ex} demonstrates how the decoder is written. We give this decoder declaration the name \texttt{eth\_decode}. The layout used to decode is given in the parenthesis following the name (in this case \texttt{ethernet}).
 
-To extract a field, the programmer writes an \textbf{extract declaration} which requires that a field be specified using a \textbf{field name}. A field name is used to refer to a field of a layout. For example \texttt{eth.dst} refers to the \texttt{dst} field of the \texttt{eth} layout.  Note that this is distinctly different from member access as the \texttt{eth} layout is not an object. 
-
-The first extract declaration (\texttt{extract eth.dst;}) says that the decoder extracts the \texttt{dst} field of the \texttt{eth} header. The second extract declaration (\texttt{extract eth.src;}) says that the decoder extracts the \texttt{src} field of the \text{eth} header. 
-
-\begin{figure}
+\begin{figure}[ht]
 \begin{lstlisting}
-decoder start eth_decode(eth)
+decoder start eth_decode(ethernet)
 {
-  extract eth.dst;
-  extract eth.src;
+  extract ethernet.dst;
+  extract ethernet.src;
   // More code to follow...
 }
 \end{lstlisting}
@@ -182,30 +345,39 @@ decoder start eth_decode(eth)
 \label{fg:extract_ex}
 \end{figure}
 
+A decoder can only extract fields from a header defined by this layout. If an attempt is made to extract a field from a different header a compiler error is emitted. The optional \texttt{start} keyword is attached to this decoder to denote that this decoder is the first stage in the pipeline. Ethernet is the most commonly used data link layer protocol, making it the most common header to start with. There can only be one starting decoder.
+
+To extract a field, the programmer writes an \textbf{extract declaration} which requires that a field be specified using a \textbf{field name}. A field name is used to refer to a field of a layout. For example \texttt{eth.dst} refers to the \texttt{dst} field of the \texttt{ethernet} layout.  Note that this is distinctly different from member access as the \texttt{ethernet} layout is not an object. 
+
+The first extract declaration (\texttt{extract ethernet.dst}) says that the decoder extracts the \texttt{dst} field of the \texttt{ethernet} header. The second extract declaration (\texttt{extract ethernet.src}) says that the decoder extracts the \texttt{src} field of the \text{ethernet} header. 
+
 \subsection{Accessing Extracted Fields} \label{decoder_access_tut}
 
-After extracting a field from a header, a programmer will almost certainly want to use the field in some kind of operation whether that be arithmetic or logical. To use the \textit{value} of an extracted field, a programmer uses a \textbf{field access expression}. Field access expressions have the same grammar as field names, but they can be used wherever any expression is valid. The behaviour of field access expressions is similar to how the name of a variable can be used to mean the value stored in that variable in C-like languages.
+After extracting a field from a header, we generally want to use the \textit{value} of that field. To use the value of an extracted field, we need the \textbf{field access expression}. Field access expressions have the same grammar as field names, but they can be used wherever any expression is valid.  The field access expression is a lexical place-holder which refers to some field that has been extracted with the same name. A good analogy would be field access expressions are to extracted fields what variable identifiers are to variables.
 
-Figure \ref{fg:access_ex} demonstrates how the value of extracted fields can be used in Steve. In this scenario, we extract \texttt{eth.type} and use the value as a condition in a C-like if-else statement. We use this if-else statement to determine what the \texttt{type} field means. The IEEE ethernet standard says that if the \texttt{type} field is greater than or equal to hexadecimal \texttt{0x600}, then the value of the field is used to determine the kind of header encapsulated by the ethernet header \cite{eth_std}. Otherwise, if the \texttt{type} field is less than hexadecimal \texttt{0x05dc}, the field refers to the length of the ethernet frame.
+Figure \ref{fg:access_ex} demonstrates how the value of extracted fields can be used. In this scenario, we extract \texttt{ethernet.type}. Here we want to make a decision about what the value of \texttt{ethernet.type} means. The IEEE ethernet standard says that if the \texttt{type} field is greater than or equal to hexadecimal \texttt{0x600}, then the value of the field is used to determine the kind of header encapsulated by the ethernet header \cite{eth_std}. Otherwise, if the \texttt{type} field is less than hexadecimal \texttt{0x05dc}, the field refers to the length of the ethernet frame. Here we use field access expressions in comparison expressions and an if-else statement to determine how to proceed with the packet. 
 
-\begin{figure}
+\begin{figure}[ht]
 \begin{lstlisting}
-decoder start eth_decode(eth)
+decoder start eth_decode(ethernet)
 {
-  extract eth.type;
+  extract ethernet.dst;
+  extract ethernet.src;
+  extract ethernet.type;
   
   // Using a field access expression 
   // with logical operator >=
-  if (eth.type >= 0x600)
+  if (ethernet.type >= 0x600)
   {
-    // Then this is determines what
+    // Then this field determines what
     // header comes next.
   }
   // Using a field access expression 
   // with logical operator <=
-  else if (eth.type <= 0x05dc)
+  else if (ethernet.type <= 0x05dc)
   {
-    // Then this is the length field.
+    // Then this field describes the
+    // length of the entire packet.
   }
   // ...
 }
@@ -214,9 +386,9 @@ decoder start eth_decode(eth)
 \label{fg:access_ex}
 \end{figure}
 
-Field access expressions can also be used in arithmetic operations, bitwise operations, and can be stored and assigned to local variables. Figure \ref{fg:assign_arith_ex} demonstrates how this can be done using an IPv4 decoder as an example. First it's shown that it's possible to assign the value of the header's \texttt{len} field to a local variable named \texttt{pktlen}. Next the example shows how to recover \texttt{ihl} and \texttt{version} from a single field (to deal with the limitation of only supporting byte-aligned fields). Note that it is possible to use bitwise and shift operations on fields as well. After that, the example demonstrates subtraction on the \texttt{ipv4.len} field to determine what the time-to-live will be after the packet leaves the current device.
+Field access expressions can also be used in arithmetic operations, bitwise operations, and can be stored and assigned to local variables. Figure \ref{fg:assign_arith_ex} demonstrates how this can be done using an IPv4 decoder as an example.
 
-\begin{figure}
+\begin{figure}[ht]
 \begin{lstlisting}
 decoder ipv4_decode(ipv4)
 {
@@ -230,7 +402,7 @@ decoder ipv4_decode(ipv4)
   // We can perform bitwise operations.
   var ihl : uint(8) = ipv4.version_ihl & 0x0f;
   // We can also perform shifts.
-  var version : uint(8) = (ipv4.version_ihl & 0xf0) >> 4;
+  var version : uint(8) = ipv4.version_ihl >> 4;
   
   // Determine what the Time-to-Live is after this
   // device finishes with the packet.
@@ -243,14 +415,16 @@ decoder ipv4_decode(ipv4)
 \label{fg:assign_arith_ex}
 \end{figure}
 
-Field access expressions do have a number of limitations. A field access expression can only be used \textit{after} an extract declaration is used for that field. After all, it is impossible to recover the value of a field which has not been extracted. They cannot be used in decoders which have not extracted that field. A decoder focuses on exactly one header and has no knowledge of previous headers or extractions. Field access expressions cannot be assigned to. To modify the value of a field in a header, an action must be used (see Section \ref{action_tut}). Figure \ref{fg:bad_access_ex} shows incorrect usage of field access expressions.
+First we assign \texttt{ipv4.len} field to a local variable named \texttt{pktlen}. We attempt to recover the \texttt{ihl} value by using bitwise-and to mask the first 4 bits (to deal with the limitation of supporting only byte aligned fields). After that we recover the version field by performing a right shift operation by 4 bits. In case we wanted to know the time-to-live value after the packet leaves this device, we perform subtraction on the \texttt{ipv4.ttl} field.
 
-\begin{figure}
+Field access expressions do have a number of limitations. A field access expression can only be used \textit{after} an extract declaration is used for that field. After all, it is impossible to recover the value of a field which has not been extracted. They cannot be used in decoders which have not extracted that field. A decoder focuses on exactly one header and has no knowledge of previous headers or extractions. Field access expressions cannot be assigned to like a variable identifier. To modify the value of a field in a header, an action must be used (see Section \ref{action_tut}). Figure \ref{fg:bad_access_ex} shows incorrect usage of field access expressions.
+
+\begin{figure}[ht]
 \begin{lstlisting}
-decoder start eth_decode(eth)
+decoder start eth_decode(ethernet)
 {
   // Error: Cannot use eth.type before its extracted.
-  if (eth.type >= 0x600) 
+  if (ethernet.type >= 0x600) 
   {
     // Do something...
   }
@@ -258,17 +432,14 @@ decoder start eth_decode(eth)
   extract eth.type;
   
   // Error: Cannot assign to a field this way.
-  eth.type = 0x800;
+  ethernet.type = 0x800;
   // ...
 }
 
 decoder ipv4_decode(ipv4)
 {
   // Error: eth.type was not extracted by this decoder.
-  if (eth.type == 0x800)
-  {
-    // Do something...
-  }
+  if (ethernet.type == 0x800)
   // ...
 }
 \end{lstlisting}
