@@ -6,6 +6,8 @@ The Steve programming language allows programmers to define their own pipeline a
 
 The pipeline is thus a state machine. Each processing stage denotes a state in the machine. Each state has a set of conditions which, when met, causes the packet to transition states. This can be represented as a graph where each processing stage is a node on the graph and each state transition is an edge connecting stages.
 
+This pipeline follows a run-to-complete model of execution. Once a packet enters the pipeline, each processing stage is consecutively applied to the packet until the programmer decides to forward or drop the packet.
+
 \section{Decoding Stage} \label{decoder_desc}
 
 When a packet is received on its ingress port, it is simply a chunk of raw, uninterpreted data. Before a packet can be processed and routed, its headers and fields must be decoded and extracted so that meaningful decisions can be made about what to do with the packet. The decoding stage is responsible for ensuring this happens.
