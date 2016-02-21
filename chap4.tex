@@ -2,7 +2,7 @@
 
 This chapter provides a tutorial on the syntax of Steve and using its language features. Steve's primary focus is to provide language features for declaring, specifying, and constructing the pipeline processing stages described in Chapter \ref{pipeline_model}. This chapter will explain how to represent packet headers, how to write decoding stages, how to write table stages, and how to use actions.
 
-By the end of this chapter, a user should be able to write many basic network applications using Steve. Two such applications will be presented; a simple learning switch and a simple learning router. Each example will be composed of smaller components described in this tutorial. 
+By the end of this chapter, a user should be able to write many basic network applications using Steve. Two such applications will be presented; a simple learning switch and a simple learning router. Each example will be composed of smaller components described in this tutorial. To skip directly to these examples, move to Section \ref{examples_tut}.
 
 This chapter will briefly mention semantic details and limitations of each language feature. For complete look at the semantics and limitations of Steve, see the User's Guide in Chapter \ref{users_guide}. For a complete reference of all Steve syntax, see Appendix \ref{ap:a}.
 
@@ -39,7 +39,6 @@ This chapter will briefly mention semantic details and limitations of each langu
 <expr-stmt> ::= <expr> \textbf{;}
 
 <decl-stmt> ::= <decl> \textbf{;}
-
 
 <block-stmt> ::= 
 \textbf{\{}
@@ -177,6 +176,55 @@ To call that function we would write the following.
 var x : int = 1;
 var y : int = 2;
 var z : int = sum(x, y);
+\end{lstlisting}
+
+\subsection{Literals} \label{literal_tut}
+
+\begin{figure}[ht]
+\begin{mdframed}
+\begin{grammar}
+<literal-expr> ::=
+<integer-literal>
+\alt <binary-literal>
+\alt <hexadecimal-literal>
+
+<decimal-digit> ::= \textbf{0} | \textbf{1} | \textbf{2} | \textbf{3} | \textbf{4} | \textbf{5} | \textbf{6} | \textbf{7} | \textbf{8} | \textbf{9}
+
+<hexadecimal-digit> ::= \textbf{\_} | <decimal-digit> | \textbf{a} | \textbf{b} | \textbf{c} | \textbf{d} | \textbf{e} | \textbf{f}             
+
+<binary-digit> ::= \textbf{\_} | \textbf{0} | \textbf{1}
+
+<integer-literal> ::=
+<decimal-digit> +
+
+<hexadecimal-literal> ::=
+\textbf{0x} <hexadecimal-digit> +
+
+<binary-literal> ::=
+\textbf{0b} <binary-digit> +
+
+\end{grammar}
+\end{mdframed}
+\caption{Syntax for literals in Steve in BNF.}
+\label{fg:literal_syntax}
+\end{figure}
+
+Steve supports decimal, binary, and hexadecimal integer literals. Steve does not currently support things like IP address literals or MAC address literals. Decimal integers can be written like any other language.
+
+Binary literals all start with the prefix \texttt{0b} followed by any number of \texttt{0} and \texttt{1}. The underscore (\texttt{\_}) can optionally occur anywhere in the literal following the prefix similar to P4 \cite{p4_spec}. This is purely for organization and readability.
+
+\begin{lstlisting}
+// These are the same value.
+0b10101010
+0b1010_1010
+\end{lstlisting}
+
+Hexadecimal literals all start with the prefix \texttt{0x} followed by any number of digits between \texttt{0} and \texttt{9}. The underscore (\texttt{\_}) can optionally occur anywhere in the literal following the prefix similar to binary literals.
+
+\begin{lstlisting}
+// These are the same value.
+0x0800
+0x08_00
 \end{lstlisting}
 
 \section{Layouts} \label{layout_tut}
@@ -618,11 +666,11 @@ The table \texttt{ip\_data\_table} classifies packets based on their \texttt{ipv
 
 In the third flow entry we have a special case where we set the timeout \textbf{property} of the flow entry to \texttt{1000}. Flow entries currently support two properties. The first is \texttt{timeout}. A flow entry is removed from a table after a \texttt{timeout} number of milliseconds. The other is the \texttt{egress} port property which allows flows to use the \texttt{\color{blue}output \color{green}egress} action described in Section \ref{output_action_tut}.
 
-So what makes using a table different from decision structures like an if-else or match statements? As one may have noticed, the table example given in Figure \ref{fg:ip_table_ex} could just as easily be written using a combination of if-else and match statements like we used with the ethernet decoder earlier in Figure \ref{fg:transition_ex}. 
+\textit{So what makes using a table different from decision structures like an if-else or match statements?} As one may have noticed, the table example given in Figure \ref{fg:ip_table_ex} could just as easily be written using a combination of if-else and match statements like we used with the ethernet decoder earlier in Figure \ref{fg:transition_ex}. 
 
-First of all, a table can match on one or more fields at once. The more fields required in the decision making process, the more complex using nested decision structures get.
+First of all, a table can match on one or more fields at once. The table can also match on a packet's \texttt{in\_port} and \texttt{in\_phys\_port} fields (described in Section \ref{output_action_tut}. The more fields required in the decision making process, the more complex using nested decision structures get.
 
-Second, a table can match on and use fields from different headers. Unlike decoders, tables have a wider perspective on packets. They have access to every field that has been extracted before them using \textbf{field access expressions}. The only limitation is that field access can only occur on fields which the table either matches on or requires explicitly. For example, the following is a perfectly valid table.
+Second, a table can match on and use fields from different headers. Unlike decoders, tables have a wider perspective on packets. For example, the following is a perfectly valid table. 
 
 \begin{lstlisting}
 exact_table t1(ethernet.dst, ipv4.dst)
@@ -630,6 +678,8 @@ exact_table t1(ethernet.dst, ipv4.dst)
   // ...
 }
 \end{lstlisting}
+
+Tables have access to every field that has been extracted before them using \textbf{field access expressions}. The only limitation is that field access can only occur on fields which the table either matches on or requires explicitly.
 
 Lastly, flow entries can be added and removed from flow entries using the appropriate actions. This allows decision making on packets to change dynamically during runtime. It is obviously impossible to add new branches to if-else and match statements. The ability to add, or \textbf{learn}, new entries allows us to write learning switches and routers.
 
@@ -640,6 +690,10 @@ Actions change packets, action sets, and pipeline state. Steve supports eleven a
 \begin{figure}
 \begin{mdframed}
 \begin{grammar}
+<port-decl> ::=
+\textbf{Port} <port-name> \textbf{;}
+\alt \textbf{Port} <port-name> \textbf{=} <string-literal> \textbf{;}
+
 <action-stmt> ::=
 <decode-action>
 \alt <goto-action>
@@ -713,15 +767,34 @@ Similar to the \texttt{decode} action, the \texttt{goto} action also supports an
 goto t1 advance (ipv4.version_ihl & 0x0f) * 4
 \end{lstlisting}
 
-\subsection{Output Action} \label{output_action_tut}
+\subsection{Ports and the Output Action} \label{output_action_tut}
 
-The \texttt{output} action is used to egress the packet on a certain port. The action requires that either a user-declared or reserved port is specified. Assuming that a port named \texttt{p1} was declared, to output to this port the action would be written as:
+Ports are an important part of the system. Ports are where packets enter (ingress) and leave (egress) the system. Ports are all given a unique integer identifier by the system.
+
+Steve supports a number of \textbf{reserved} ports which are required to exist on every system Steve applications runs on. These are compliant with OpenFlow port specifications \cite{openflow_spec}.
+
+The \texttt{all} port represents every port on the system that can be forwarded to. This port can only be used for output.
+
+The \texttt{controller} port represents the communication channel between a device and a set of application controllers. A packet might enter from this port or be output through this port.
+
+The \texttt{reflow} port represents the beginning of the pipeline. Packets sent to this port are sent through the pipeline again for re-processing. This is equivalent to the \textbf{TABLE} port in OpenFlow. This port is only valid for output.
+
+To output a packet to a port we can use the \texttt{output} action as follows.
 
 \begin{lstlisting}
-output p1;
+// Outputs to all ports on the system.
+output all; 
+
+// Outputs to the controller.
+output controller; 
+
+// Sends the packet back to the beginning of the pipeline.
+output reflow; 
 \end{lstlisting}
 
-Every packet implicitly has an \texttt{in\_port} and \texttt{in\_phys\_port} which can be used as such:
+In addition to the reserved ports, there are a number of keywords in Steve which can be used to access certain ports.
+
+The \texttt{in\_port} port refers to the packet's ingress port. The \texttt{in\_phys\_port} port refers the packets physical ingress port. To output to these port, we write the following.
 
 \begin{lstlisting}
 output in_port;
@@ -729,23 +802,34 @@ output in_port;
 output in_phys_port;
 \end{lstlisting}
 
-Flow entries all have an (optional) \texttt{egress} port property which can be set. When executing a flow, if this property has been set, the packet can be output to this \texttt{egress} port using:
+Flow entries can have an (optional) \texttt{egress} port property which can be set. When executing a flow, if this property has been set, the packet can be output to this \texttt{egress} port using:
 
 \begin{lstlisting}
 output egress;
 \end{lstlisting}
 
-Steve also supports the number of reserved ports which can be used.
+Steve also provides the limited ability to user-declare ports with certain capabilities. These ports are only valid if the system has a port with the given capabilities, otherwise they produce runtime errors when the system loads the Steve application.
+
+A port bound to logical port \texttt{5000} on a system would be written as follows.
 
 \begin{lstlisting}
-// Outputs to all ports on the system.
-output all; 
+Port p1 = ":5000";
 
-// Outputs to a controller
-output controller; 
+// To output to p1...
+output p1;
+\end{lstlisting}
 
-// Sends the packet back to the beginning of the pipeline
-output reflow; 
+User-declared ports with no configuration information, like the following, refer to an invalid port whose identifier is always 0. 
+
+\begin{lstlisting}
+Port p1;
+\end{lstlisting}
+
+These ports can be assigned to later with a valid port. Outputting to invalid ports results in the packet being dropped.
+
+\begin{lstlisting}
+p1 = in_port;
+output p1;
 \end{lstlisting}
 
 \subsection{Drop Action} \label{drop_action_tut}
@@ -774,9 +858,9 @@ set ipv4.ttl = ipv4.ttl - 1;
 
 \subsection{Insert Flow Action} \label{insert_flow_action_tut}
 
-Inserting flow entries into a table is a Steve action not explicitly supported by the OpenFlow standard. Flow entries can be inserted with constant key values and no properties. They can also be inserted with field values of the current packet and with optional properties.
+Inserting flow entries into a table is a Steve action not explicitly supported by the OpenFlow standard \cite{openflow_spec} thought it is supported in software switches like OVS \cite{ovs_man_page}. Flow entries can be inserted with constant key values and no properties. 
 
-\begin{lstlisting}[float]
+\begin{lstlisting}
 // Constant key values.
 insert
 { 0x0, 0x89 } ->
@@ -784,7 +868,11 @@ insert
   set ipv4.ttl = ipv4.ttl - 1;
   decode mpls_decode;
 } into ip_data_table;
+\end{lstlisting}
 
+They can also be inserted with field values of the current packet and with optional properties.
+
+\begin{lstlisting}
 // Dynamic key values
 insert
 [timeout = 1000, egress = in_port]
@@ -810,7 +898,7 @@ remove {ipv4.dst, ipv4.protocol } from ip_data_table;
 
 \subsection{Write Action} \label{write_action_tut}
 
-The context data structure keeps an \textbf{action set}. This action set is a set of actions which are written to the context using the \texttt{write} action. All actions in this section except the \texttt{raise}, \texttt{insert}, and \texttt{remove} action can be written to an action set.
+The context data structure keeps an \textbf{action set}. This action set is a set of actions which are written to the context using the \texttt{write} action. All actions in this section except the \texttt{raise}, \texttt{insert}, and \texttt{remove} action can be written to an action set. The execution of these written actions is deferred until egress processing.
 
 \begin{lstlisting}
 // Writing a set action
@@ -891,4 +979,224 @@ event learn_mac
 
 An important thing to know when using events is that a \textbf{copy} of the packet and context are sent to the event handler. Any changes made to a packet using an action in the event handler does not modify the original packet or its context. The original packet continues moving through the pipeline after a \texttt{raise} occurs and does not wait for the event handler to execute.
 
+Another thing to note is that this usage of events to learn flow entries is distinct from the OpenFlow paradigm. Normally packets are sent to the \texttt{controller} port which connects to an application called the \textbf{controller}. The controller then asynchronously processes packets and potentially adds the flow entries.
+
+Steve events are written as part of the Steve application and are thus subject to the same semantic, logical, and safety guarantees applied to other pipeline stages. 
+
 \section{Examples} \label{examples_tut}
+
+As promised at the beginning of this tutorial, we would demonstrate how to write three basic network applications, a learning switch, a learning router, and a wire using language features taught during this tutorial.
+
+\subsection{The Learning Switch} \label{learning_switch}
+
+Let's begin by writing the Layer 2 (ethernet) learning switch. The learning switch shall receive packets. With each packet, the switch will "learn" which MAC addresses are found on which ports by listening to the \texttt{src} field of ethernet headers. The switch forwards packets by looking at the \texttt{dst} field and checking if it has learned that MAC address yet. If it has not learned the address, it floods the packet.
+
+Here we need is the ethernet header, \texttt{src}, and \texttt{dst} fields. No other headers are necessary. First, we declare the layout needed to decode. Here we can use the layout given earlier in Figure \ref{fg:eth_layout_ex}.
+
+Next we produce the ethernet decoder. We only care about the contents of the ethernet header so it will not be necessary to extract \texttt{eth.type} or proceed to another decoder. Instead, the decoder goes immediately to the \texttt{learn} table.
+
+\begin{lstlisting}
+decoder eth_d(ethernet)
+{
+  extract ethernet.dst;
+  extract ethernet.src;
+  
+  goto learn;
+}
+\end{lstlisting}
+
+From here, we will need two tables: a learning table and a forwarding table. The learning table is responsible for learning MAC addresses and installing learned addresses into the forwarding table. The learning table matches on the \texttt{ethernet.src} field and ensures that the same MAC address is not learned multiple times. To learn the needed flow entries, the \texttt{learn} table raises an event called \texttt{learn\_mac} which will insert these flow entries for us.
+
+The forwarding table ultimately forwards the packet to the correct port. The forwarding table matches on the \texttt{ethernet.dst} field for the packet.
+
+\begin{lstlisting}
+exact_table learn(ethernet.src)
+{
+  miss ->
+  {
+  	// We raise an event to learn the appropriate flow entries.
+  	raise learn_mac;
+    goto switch;
+  }
+}
+
+exact_table forward(ethernet.dst)
+{
+  miss ->
+  {
+    // Flood any packet which hasn't been learned yet.
+    flood;
+  }
+}
+\end{lstlisting}
+
+So how do we write the \texttt{learn\_mac} event? Recall that we will need the \texttt{insert} action. Additionally, this event will require that \texttt{ethernet.src} have been extracted. First we must insert a flow entry into the \texttt{learn} table with the \texttt{ethernet.src} field value of the current packet being learned. This prevents packets with the same \texttt{ethernet.src} field from triggering the \texttt{learn\_mac} event more than once. 
+
+Next, we insert the appropriate flow entry into the \texttt{forward} table. Here, we insert a flow entry whose \texttt{ethernet.dst} field is equal to the current packet's \texttt{ethernet.src} field. Since the \texttt{forward} table matches on \texttt{ethernet.dst} what we are doing is saying any packet whose \texttt{ethernet.dst} is equal to the \textit{current} packet's \texttt{ethernet.src} is forwarded to the \texttt{current} packet's ingress (\texttt{in\_port}) port.
+
+\begin{lstlisting}
+event learn_mac
+	requires(ethernet.src)
+{
+	// First we insert the src of the packet
+	// into the learn table so we don't keep
+	// trying to learn something we already have.
+	insert
+	{ ethernet.src } -> { goto forward; }
+	into learn;
+	
+	// Next we insert the src of the
+	// current packet into the forward table.
+	//
+	// The forward table matches on the dst
+	// field of a packet, so what we are doing is
+	// saying any packet whose dst is equal to this
+	// packet's src is forwarded to this packet's
+	// ingress (in_port) port.
+	insert
+	[timeout = 1000, egress = in_port]
+	{ ethernet.src } ->
+	{
+		// We set the egress property to the current
+		// packet's in_port, so when we output egress
+		// we send to the current packet's in_port.
+		output egress;
+	}
+	into forward;
+}
+\end{lstlisting}
+
+
+\subsection{The Learning Router} \label{learning_router}
+
+The learning router is not too different from the learning switch. Instead of learning and forwarding from MAC addresses, this application will learn and forward from IPv4 addresses.
+
+First we need the IPv4 header. Here we can use the layout given in Figure \ref{fg:ipv4_layout_ex}. We will also need the ethernet header from the prior example. The \texttt{ethernet.type} field confirms that the packet contains IPv4. Our decoders will look like the following.
+
+\begin{lstlisting}
+decoder eth_d(ethernet)
+{
+  extract ethernet.type
+  match(ethernet.type) {
+  	case 0x800: decode ipv4_d;
+  }
+  drop; // Drop if its not an IPv4 packet.
+}
+
+decoder ipv4_d(ipv4)
+{
+  extract ipv4.version_ihl;
+  extract ipv4.src;
+  extract ipv4.dst;
+  extract ipv4.ttl;
+  goto learn advance (version_ihl & 0x0f);
+}
+\end{lstlisting}
+
+We will need two tables just like in the learning switch example. Here the \texttt{learn} table matches on \texttt{ipv4.src}. The the \texttt{forward} table matches on \texttt{ipv4.dst}. Also all flow entries decrement the \texttt{ipv4.ttl} field.
+
+\begin{lstlisting}
+exact_table learn(ipv4.src)
+{
+  miss ->
+  {
+	raise learn_ip;
+    goto route;
+  }
+}
+
+exact_table forward(ipv4.dst)
+{
+  miss -> { flood; }
+}
+\end{lstlisting}
+
+Lastly we need to define the \texttt{learn\_ip} event which is, once again, largely the same as the \texttt{learn\_mac} event from the learning switch.
+
+\begin{lstlisting}
+event learn_ip
+	requires(ipv4.src)
+{
+	insert
+	{ ipv4.src } -> { goto route; }
+	into learn;
+
+	insert
+	[timeout = 1000, egress = in_port]
+	{ ipv4.src } -> { output egress; }
+	into route;
+}
+\end{lstlisting}
+
+\subsection{The Wire} \label{wire}
+
+A wire is a network application which has two ports. It receives from one port and outputs out of the other port. The only caveat is that the application is not aware of the ports comprising the wire at first. It must learn that those ports exist.
+
+This example demonstrates a number of more unintuitive features of Steve. First we declare two uninitialized ports named \texttt{p1} and \texttt{p2}. Uninitialized ports have a port identifier of 0 and are invalid.
+
+\begin{lstlisting}
+Port p1;
+Port p2;
+\end{lstlisting}
+
+Next we'll use the ethernet layout from prior examples and write a decoder. The only caveat as we do not need any of the fields. We only care about the \texttt{in\_port} of the packet.
+
+\begin{lstlisting}
+decoder start eth_d(ethernet)
+{
+  goto learn;
+}
+\end{lstlisting}
+
+To enable our wire application to learn about ports, we once again need two tables and an event which adds flow entries to those tables. First we declare our \texttt{learn} and \texttt{forward} tables. Here we show that \texttt{in\_port} is a valid matching field.
+
+\begin{lstlisting}
+exact_table learn(in_port)
+{
+  miss -> 
+  {
+  	raise learn_port;
+    goto forward;
+  }
+}
+
+exact_table forward(in_port)
+{
+  miss -> { drop; }
+}
+\end{lstlisting}
+
+Then we must declare our \texttt{learn\_port} event. This event demonstrates that ports can be compared with comparisong and equality expressions, which implicitly compare the integer identifiers assigned to those ports. We also show that port declarations can be assigned to (\texttt{p1 = in\_port}) as long as what is being assigned is also a port.
+
+Once both ports are valid, the application installs the appropriate flow entries and the wire will function appropriately.
+
+\begin{lstlisting}[float]
+event learn_port
+{
+  // Prevent the same port from being learned twice.
+  insert
+  { in_port } -> { goto forward; }
+  into learn;
+
+  // If neither p1 nor p2 is set, then we assume this packet 
+  // is coming off p1.
+  // Note: The assumption is that port 0 is an 
+  // invalid port since valid port IDs begin at 1.
+  if (p1 == 0 && p2 == 0)
+    p1 = in_port;
+  // If p1 is learned and this packet is not from p1, 
+  // then this is from p2. At this point we would have 
+  // both ports learned so we can add the flow entries.
+  else if (p1 > 0 && p1 != in_port)
+  {
+    p2 = in_port;
+    insert
+    { p1 } -> { output p2; }
+    into forward;
+
+    insert
+    { p2 } -> { output p1; }
+    into forward;
+  }
+}
+\end{lstlisting}
