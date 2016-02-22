@@ -2,9 +2,9 @@
 
 This chapter provides a tutorial on the syntax of Steve and using its language features. Steve's primary focus is to provide language features for declaring, specifying, and constructing the pipeline processing stages described in Chapter \ref{pipeline_model}. This chapter will explain how to represent packet headers, how to write decoding stages, how to write table stages, and how to use actions.
 
-By the end of this chapter, a user should be able to write many basic network applications using Steve. Two such applications will be presented; a simple learning switch and a simple learning router. Each example will be composed of smaller components described in this tutorial. To skip directly to these examples, move to Section \ref{examples_tut}.
+By the end of this chapter, a user should be able to write many basic network applications using Steve. Three such applications will be presented; a simple learning switch, a simple learning router and a wire. Each example will be composed of smaller components described in this tutorial. To skip directly to these examples, move to Section \ref{examples_tut}.
 
-This chapter will briefly mention semantic details and limitations of each language feature. For complete look at the semantics and limitations of Steve, see the User's Guide in Chapter \ref{users_guide}. For a complete reference of all Steve syntax, see Appendix \ref{ap:a}.
+This chapter will briefly mention semantic details and limitations of each language feature. For the complete anatomy of Steve, see the User's Guide in Chapter \ref{users_guide}. For a complete reference of all Steve syntax, see Appendix \ref{ap:a}.
 
 \section{General Purpose Language Features} \label{gen_purp_tut}
 
@@ -557,11 +557,7 @@ Then from table \texttt{t1}, if the \texttt{ipv4.protocol} field is equal \textt
 
 \section{Tables} \label{table_tut}
 
-The next stage to explore is the table matching stage. Table matching allows the programmer to \textbf{classify} packets based on the values of their fields and perform a specific sequence of actions on like-classified packets. This is done through a mechanism known as a flow table \cite{openflow_spec}. A \textbf{flow table} is composed of a set of \textbf{flow entries}. A flow entry is a mapping of unique keys to flows. A \textbf{key} is defined as a field value or unique combination of field values such that every key in the flow table can be uniquely identified. A \textbf{flow} is defined as a sequence of actions (operations that can affect a packet, its action set, or the pipeline).
-
-There are three commonly used types of flow tables: \textbf{exact}, \textbf{prefix}, and \textbf{wildcard} matching tables. Steve currently only supports the exact match table. 
-
-With an exact match table, each field in the packet must \textit{exactly} match the corresponding field value in a flow entry's key for the packet to match that flow entry. If a flow entry match is found by the table, the flow is executed on the packet.
+The next stage to explore is the table matching stage. Remember that a table specifies a \textbf{key} and is comprised of a set of \textbf{flow entries}. Each flow entry specifies a priority, values for its \textbf{match fields}, and a set of \textbf{actions} to perform against matching packets. All flow entries in the table must be uniquely identifiable from its match fields and priority.
 
 Figure \ref{fg:table_syntax} provides the syntax for writing tables and flow entries in Steve. Tables are written using \textbf{table declarations} and flow entries are written using \textbf{flow declarations}.
 
@@ -613,10 +609,18 @@ Figure \ref{fg:table_syntax} provides the syntax for writing tables and flow ent
 \label{fg:table_syntax}
 \end{figure}
 
-Assume we have an IPv4 header already decoded. We want to decode the data portion following the IPv4 header, but to do that we must know what kind of data that is there. The data following an IPv4 header is determined by the value \texttt{ipv4.protocol} field. Now we also add the additional restriction that we only want to deal with non-fragmented packets. Whether or not an IPv4 packet is fragmented can be determined by checking the \texttt{ipv4.fragment} field. To solve this problem, we can use table \texttt{ip\_data\_table} presented in Figure \ref{fg:ip_table_ex}.
+There are three commonly used types of flow tables: \textbf{exact}, \textbf{prefix}, and \textbf{wildcard} matching tables. Steve currently only supports the exact match table. 
+
+With an exact match table, each field in the packet must \textit{exactly} match a flow entry's match fields. By default, the priority of all flow entries in an exact match table are the same. The exception is the miss case which always has a priority lower than every other flow entry.
+
+Consider that the objective of tables is to classify packets based on their fields and perform the same actions on like-classified packets. Assume we have one such problem. We want to decode the data portion following the IPv4 header. The data following an IPv4 header is determined by the value \texttt{ipv4.protocol} field. All packets whose \texttt{ipv4.protocol} field equal \texttt{0x01} get sent to the ICMP decoder. All packets whose \texttt{ipv4.protocol} field equal \texttt{0x06} get sent to the TCP decoder, and so on.
+
+Now we also add the additional restriction that we only want to deal with non-fragmented packets. Whether or not an IPv4 packet is fragmented can be determined by checking the \texttt{ipv4.fragment} field. To solve this problem, we can use table \texttt{ip\_data\_table} presented in Figure \ref{fg:ip_table_ex}.
 
 \begin{figure}
 \begin{lstlisting}
+// A table declaration declares which fields comprise its
+// key. In this case, we have ipv4.fragment and ipv4.protocol.
 exact_table ip_data_table(ipv4.fragment, ipv4.protocol)
 	requires (ipv4.ttl)
 {
@@ -624,7 +628,10 @@ exact_table ip_data_table(ipv4.fragment, ipv4.protocol)
   // is not fragmented.
   
   // Flow entry #1 
-  // The protocol field is 0x01 for ICMP data.
+  // Here we declare a flow entry. The first part of the
+  // entry specifies the values for the "Match Fields".
+  // Here we have 0x0 for the ipv4.fragment match field
+  // and 0x01 (ICMP) for the ipv4.protocol field.
   { 0x0, 0x01 } ->
   {
     // Using the Set action to decrement the ttl.
@@ -635,40 +642,37 @@ exact_table ip_data_table(ipv4.fragment, ipv4.protocol)
   
   // Flow entry #2
   // The protocol field is 0x06 for TCP data.
+  [timeout = 1000]
   { 0x0, 0x06 } ->
   {
   	set ipv4.ttl = ipv4.ttl - 1;
   	// Dispatch to the TCP Decoder.
   	decode tcp_decode advance ipv4.version_ihl & 0x0f;
   } 
-  
-  // Flow entry #3
-  // The protocol field is 0x11 for UDP data.
-  [timeout = 1000]
-  { 0x0, 0x11 } ->
-  {
-  	set ipv4.ttl = ipv4.ttl - 1;
-  	// Dispatch to the UDP Decoder.
-  	decode udp_decode advance ipv4.version_ihl & 0x0f;
-  } 
+    
+  // And so on...
   
   // Miss Case
   miss -> { drop; }
 }
 \end{lstlisting}
-\caption{An example of a simple static routing table which matches on two fields.}
+\caption{An example of a simple table used to classify IPv4 packets.}
 \label{fg:ip_table_ex}
 \end{figure}
 
-To write a complete exact match table, the programmer must specify 1) what fields are being used for classification, 2) what additional fields need to be extracted by a decoder before reaching the table, and 3) a set of flow entries. 
+To write a complete exact match table, the programmer must specify 1) what fields comprise the key, 2) what additional fields need to be extracted by a decoder before reaching the table, and 3) a set of flow entries. 
 
-The table \texttt{ip\_data\_table} classifies packets based on their \texttt{ipv4.fragment} and \texttt{ipv4.protocol} fields. It requires that \texttt{ipv4.ttl} also be extracted. There are three flow entries and one miss case entry installed in the table. Each key here is unique. If a packet's fields match any of the keys, then their \texttt{ipv4.ttl} field is decremented and their dispatched the next appropriate decoder. If a match does not exist, then the miss case is used. Here, the result is the packet gets dropped. 
+The table \texttt{ip\_data\_table} declares that its keys are the \texttt{ipv4.fragment} and \texttt{ipv4.protocol} fields. It is thus limited to classifying packets based on these fields. Additionally, it specifiesthat \texttt{ipv4.ttl} also be extracted using the \texttt{\color{blue}requires} clause. This table is declared with three initial flow entries (two normal entries and one miss case).
 
-In the third flow entry we have a special case where we set the timeout \textbf{property} of the flow entry to \texttt{1000}. Flow entries currently support two properties. The first is \texttt{timeout}. A flow entry is removed from a table after a \texttt{timeout} number of milliseconds. The other is the \texttt{egress} port property which allows flows to use the \texttt{\color{blue}output \color{green}egress} action described in Section \ref{output_action_tut}.
+A flow entry must specify 1) the values of its match fields, 2) the actions to be applied to the packet.
+
+The first flow declaration declares a flow entry whose \texttt{ipv4.fragment} match field is equal to \texttt{0x0} and whose \texttt{ipv4.protocol} match field is equal to \texttt{0x01}. The second flow entry similarly has an \texttt{ipv4.fragment} match field equal to \texttt{0x0} and an \texttt{ipv4.protocol} match field equal to \texttt{0x06}.In both cases, we use the \texttt{set} action (described in Section \ref{set_action_tut}) to decrement the \textbf{ipv4.ttl} field. We then dispatch to the appropriate decoder using the \texttt{decode} action.
+
+In the second flow entry we have a special case where we set the timeout \textbf{property} of the flow entry to \texttt{1000}. Properties are additional information attached to flow entries. Flow entries currently support two properties. The first is \texttt{timeout}. A flow entry is removed from a table after a \texttt{timeout} number of milliseconds. The other is the \texttt{egress} port property which allows flows to use the \texttt{\color{blue}output \color{green}egress} action described in Section \ref{output_action_tut}.
 
 \textit{So what makes using a table different from decision structures like an if-else or match statements?} As one may have noticed, the table example given in Figure \ref{fg:ip_table_ex} could just as easily be written using a combination of if-else and match statements like we used with the ethernet decoder earlier in Figure \ref{fg:transition_ex}. 
 
-First of all, a table can match on one or more fields at once. The table can also match on a packet's \texttt{in\_port} and \texttt{in\_phys\_port} fields (described in Section \ref{output_action_tut}. The more fields required in the decision making process, the more complex using nested decision structures get.
+First of all, a table can match on one or more fields at once. The table can also match on a packet's \texttt{in\_port} and \texttt{in\_phys\_port} fields (described in Section \ref{output_action_tut}). The more fields required in the decision making process, the more complex using nested decision structures gets. Tables, on the other hand, are easier to write in this case.
 
 Second, a table can match on and use fields from different headers. Unlike decoders, tables have a wider perspective on packets. For example, the following is a perfectly valid table. 
 
@@ -679,9 +683,9 @@ exact_table t1(ethernet.dst, ipv4.dst)
 }
 \end{lstlisting}
 
-Tables have access to every field that has been extracted before them using \textbf{field access expressions}. The only limitation is that field access can only occur on fields which the table either matches on or requires explicitly.
+Tables and their contained flow entries have access to every field that has been extracted before them using \textbf{field access expressions}. The only limitation is that field access can only occur on fields which the table either matches on or requires explicitly.
 
-Lastly, flow entries can be added and removed from flow entries using the appropriate actions. This allows decision making on packets to change dynamically during runtime. It is obviously impossible to add new branches to if-else and match statements. The ability to add, or \textbf{learn}, new entries allows us to write learning switches and routers.
+Lastly, flow entries can be added and removed from tables using the appropriate actions. This allows decision making on packets to change dynamically during runtime. It is obviously impossible to add new branches to if-else and match statements. The ability to add, or \textbf{learn}, new entries allows us to write applications which can learn, such as learning switches and routers.
 
 \section{Actions} \label{action_tut}
 
@@ -858,7 +862,7 @@ set ipv4.ttl = ipv4.ttl - 1;
 
 \subsection{Insert Flow Action} \label{insert_flow_action_tut}
 
-Inserting flow entries into a table is a Steve action not explicitly supported by the OpenFlow standard \cite{openflow_spec} thought it is supported in software switches like OVS \cite{ovs_man_page}. Flow entries can be inserted with constant key values and no properties. 
+Inserting flow entries into a table is a Steve action not explicitly supported by the OpenFlow standard \cite{openflow_spec} though it is supported in software switches like OVS \cite{ovs_man_page}. Flow entries can be inserted with constant key values and no properties. 
 
 \begin{lstlisting}
 // Constant key values.
@@ -867,7 +871,8 @@ insert
 {
   set ipv4.ttl = ipv4.ttl - 1;
   decode mpls_decode;
-} into ip_data_table;
+} 
+into ip_data_table;
 \end{lstlisting}
 
 They can also be inserted with field values of the current packet and with optional properties.
@@ -879,18 +884,19 @@ insert
 { ipv4.fragment, ipv4.protocol } ->
 {
   output egress;
-} into ip_data_table;
+} 
+into ip_data_table;
 \end{lstlisting}
 
 In this case, the flow entry uses the \texttt{ipv4.src} and \texttt{ipv4.dst} fields of current packet as values for the inserted flow entry's key. It also sets the timeout to 1000 and sets the \texttt{egress} property to the current packet's \texttt{in\_port}, making the \texttt{output egress} action valid.
 
 \subsection{Remove Flow Action} \label{remove_flow_action_tut}
 
-A flow entry can be removed from a table by providing a key and the name of the table to remove the flow entry from. This can be done with constant values or dynamic field values of the current packet.
+A flow entry can be removed from a table by providing match field values and the name of the table to remove the flow entry from. This can be done with constant values or dynamic field values of the current packet.
 
 \begin{lstlisting}
-// Removal with constant values
-remove { 0x0, 0x11 } from ip_data_table;
+// Removal with constant values.
+remove { 0x0, 0x01 } from ip_data_table;
 
 // Or dynamic values.
 remove {ipv4.dst, ipv4.protocol } from ip_data_table;
@@ -979,21 +985,19 @@ event learn_mac
 
 An important thing to know when using events is that a \textbf{copy} of the packet and context are sent to the event handler. Any changes made to a packet using an action in the event handler does not modify the original packet or its context. The original packet continues moving through the pipeline after a \texttt{raise} occurs and does not wait for the event handler to execute.
 
-Another thing to note is that this usage of events to learn flow entries is distinct from the OpenFlow paradigm. Normally packets are sent to the \texttt{controller} port which connects to an application called the \textbf{controller}. The controller then asynchronously processes packets and potentially adds the flow entries.
+Another thing to note is that this usage of events to learn flow entries is distinct from OpenFlow semantics. Normally packets are sent to the \texttt{controller} port which connects to an application called the \textbf{controller}. The controller then asynchronously processes packets and potentially adds the flow entries.
 
-Steve events are written as part of the Steve application and are thus subject to the same semantic, logical, and safety guarantees applied to other pipeline stages. 
+The advantage here is that Steve events are written as part of the Steve application and are thus subject to the same semantic, logical, and safety guarantees applied to other pipeline stages. 
 
 \section{Examples} \label{examples_tut}
 
-As promised at the beginning of this tutorial, we would demonstrate how to write three basic network applications, a learning switch, a learning router, and a wire using language features taught during this tutorial.
+As promised at the beginning of this tutorial, we would demonstrate how to write three basic network applications: a learning switch, a learning router, and a wire using language features taught during this tutorial.
 
 \subsection{The Learning Switch} \label{learning_switch}
 
-Let's begin by writing the Layer 2 (ethernet) learning switch. The learning switch shall receive packets. With each packet, the switch will "learn" which MAC addresses are found on which ports by listening to the \texttt{src} field of ethernet headers. The switch forwards packets by looking at the \texttt{dst} field and checking if it has learned that MAC address yet. If it has not learned the address, it floods the packet.
+Let's begin by writing the Layer 2 (ethernet) learning switch. The learning switch shall receive packets. With each packet, the switch will "learn" which MAC addresses are found on which ports by checking the \texttt{src} field of ethernet headers. The switch forwards packets by looking at the \texttt{dst} field and checking if it has learned that MAC address yet. If it has not learned the address, it floods the packet.
 
-Here we need is the ethernet header, \texttt{src}, and \texttt{dst} fields. No other headers are necessary. First, we declare the layout needed to decode. Here we can use the layout given earlier in Figure \ref{fg:eth_layout_ex}.
-
-Next we produce the ethernet decoder. We only care about the contents of the ethernet header so it will not be necessary to extract \texttt{eth.type} or proceed to another decoder. Instead, the decoder goes immediately to the \texttt{learn} table.
+Here we need to extract the ethernet header's \texttt{src}, and \texttt{dst} fields. No other headers are necessary. It will not be necessary to extract \texttt{eth.type} or proceed to another decoder. First, we declare the layout needed to decode. We can use the ethernet layout given earlier in Figure \ref{fg:eth_layout_ex}. Next we produce the ethernet decoder which proceeds directly to the \texttt{learn} table after extracting \texttt{ethernet.src} and \texttt{ethernet.dst} fields.
 
 \begin{lstlisting}
 decoder eth_d(ethernet)
@@ -1007,8 +1011,6 @@ decoder eth_d(ethernet)
 
 From here, we will need two tables: a learning table and a forwarding table. The learning table is responsible for learning MAC addresses and installing learned addresses into the forwarding table. The learning table matches on the \texttt{ethernet.src} field and ensures that the same MAC address is not learned multiple times. To learn the needed flow entries, the \texttt{learn} table raises an event called \texttt{learn\_mac} which will insert these flow entries for us.
 
-The forwarding table ultimately forwards the packet to the correct port. The forwarding table matches on the \texttt{ethernet.dst} field for the packet.
-
 \begin{lstlisting}
 exact_table learn(ethernet.src)
 {
@@ -1019,21 +1021,25 @@ exact_table learn(ethernet.src)
     goto switch;
   }
 }
+\end{lstlisting}
 
+The forwarding table ultimately forwards the packet to the correct port based on its destination MAC address. The forwarding table thus matches on the \texttt{ethernet.dst} field. Any un-learned destinations get flooded by the miss case.
+
+\begin{lstlisting}
 exact_table forward(ethernet.dst)
 {
-  miss ->
-  {
-    // Flood any packet which hasn't been learned yet.
-    flood;
-  }
+  // Flood any packet which hasn't been learned yet.
+  miss -> { flood; }
 }
 \end{lstlisting}
 
-So how do we write the \texttt{learn\_mac} event? Recall that we will need the \texttt{insert} action. Additionally, this event will require that \texttt{ethernet.src} have been extracted. First we must insert a flow entry into the \texttt{learn} table with the \texttt{ethernet.src} field value of the current packet being learned. This prevents packets with the same \texttt{ethernet.src} field from triggering the \texttt{learn\_mac} event more than once. 
+Note that no initial flow entries other than miss cases are declared with either table. The tables have not learned anything yet. The first packet matched against these tables thus have the miss case applied by default.
+
+So how do we write the \texttt{learn\_mac} event? Recall that we need the \texttt{insert} action to make tables "learn" flow entries. Additionally, this event will require that \texttt{ethernet.src} have been extracted. First we must insert a flow entry into the \texttt{learn} table with the \texttt{ethernet.src} field value of the current packet being learned. This prevents packets with the same \texttt{ethernet.src} field from triggering the \texttt{learn\_mac} event more than once. 
 
 Next, we insert the appropriate flow entry into the \texttt{forward} table. Here, we insert a flow entry whose \texttt{ethernet.dst} field is equal to the current packet's \texttt{ethernet.src} field. Since the \texttt{forward} table matches on \texttt{ethernet.dst} what we are doing is saying any packet whose \texttt{ethernet.dst} is equal to the \textit{current} packet's \texttt{ethernet.src} is forwarded to the \texttt{current} packet's ingress (\texttt{in\_port}) port.
 
+\noindent\begin{minipage}{\linewidth}
 \begin{lstlisting}
 event learn_mac
 	requires(ethernet.src)
@@ -1065,14 +1071,13 @@ event learn_mac
 	into forward;
 }
 \end{lstlisting}
-
+\end{minipage}
 
 \subsection{The Learning Router} \label{learning_router}
 
 The learning router is not too different from the learning switch. Instead of learning and forwarding from MAC addresses, this application will learn and forward from IPv4 addresses.
 
-First we need the IPv4 header. Here we can use the layout given in Figure \ref{fg:ipv4_layout_ex}. We will also need the ethernet header from the prior example. The \texttt{ethernet.type} field confirms that the packet contains IPv4. Our decoders will look like the following.
-
+We will need two layouts here: the ethernet layout and the IPv4 layout. Here we can use the ethernet layout given in Figure \ref{fg:eth_layout_ex} and the IPv4 layout given in Figure \ref{fg:ipv4_layout_ex}. We will need to extract the \texttt{ethernet.type} field in order to confirm the ethernet header encapsulates IPv4. Our ethernet decoder will look like the following.
 \begin{lstlisting}
 decoder eth_d(ethernet)
 {
@@ -1082,7 +1087,11 @@ decoder eth_d(ethernet)
   }
   drop; // Drop if its not an IPv4 packet.
 }
+\end{lstlisting}
 
+The IPv4 decoder will need to extract \texttt{ipv4.src} and \texttt{ipv4.dst} in order to learn them. Additionally, we'll need \texttt{ipv4.version\_ihl} to correctly advance past the IPv4 header and \texttt{ipv4.ttl} to decrement.
+
+\begin{lstlisting}
 decoder ipv4_d(ipv4)
 {
   extract ipv4.version_ihl;
@@ -1093,7 +1102,7 @@ decoder ipv4_d(ipv4)
 }
 \end{lstlisting}
 
-We will need two tables just like in the learning switch example. Here the \texttt{learn} table matches on \texttt{ipv4.src}. The the \texttt{forward} table matches on \texttt{ipv4.dst}. Also all flow entries decrement the \texttt{ipv4.ttl} field.
+We will need two tables just like in the learning switch example. Here the \texttt{learn} table matches on \texttt{ipv4.src}. It will be responsible for learning IP addresses and inserting them into the \texttt{routing} table.
 
 \begin{lstlisting}
 exact_table learn(ipv4.src)
@@ -1104,7 +1113,11 @@ exact_table learn(ipv4.src)
     goto route;
   }
 }
+\end{lstlisting}
 
+The \texttt{routing} table matches on \texttt{ipv4.dst}. It will route all packets whose destination IP address it has learned. Any IP addresses not yet learned are flooded by default.
+
+\begin{lstlisting}
 exact_table forward(ipv4.dst)
 {
   miss -> { flood; }
@@ -1170,7 +1183,8 @@ Then we must declare our \texttt{learn\_port} event. This event demonstrates tha
 
 Once both ports are valid, the application installs the appropriate flow entries and the wire will function appropriately.
 
-\begin{lstlisting}[float]
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
 event learn_port
 {
   // Prevent the same port from being learned twice.
@@ -1200,3 +1214,4 @@ event learn_port
   }
 }
 \end{lstlisting}
+\end{minipage}

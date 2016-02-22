@@ -22,7 +22,7 @@ Specifically, Steve provides the following features.
 \item Decoding stages allow programmers to specify which headers get decoded and which fields in those respective headers get decoded. They also provide the mechanics to reason about which packet header comes next in a packet based on conditions satisfied by the current packet header.
 
 \item 
-Table matching stages allow programmers to \textbf{classify} packets and perform some set of \textbf{actions} on like-classified packets. This is done through a mechanism known as flow tables. A flow table contains a mappings of unique keys to flows known as \textbf{flow entries}. Flows are a sequence of actions (things to be done to the packet) which are applied to all packets which match a certain common criteria.
+Table matching stages allow programmers to \textbf{classify} packets and perform some set of \textbf{actions} on like-classified packets. This is done through a mechanism known as flow tables, which are not far off from the concept of relational tables.
 
 \item
 Actions provide a way to modify fields within a packet or modify the state of a table. Actions can also be used to forward the packet through a port on the system.
