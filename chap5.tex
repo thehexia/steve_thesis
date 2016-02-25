@@ -4,6 +4,10 @@ This chapter will explore the "anatomy" of Steve. It will dissect the semantics 
 
 Steve also makes guarantees about the logical correctness and safety of pipeline stage composition. This section will detail how the Steve language enforces those guarantees and prove that these guarantees can be correctly enforced.
 
+\section{General Scoping Rules} \label{scope_guide}
+
+Throughout this chapter the term \textbf{scope} will be used frequently. Steve follows the same scoping semantics as all C-like block languages. When the identifier for a declaration appears within the text of a program, it is always the \textit{latest} declaration that applies.
+
 \section{Pipeline Guarantees} \label{pipeline_guide}
 
 Logical correctness and safety guarantees are enforced by ensuring each Steve pipeline has three important properties: \textbf{progress}, \textbf{termination}, and \textbf{requirement satisfaction}. Any pipeline which does not have all three properties shall produce a compiler error. Pipelines that cannot ensure these three properties risk catastrophic crashes or undefined behaviour during runtime. This cannot happen on important networking devices.
@@ -18,7 +22,7 @@ Every pipeline graph must have exactly one source node (the starting decoder), b
 
 The \textbf{progress} property says that a packet always moves to a later stage in a pipeline and can never move, or risk moving, to a previously visited stage. This fundamental nature of the pipeline abstraction is ensuring progress is preserved. This prevents packets from infinitely looping between the same stages more than once. 
 
-First of all, table nodes are assigned a hidden, unique, incremented integer identifier in the order with which they are declared. For example, the first table declared in a Steve program is given the integer identifier 0, the second table declare is given the identifier 1, and so on. The \textbf{table identifiers} rule says that at no point in the pipeline can a packet reach a target table if it has already visited a table stage whose integer identifier is higher than or equal to that of the target table. In other words, a packet can only go forward through tables, never backwards. This is compliant with the OpenFlow specification for tables \cite{openflow_spec}.
+First of all, table nodes are assigned a hidden, unique, incremented integer identifier in the order with which they are declared. For example, the first table declared in a Steve program is given the integer identifier 0, the second table declare is given the identifier 1, and so on. The \textbf{table identifiers} rule says that at no point in the pipeline can a packet reach a target table if it has alreFirst of all, the reason each field must be of scalar or layout type is because it makes no sense to have types which cannot appear ady visited a table stage whose integer identifier is higher than or equal to that of the target table. In other words, a packet can only go forward through tables, never backwards. This is compliant with the OpenFlow specification for tables \cite{openflow_spec}.
 
 Because of this table identifiers rule, it is impossible for any number of table stages to form a cycle with each other.
 
@@ -30,7 +34,7 @@ Second of all, the pipeline graph shall be a directed acyclic graph (DAG). This 
 
 \textbf{Termination} ensures that a packet must eventually be forwarded out of a pipeline or be explicitly dropped. Packet's cannot simply be "forgotten" by the pipeline, i.e. a packet cannot have finished processing without having the \texttt{output}, \texttt{flood}, or \texttt{drop} action applied to it. Because a packet's memory on the system gets deleted by the runtime environment upon egress, it will be "forgotten" and leaked if this property is not a guarantee. Enough leaked memory would eventually cause a device crash.
 
-This property is enforced by a mechanism known as \textbf{terminator actions}. Of the actions discussed in Section \ref{actions_tut}, the following are considered terminator actions: \texttt{decode}, \texttt{goto}, \texttt{output}, \texttt{flood}, and \texttt{drop}. Terminator actions immediately move a packet from the current stage to the next stage (or to egress processing). 
+This property is enforced by a mechanism known as \textbf{terminator actions}. Of the actions discussed in Section \ref{action_tut}, the following are considered terminator actions: \texttt{decode}, \texttt{goto}, \texttt{output}, \texttt{flood}, and \texttt{drop}. Terminator actions immediately move a packet from the current stage to the next stage (or to egress processing). 
 
 Decoders and every flow entry (including the miss case) inside a table, must have one guaranteed terminator action. There can be multiple terminator actions in a stage (for example terminators found inside if-else or match blocks), but there must be one that is logically guaranteed to be reachable during compile time. In other words, the guaranteed terminator must occur outside the scope of a conditional statement's block.
 
@@ -60,9 +64,15 @@ Remember that the objective is to prevent field access on fields that have not b
  
 \section{Layouts} \label{layout_guide}
 
-Layouts in Steve must be used with the following conventions.
+Layout declarations in Steve must be used with the following conventions.
 
-First of all, the reason each field must be of scalar or layout type is because it makes no sense to have types which cannot appear 
+\begin{itemize}
+\item Field declarations inside layouts can only be of scalar or layout type.
+\item Objects of layout type can never be created.
+\item Layouts cannot contain member functions.
+\item Field declarations must occur in the order with which they appear in the an actual instance of a header which the layout represents. Incorrect ordering will result in incorrect extractions.
+\item The length of a field is determined by the length of the field declarations type.
+\end{itemize}
 
 The primary reason for this differentiation in Steve are dynamically-sized fields in packet headers. Headers potentially have fields whose memory size is predicated upon some value discovered during runtime. These fields are said to have \textbf{dynamically sized type}. Some examples of this are the \texttt{options} fields in IPv4, IPv6, and TCP headers. Consider that when objects of any type are constructed, stack space must be allocated for them. Except, it is impossible to stack allocate an object whose size is not known during compilation without some hint about its maximum size. Such objects can only be heap allocated, which Steve does not currently support. 
 
@@ -72,6 +82,6 @@ Furthermore, accessing these dynamically-sized fields, recovering their values, 
 
 \section{Tables} \label{table_guide}
 
-\section{Actions} \label{actions_guide}
+\section{Actions} \label{action_guide}
 
 \section{Pipeline Checking} \label{pipeline)checking_guide}
