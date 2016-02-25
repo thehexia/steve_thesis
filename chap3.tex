@@ -20,7 +20,7 @@ This inherent inefficiency is why Steve proposes the idea of a \textit{partial d
 
 Additionally, Steve proposes that not all headers need to be decoded. For example, if a networking application only needs to forward using MAC addresses, there is no reason to waste time extracting fields from IPv4 or IPv6 headers, and so on.
 
-\subsection{Packet Context}
+\subsection{Packet Context} \label{context_desc}
 
 A stage often needs to use data created by prior stages. As a packet moves between stages, information such as the position and length of extracted fields and headers must be saved for recovery later in the pipeline. To save this information, Steve applications use a data structure called the packet \textbf{context}. Specifically, a Steve context saves the following data:
 

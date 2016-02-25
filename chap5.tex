@@ -6,11 +6,13 @@ Steve also makes guarantees about the logical correctness and safety of pipeline
 
 \section{General Scoping Rules} \label{scope_guide}
 
-Throughout this chapter the term \textbf{scope} will be used frequently. Steve follows the same scoping semantics as all C-like block languages. When the identifier for a declaration appears within the text of a program, it is always the \textit{latest} declaration that applies.
+Throughout this chapter the term \textbf{scope} will be used frequently. Steve follows the same scoping semantics as all C-like block languages. A new scope is always introduced with curly-brace enclosed blocks of statements (\{\}). When the identifier for a declaration appears within the text of a program, it is always the \textit{latest} declaration that applies.
 
-\section{Pipeline Guarantees} \label{pipeline_guide}
+\section{Pipeline Guarantees} \label{pipeline_checking_guide}
 
 Logical correctness and safety guarantees are enforced by ensuring each Steve pipeline has three important properties: \textbf{progress}, \textbf{termination}, and \textbf{requirement satisfaction}. Any pipeline which does not have all three properties shall produce a compiler error. Pipelines that cannot ensure these three properties risk catastrophic crashes or undefined behaviour during runtime. This cannot happen on important networking devices.
+
+\subsection{Pipeline to Pipeline Graph Conversion} \label{pipeline_graph}
 
 These properties are checked by first converting a Steve program pipeline into a graph. Each property thus becomes a graph evaluation algorithm on the pipeline graph. To derive a pipeline graph from a Steve program, first all stages (decoders, tables, and events) are pulled from the Steve program. Each stage becomes a \textbf{node} on the pipeline graph. Table stages, specifically, become a node with edges to all of its contained flow entries which become independent nodes themselves. All inserted flow entries are also added with edges from the table they would be inserted into. Added flows cannot violate pipeline properties either, regardless of when they get added.
 
@@ -22,7 +24,7 @@ Every pipeline graph must have exactly one source node (the starting decoder), b
 
 The \textbf{progress} property says that a packet always moves to a later stage in a pipeline and can never move, or risk moving, to a previously visited stage. This fundamental nature of the pipeline abstraction is ensuring progress is preserved. This prevents packets from infinitely looping between the same stages more than once. 
 
-First of all, table nodes are assigned a hidden, unique, incremented integer identifier in the order with which they are declared. For example, the first table declared in a Steve program is given the integer identifier 0, the second table declare is given the identifier 1, and so on. The \textbf{table identifiers} rule says that at no point in the pipeline can a packet reach a target table if it has alreFirst of all, the reason each field must be of scalar or layout type is because it makes no sense to have types which cannot appear ady visited a table stage whose integer identifier is higher than or equal to that of the target table. In other words, a packet can only go forward through tables, never backwards. This is compliant with the OpenFlow specification for tables \cite{openflow_spec}.
+First of all, table nodes are assigned a hidden, unique, incremented integer identifier in the order with which they are declared. For example, the first table declared in a Steve program is given the integer identifier 0, the second table declare is given the identifier 1, and so on. The \textbf{table identifiers} rule says that at no point in the pipeline can a packet reach a target table if it has already visited a table stage whose integer identifier is higher than or equal to that of the target table. In other words, a packet can only go forward through tables, never backwards. This is compliant with the OpenFlow specification for tables \cite{openflow_spec}.
 
 Because of this table identifiers rule, it is impossible for any number of table stages to form a cycle with each other.
 
@@ -62,26 +64,31 @@ Remember that the objective is to prevent field access on fields that have not b
 
 \textit{Proof.} Field access can only be done in certain cases, all of which are cases where the requirements allow it. By the definition of the requirements satisfaction property all nodes in a pipeline graph must have their requirements satisfied, otherwise the result is a compiler error. Therefore, it is evident that it is impossible to compile a pipeline where field access is done on non-extracted fields.
  
-\section{Layouts} \label{layout_guide}
+\section{Layout Limitations} \label{layout_guide}
 
 Layout declarations in Steve must be used with the following conventions.
 
-\begin{itemize}
-\item Field declarations inside layouts can only be of scalar or layout type.
-\item Objects of layout type can never be created.
-\item Layouts cannot contain member functions.
-\item Field declarations must occur in the order with which they appear in the an actual instance of a header which the layout represents. Incorrect ordering will result in incorrect extractions.
-\item The length of a field is determined by the length of the field declarations type.
-\end{itemize}
+Field declarations inside layouts can only be of scalar or layout type (and eventually dynamically-sized types). Type specifications on field declarations are used to specify the length of the given field. Because this is the extent of the usage, there is no reason to support more complex user-defined types here.
 
-The primary reason for this differentiation in Steve are dynamically-sized fields in packet headers. Headers potentially have fields whose memory size is predicated upon some value discovered during runtime. These fields are said to have \textbf{dynamically sized type}. Some examples of this are the \texttt{options} fields in IPv4, IPv6, and TCP headers. Consider that when objects of any type are constructed, stack space must be allocated for them. Except, it is impossible to stack allocate an object whose size is not known during compilation without some hint about its maximum size. Such objects can only be heap allocated, which Steve does not currently support. 
+Objects of layout type can never be created. Remember that layouts are not classes. The primary reason for this differentiation in Steve are dynamically-sized fields in packet headers. Headers potentially have fields whose memory size is predicated upon some value discovered during runtime. These fields are said to have \textbf{dynamically-sized type}. Some examples of this are the \texttt{options} fields in IPv4, IPv6, and TCP headers. Consider that when objects of user-defined type (i.e. class type) are constructed, stack space must be allocated for them. The amount of space must be known during compilation. By including a member of DST in a class it effectively "taints" a class, making the class a user-defined DST. It suddenly becomes impossible to stack allocate an object which contains a member of DST because the amount of memory needed is unknown until runtime. Therefore, DSTs cannot be members of user-defined types. Such objects can only be heap allocated, which Steve does not currently support. The only exception is if memory is being allocated for an object of non-user-defined, dynamically-sized type. The only language which supports DSTs, Rust, only allows it under very limited circumstance \cite{rust_dst_std}.
 
-Furthermore, accessing these dynamically-sized fields, recovering their values, and performing operations on them would have to be done through special pointers to ensure the safety of such operations.
+By extension, because layouts must contain fields of DST, Steve cannot allow layouts to function like user-defined type. Therefore, objects of layout type can never be created.
+  
+Layouts cannot contain member functions. It logically follows that since objects of layout type cannot exist, there is no justification for having member functions.
 
-\section{Decoders} \label{decoder_guide}
+Field declarations must occur in the order with which they appear in the an actual instance of a header which the layout represents. Incorrect ordering will result in incorrect extractions.
+
+\section{The Anatomy of Decoders} \label{decoder_guide}
+
+The anatomy of a decoder is described in detail here. This section will go over the exact steps taken by a decoder to extract fields from a packet.
+
+When a packet enters via ingress port, a context data structure is attached to the packet. Recall from Section \ref{context_desc} that the context is used to "remember" the location and length of extracted fields as well as storing additional metadata. 
+
+The context maintains an index to the first byte of the current header. At first, this index begins at 0, corresponding to the first byte of the packet. When an extract declaration is written, the decoder looks at the respective field declaration in a layout declaration. 
+
 
 \section{Tables} \label{table_guide}
 
-\section{Actions} \label{action_guide}
+\section{Field Access Expressions and Implicit Declarations}
 
-\section{Pipeline Checking} \label{pipeline)checking_guide}
+\section{Actions} \label{action_guide}
