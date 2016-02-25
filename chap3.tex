@@ -1,6 +1,6 @@
 \chapter{THE PACKET PIPELINE PROCESSING MODEL} \label{pipeline_model}
 
-A packet comes into a data plane via an ingress port. This packet must go through a series of processing stages where it is analysed, modified, and ultimately forwarded out through an egress port. These processing steps are what is known as a \textbf{pipeline}. 
+A packet comes into a data plane via an ingress port. This packet must go through a series of processing stages where it is analysed, modified, and ultimately forwarded out through an egress port. These processing steps are what is known as a \textbf{pipeline}.
 
 The Steve programming language allows programmers to define their own pipeline applications. In the Steve processing model a pipeline is a composition of two types of processing stages: decoding stages and table matching stages. Each stage performs a set of operations on a packet, known as actions, and decides where to move the packet next based on certain conditions that the packet meets. A packet can be moved to another processing stage or it can be sent out of the pipeline.
 
@@ -12,14 +12,14 @@ Steve pipelines follow a run-to-complete model of execution. Once a packet enter
 
 When a packet is received on its ingress port, it is a chunk of raw, uninterpreted data. Before a packet can be processed and routed, its headers and fields must be decoded and extracted so that meaningful decisions can be made about what to do with the packet. The decoding stage is responsible for ensuring this happens.
 
-Steve allows for programmers to specify \textit{how} and \textit{which} fields are extracted from packet headers. In other paradigms, the \textit{entire} packet is decoded from start to finish; all headers and all fields are extracted, then all fields are saved. This is what is considered a \textbf{full decode}. After this full decode, the decision making process on the packet begins using those saved fields. However, this method is inherently inefficient. Only certain fields and headers within a packet are ever really needed during the forwarding process. To compound this, different devices may care about different subsets of fields within a given packet. Decoding all of these fields does not make sense when only a smaller subset is ever necessary. 
+Steve allows for programmers to specify \textit{how} and \textit{which} fields are extracted from packet headers. In other paradigms, the \textit{entire} packet is decoded from start to finish; all headers and all fields are extracted, then all fields are saved. This is what is considered a \textbf{full decode}. After this full decode, the decision making process on the packet begins using those saved fields. However, this method is inherently inefficient. Only certain fields and headers within a packet are ever really needed during the forwarding process. To compound this, different devices may care about different subsets of fields within a given packet. Decoding all of these fields does not make sense when only a smaller subset is ever necessary.
 
 Full decodes waste valuable processing time. Efficiency is important when dealing with networking equipment which has to processes between 10Gbps to 40Gbps. Decoding fields which are not needed is equivalent to wasting clock cycles on the CPU which translates to slower performance.
 
 This inherent inefficiency is why Steve proposes the idea of a \textit{partial decode}. Unlike similar SDN-focused programming languages, Steve is designed to allow programmers to specify the extraction of only specific fields rather than an entire header. Though the specification may be verbose in some cases, it makes programmers think very carefully about which fields they need and which fields they do not.
 
 Additionally, Steve proposes that not all headers need to be decoded. For example, if a networking application only needs to forward using MAC addresses, there is no reason to waste time extracting fields from IPv4 or IPv6 headers, and so on.
- 
+
 \subsection{Packet Context}
 
 A stage often needs to use data created by prior stages. As a packet moves between stages, information such as the position and length of extracted fields and headers must be saved for recovery later in the pipeline. To save this information, Steve applications use a data structure called the packet \textbf{context}. Specifically, a Steve context saves the following data:
@@ -42,8 +42,7 @@ Since any given packet can contain one or more of any field or header with the s
 The implementation of environments in Steve is a fixed-sized array where each element in the array is a fixed-sized binding stack. Each index in the array represents a unique field or header name extracted by the Steve application. The compiler is responsible for associating all unique fields extracted during the decoding stage to unique integer indices into the array. The same is done for all unique headers. This provides constant time lookup of field bindings without the overhead of hashing found in environments which use complex name mappings.
 
 \begin{figure}
-\centering
-		\includegraphics[scale=0.75,natwidth=203,natheight=298]{context.png}
+\includegraphics[scale=0.75,natwidth=203,natheight=298]{context}
 \caption{The binding environment inside a context used to store the length and offset of fields, or the offset of headers. On the left, fields one through sixteen represent the fields that can be extracted. Each field maintains a binding list (stack). Each element in the binding list is a binding which stores the offset and length where each instance of that field can be found in the packet. }
 \label{fg:ContextEnv}
 \end{figure}
@@ -60,7 +59,7 @@ The \textbf{action set} is the other major data structure contained within the c
 
 \section{Table Stage} \label{table_desc}
 
-Table stages handle matching against extracted fields, i.e. classification, and perform a sequence of desired actions on like-classified packets. This is done through a mechanism known as a flow table \cite{openflow_spec}. 
+Table stages handle matching against extracted fields, i.e. classification, and perform a sequence of desired actions on like-classified packets. This is done through a mechanism known as a flow table \cite{openflow_spec}.
 
 A \textbf{flow table} is composed of a set of \textbf{flow entries}. A flow entry is composed of \textbf{match fields}, a \textbf{priority}, a set of \textbf{actions}, and miscellaneous additional data. Each table specifies a set of fields from packet headers that together make up a \textbf{key} for that table. Each flow entry must declare corresponding values, known as \textbf{match fields}, such that every flow entry in the table is uniquely identified by its match fields and its \textbf{priority}.
 
@@ -81,4 +80,3 @@ Kinds of processing stages can be interleaved together in any order within the p
 \end{enumerate}
 
 Upon entering the pipeline, a packet must first go through at least one decoding stage before moving to the next processing stage. From there, the packet flows from one stage of the pipeline to the next. With each stage, certain conditions are evaluated which will determine where the packet must flow next. Finally, the packet will exit the pipeline either through a port(s) or by being dropped and discarded.
-

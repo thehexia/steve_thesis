@@ -1,6 +1,66 @@
 \chapter{User's Guide} \label{users_guide}
 
+This chapter will explore the "anatomy" of Steve. It will dissect the semantics and limitations for each language feature. Some semantics from the Tutorial chapter will be repeated and expanded. Whereas the Tutorial demonstrated conventional usage of Steve language features, this chapter will elaborate on unconventional and illegal uses which should be avoided.
+
+Steve also makes guarantees about the logical correctness and safety of pipeline stage composition. This section will detail how the Steve language enforces those guarantees and prove that these guarantees can be correctly enforced.
+
+\section{Pipeline Guarantees} \label{pipeline_guide}
+
+Logical correctness and safety guarantees are enforced by ensuring each Steve pipeline has three important properties: \textbf{progress}, \textbf{termination}, and \textbf{requirement satisfaction}. Any pipeline which does not have all three properties shall produce a compiler error. Pipelines that cannot ensure these three properties risk catastrophic crashes or undefined behaviour during runtime. This cannot happen on important networking devices.
+
+These properties are checked by first converting a Steve program pipeline into a graph. Each property thus becomes a graph evaluation algorithm on the pipeline graph. To derive a pipeline graph from a Steve program, first all stages (decoders, tables, and events) are pulled from the Steve program. Each stage becomes a \textbf{node} on the pipeline graph. Table stages, specifically, become a node with edges to all of its contained flow entries which become independent nodes themselves. All inserted flow entries are also added with edges from the table they would be inserted into. Added flows cannot violate pipeline properties either, regardless of when they get added.
+
+Every \texttt{decode}, \texttt{goto}, and \texttt{raise} action found in a stage (or flow entry within a table) causes an \textbf{edge} to be added between the stage and the destination specified by the action. This edge is added even if the action is encapsulated by a conditional statement (such as if-else or match) because its impossible to determine during compile time whether or not that edge is reachable during runtime. 
+
+Every pipeline graph must have exactly one source node (the starting decoder), but can have multiple sinks.
+
+\subsection{Progress} \label{progress_guide}
+
+The \textbf{progress} property says that a packet always moves to a later stage in a pipeline and can never move, or risk moving, to a previously visited stage. This fundamental nature of the pipeline abstraction is ensuring progress is preserved. This prevents packets from infinitely looping between the same stages more than once. 
+
+First of all, table nodes are assigned a hidden, unique, incremented integer identifier in the order with which they are declared. For example, the first table declared in a Steve program is given the integer identifier 0, the second table declare is given the identifier 1, and so on. The \textbf{table identifiers} rule says that at no point in the pipeline can a packet reach a target table if it has already visited a table stage whose integer identifier is higher than or equal to that of the target table. In other words, a packet can only go forward through tables, never backwards. This is compliant with the OpenFlow specification for tables \cite{openflow_spec}.
+
+Because of this table identifiers rule, it is impossible for any number of table stages to form a cycle with each other.
+
+\textit{Proof.} A cycle can only be formed if the next table has either been visited, or is contained within a path to a table that has been visited. This can only happen if the next table has an identifier less than or equal to that of the current largest identifier visited. This property is enforced by the way tables are numbered. Since the table identifiers rule prevents a packet from being sent to these tables, it is thus impossible to form a cycle.
+
+Second of all, the pipeline graph shall be a directed acyclic graph (DAG). This is a redundant and stronger assertion over the identifiers rule. This prevents decoders from forming cycles in the graph. A DAG, by definition, has no cycles and cannot infinitely recur through stages. No further proof is necessary.
+
+\subsection{Termination} \label{termination_guide}
+
+\textbf{Termination} ensures that a packet must eventually be forwarded out of a pipeline or be explicitly dropped. Packet's cannot simply be "forgotten" by the pipeline, i.e. a packet cannot have finished processing without having the \texttt{output}, \texttt{flood}, or \texttt{drop} action applied to it. Because a packet's memory on the system gets deleted by the runtime environment upon egress, it will be "forgotten" and leaked if this property is not a guarantee. Enough leaked memory would eventually cause a device crash.
+
+This property is enforced by a mechanism known as \textbf{terminator actions}. Of the actions discussed in Section \ref{actions_tut}, the following are considered terminator actions: \texttt{decode}, \texttt{goto}, \texttt{output}, \texttt{flood}, and \texttt{drop}. Terminator actions immediately move a packet from the current stage to the next stage (or to egress processing). 
+
+Decoders and every flow entry (including the miss case) inside a table, must have one guaranteed terminator action. There can be multiple terminator actions in a stage (for example terminators found inside if-else or match blocks), but there must be one that is logically guaranteed to be reachable during compile time. In other words, the guaranteed terminator must occur outside the scope of a conditional statement's block.
+
+Paired with the \textbf{progress} principle, the pipeline can logically guarantee that a packet is always forwarded or dropped using the appropriate action. The proof is as follows.
+
+\textit{Proof.} By the progress property, a packet can only move to a stage it has never been to before. By the termination principle, each stage must end with a terminator action. It is evident that eventually, a valid Steve program can no longer allow \texttt{goto} or \texttt{decode} actions at a given stage on a given path because they would have all been visited. The only terminator action valid at this point would be \texttt{output}, \texttt{flood}, or \texttt{drop}. Since a terminator must still occur in that given stage, this guarantees that the packet is explicitly forwarded or dropped.
+
+Note that this property is not required of event stages. Events operate on copies of packets which are managed by the runtime environment and are thus not subject to the same risks of memory leakage.
+
+\subsection{Requirement Satisfaction} \label{requirements_guide}
+
+\textbf{Requirement Satisfaction} ensures that field access can only be done on extracted fields. 
+
+Every node in a pipeline graph has a set of \textbf{productions} and \textbf{requirements}.
+
+A \textbf{production} is a field that has been extracted or created by the node's respective stage. Currently only decoding stages are capable of have productions because they are the only ones which can extract fields. If a field were pushed (i.e. created) onto the packet, that would also constitute a production (Steve does not currently support this action).
+
+Given any path \textit{P}, comprised of a set of nodes and edges needed to reach a node representing a stage \textit{V}, a \textbf{requirement} of \textit{V} is a field that must be a production of at least one node in the path \textit{P}. A path \textbf{satisfies} a requirement of \textit{V} if and only if this definition holds true.
+
+In Steve, only tables, flow entries, and events can have requirements. Tables implicitly require all of their key fields. Both stages can explicitly state their requirements using the \texttt{\color{blue}requires} clause. A flow entry's requirements are implicitly that of its possessing table.
+
+The requirements satisfaction property says that given any node \textit{V}, all requirements of \textit{V} must be satisfied by all paths leading to \textit{V}. If this property does not hold true, the result is a compiler error.
+
+Remember that the objective is to prevent field access on fields that have not been extracted. Also remember that field access can only be done in certain cases. Firstly by a decoder if that field has been extracted by that decoder. Secondly by a table's only if that field is part of the table's key or given by the table's \texttt{\color{blue}requires} clause. Thirdly by a table's flow entry whose requirements are implicitly the same. Fourthly by an event if that field is given by the event's \texttt{\color{blue}requires} clause.
+
+\textit{Proof.} Field access can only be done in certain cases, all of which are cases where the requirements allow it. By the definition of the requirements satisfaction property all nodes in a pipeline graph must have their requirements satisfied, otherwise the result is a compiler error. Therefore, it is evident that it is impossible to compile a pipeline where field access is done on non-extracted fields.
+ 
 \section{Layouts} \label{layout_guide}
+
+Layouts in Steve must be used with the following conventions.
 
 First of all, the reason each field must be of scalar or layout type is because it makes no sense to have types which cannot appear 
 
