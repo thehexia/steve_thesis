@@ -4,9 +4,162 @@ This chapter will explore the "anatomy" of Steve. It will dissect the semantics 
 
 Steve also makes guarantees about the logical correctness and safety of pipeline stage composition. This section will detail how the Steve language enforces those guarantees and prove that these guarantees can be correctly enforced.
 
-\section{General Scoping Rules} \label{scope_guide}
+\section{Identifiers} \label{identifiers_guide}
 
-Throughout this chapter the term \textbf{scope} will be used frequently. Steve follows the same scoping semantics as all C-like block languages. A new scope is always introduced with curly-brace enclosed blocks of statements (\{\}). When the identifier for a declaration appears within the text of a program, it is always the \textit{latest} declaration that applies.
+An \textit{identifier} is an arbitrarily long sequence of characters. Supported characters include uppercase Latin letters (\texttt{A - Z}), lowercase Latin letters (\texttt{a - z}), digits (\texttt{0 - 9}), and underscores (\_). A valid identifier must begin with a non-digit character. Identifiers are case sensitive. In the Steve grammar, identifiers end with the suffix \textit{-id}.
+
+Identifiers are subject to the following limitations:
+
+\begin{itemize}
+\item Identifiers which are keywords cannot be used for other purposes (see Section \ref{keyword_guide}).
+
+\item Identifiers beginning with double underscores (\_\_) or an underscore followed by a capital letter (ex. \_F) are reserved by the compiler for internal identifiers.
+\end{itemize}
+
+Identifiers can be used as \textit{names} for \textit{entities}. An entity is a value, object, reference, function, layout, layout field, decoder, table, flow entry, port, event. In the Steve grammar, identifiers being used as names end with the suffix \textit{-name}.
+
+Identifiers that name a variable, function, or port can be used as an expression. In this case, the identifier becomes an \textit{identifier expression}. In cases where identifier expressions refer to object declarations (see \ref{objects_guide}) a \textit{reference} to \textit{value} conversion is applied (see Section \ref{reftoval_conv}.
+
+\section{Keywords} \label{keyword_guide}
+
+A number of identifiers in Steve are reserved as \textit{keywords}. The meaning and semantics of these identifiers cannot be changed. A list of Steve keywords can be found in Figure \ref{keywords_table}. 
+
+\begin{figure} [ht]
+{\ttfamily
+\begin{tabular*}{\textwidth\noindent}{@{\extracolsep{\fill}} l l l l l}
+bool   & break   & char    & continue & def  \\
+if     & else    & foreign & int      & uint \\
+return & struct  & this    & var      & while \\
+match  & case    & layout  & decoder  & decode \\
+start  & extract & as      & exact\_table & requires \\
+miss   & Port    & goto    & output   & write \\
+drop   & flood   & clear   & set      & insert \\
+remove & into    & from    & event    & raise \\
+in\_port & in\_phys\_port & all & controller & reflow \\
+advance & egress & struct
+\end{tabular*}
+}
+\caption{Steve reserved keywords. Note that Steve reserves the right to make any identifiers keywords in future versions.}
+\label{keywords_table}
+\end{figure}
+
+\section{Scope} \label{scope_guide}
+
+Steve scope semantics borrow heavily from C++ scope semantics \cite{cpp_std}. \textit{Declarations} are used throughout program text to introduce \textit{names}. Names are \textit{identifiers} used to identify \textit{entities} (see \ref{identifiers_guide}). A \textit{declarative region} is a portion of the program text where a name is considered \textit{valid}. A particular name is only considered valid if the same \textit{entity} with that name can be found using an \textit{unqualified name lookup} (see \ref{unqlfd_lookup}). Generally speaking, a \textit{name} is only \textit{valid} within a possibly discontinuous part of program text called the \textit{scope} of that name.
+
+\subsection{Global Scope} \label{global_scope}
+
+The outermost part of program text where declarations can be made is known as \textit{global scope}. All declarations made at global scope are said to be \textit{global declarations} and their names are said to be \textit{global names}.
+
+Global names are valid at any point in the program. Steve does not require forward declarations. 
+
+Two different declarations of the same name shall not be made at global scope. Any attempts to do this shall produce a compiler error.
+
+\subsection{Block Scope} \label{block_scope}
+
+A declaration made within a block statement (see \ref{block_stmt_guide}) is said to have \textit{block scope}. All block statements introduce a block scope nested within the containing scope. Declarations made inside a block are said to be \textit{local} to that block. The scope of these declarations begin at their point of declaration and end at the end of the block.
+
+The statements \texttt{if}, \texttt{while}, \texttt{match} all implicitly introduce a block scope.
+
+Two different declarations of the same name cannot be made inside the same block scope. Any attempts to do this shall produce a compiler. 
+
+Scopes can be nested. In this case, the inner scope is said to be the \textit{enclosed} scope, and the outer scope is said to be the \textit{enclosing} scope. The same name can be declared in the outer scope, and again in one or more inner scopes. If this happens, the scope of the outer declaration is its typical scope excluding all declarations made in the inner scope. Unqualified name lookup (see \ref{unqlfd_lookup}) shall be used to unambiguously determine which declaration the name refers to. 
+
+%Here, it is useful to talk about a concept called \textit{potential scope}, similarly found in C++ \cite{cpp_std}. The scope of a declaration is the same as its potential scope. The only exception is if there are two or more declarations of the same name in the same potential scope. In this case, the actual scope of a declaration is its potential scope excluding the potential scope of the inner declarative region.
+
+Blocks found in the program text at global scope (i.e. function bodies, layout bodies, decoder bodies, etc) introduce block scopes which are implicitly nested in global scope.
+
+For example, in the following example, the name \texttt{i} is declared twice. The scope of the first \texttt{i} is global scope and includes the entire example excluding the region between the first left-brace (\texttt{\{}) and the closing right-brace (\texttt{\}}). The scope of the second \texttt{i} begins immediately after its declaration and ends at the the closing right-brace (\texttt{\}})
+
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+var i : int = 0;
+def f() -> int
+{
+	var i : int = 1;
+	var j : int = 2 + i;
+	return j; // Result here shall be 3.
+}
+\end{lstlisting}
+\end{minipage}
+
+\subsection{Function Scope} \label{function_scope}
+
+The body of a function is a block statement which introduces a block scope. All names introduced by parameter declarations in a function's parameter sequence have an effective scope starting at the first left-brace of the function body and ending at the final right-brace of the function body.
+
+\subsection{Layout Scope} \label{layout_scope}
+
+The body of a layout declaration introduces a layout scope. Field declarations introduce field names into the layout scope. Names of a field declaration can only be used as follows:
+
+\begin{itemize}
+\item Inside the scope of its layout.
+\item After the dot-operator (\texttt{.}) applied to the name of its field in as part of either a field name (see \ref{field_name}) or a field access expression (see \ref{field_access_expr}).
+\end{itemize}
+
+\subsection{Unqualified Name Lookup} \label{unqlfd_lookup}
+
+Unqualified name lookup attempts to find the corresponding declaration for a name being used. Unqualified name lookup begins at the innermost scope where that given name is used and works outward toward enclosing scopes. The innermost declaration (e.g. the first one found) with that given name found is considered the corresponding declaration. 
+
+If the name refers to one or more function declarations, and is being used a function call, an \textit{overload set} is associated with the name. If this is the case, \textit{argument dependent lookup} is applied. The function declaration chosen shall be the one whose parameter types match the argument types used in the function call.
+
+A name must be declared before being used. Any attempts to use a name before its declaration shall result in a failed unqualified name lookup.
+
+Global names used at global scope must be declared first. Global names used at non-global scope are considered valid regardless of the order with which they are declared in the program text. For example, the following usage of the name \texttt{i} in function \texttt{foo} refers to a variable declaration made after the function declaration. This is considered valid.
+
+\noindent\begin{minipage}{\linewidth}
+
+\begin{lstlisting}
+// The name 'i' is used even though it is declared later
+// in global scope.
+def foo() -> int { return 3 + i; }
+// The name 'i' is declared here.
+var i : int = 0;
+\end{lstlisting}
+
+\end{minipage}
+
+If unqualified lookup fails to find a corresponding declaration, the result is a compiler error.
+
+\subsection{Qualified Name Lookup}
+
+Qualified name lookup attempts to find the corresponding declaration for a name in a given scope. The search is done only on the given scope and does not expand outward to enclosing scopes.
+
+Qualified name lookup is most often used for looking up of names following the 
+
+If qualified lookup fails to find a corresponding declaration, the result is a compiler error.
+
+\section{Conversions} \label{conversions_guide}
+
+There are a number of type conversions in Steve which are all implicitly applied. These implicit conversions are applied to expressions in the order with which they are enumerate in this section.
+
+\subsection{Reference to Value Conversion} \label{reftoval_conv}
+
+Expressions of reference type can be converted to expressions of value type. An object of reference type stores an address to its data. A \textit{reference to value conversion} causes the data to be loaded from the address stored by the reference into a temporary. The value contained in the temporary is used for the operation in place of the expression of reference type.
+
+An identifier to an object declaration is an identifier expressions whose type is a reference to the type of the object. When used in a situation where the \textit{value} of the object is needed, a reference to value conversion is applied. 
+
+In the following example, the identifier expression \texttt{x} is has type reference to integer. When used as part of an additive expression, the reference to value conversion is implicitly applied so both operands have type integer.
+
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+var x : int = 10;
+
+// The reference to value conversion is
+// implicitly applied on the identifier expression
+// 'x' here.
+x + 5;
+\end{lstlisting}
+\end{minipage}
+
+\subsection{Integer Conversions} \label{int_conv}
+
+\subsection{Port to Integer Conversions} \label{port_conv}
+
+\section{Objects} \label{object_guide}
+
+An \textit{object} in a Steve program is an area of memory that has size, lifetime, type, and value. An object may also optionally be given a name.
+
+Variables, ports, and tables are objects. Objects are created in Steve by declarations of variables, ports, and tables. Objects may be created where temporary values are required.
 
 \section{Pipeline Guarantees} \label{pipeline_checking_guide}
 
@@ -22,15 +175,15 @@ Every pipeline graph must have exactly one source node (the starting decoder), b
 
 \subsection{Progress} \label{progress_guide}
 
-The \textbf{progress} property says that a packet always moves to a later stage in a pipeline and can never move, or risk moving, to a previously visited stage. This fundamental nature of the pipeline abstraction is ensuring progress is preserved. This prevents packets from infinitely looping between the same stages more than once. 
+The \textbf{progress} property says that a packet always moves to a later stage in a pipeline and can never move, or risk moving, to a previously visited stage. Progress is the fundamental nature of the pipeline abstraction. This prevents packets from infinitely looping between the same stages more than once. 
 
-First of all, table nodes are assigned a hidden, unique, incremented integer identifier in the order with which they are declared. For example, the first table declared in a Steve program is given the integer identifier 0, the second table declare is given the identifier 1, and so on. The \textbf{table identifiers} rule says that at no point in the pipeline can a packet reach a target table if it has already visited a table stage whose integer identifier is higher than or equal to that of the target table. In other words, a packet can only go forward through tables, never backwards. This is compliant with the OpenFlow specification for tables \cite{openflow_spec}.
+The pipeline graph shall be a directed acyclic graph (DAG). A DAG, by definition, has no cycles and cannot infinitely recur between stages.
 
-Because of this table identifiers rule, it is impossible for any number of table stages to form a cycle with each other.
-
-\textit{Proof.} A cycle can only be formed if the next table has either been visited, or is contained within a path to a table that has been visited. This can only happen if the next table has an identifier less than or equal to that of the current largest identifier visited. This property is enforced by the way tables are numbered. Since the table identifiers rule prevents a packet from being sent to these tables, it is thus impossible to form a cycle.
-
-Second of all, the pipeline graph shall be a directed acyclic graph (DAG). This is a redundant and stronger assertion over the identifiers rule. This prevents decoders from forming cycles in the graph. A DAG, by definition, has no cycles and cannot infinitely recur through stages. No further proof is necessary.
+%First of all, table nodes are assigned a hidden, unique, incremented integer identifier in the order with which they are declared. For example, the first table declared in a Steve program is given the integer identifier 0, the second table declare is given the identifier 1, and so on. Conventionally, tables are expected to be declared in the order with which they are expected to occur in a pipeline.
+%
+%The \textbf{table identifiers} rule says that at no point in the pipeline can a packet reach a target table if it has already visited a table stage whose integer identifier is higher than or equal to that of the target table. In other words, a packet can only go forward through tables, never backwards. This is compliant with the OpenFlow specification for tables \cite{openflow_spec}. Because of this table identifiers rule, it is impossible for any number of table stages to form a cycle with each other.
+%
+%\textit{Proof.} A cycle can only be formed if the next table has either been visited, or is contained within a path to a table that has been visited. This can only happen if the next table has an identifier less than or equal to that of the current largest identifier visited. This property is enforced by the way tables are numbered. Since the table identifiers rule prevents a packet from being sent to these tables, it is thus impossible to form a cycle.
 
 \subsection{Termination} \label{termination_guide}
 
@@ -60,9 +213,49 @@ In Steve, only tables, flow entries, and events can have requirements. Tables im
 
 The requirements satisfaction property says that given any node \textit{V}, all requirements of \textit{V} must be satisfied by all paths leading to \textit{V}. If this property does not hold true, the result is a compiler error.
 
-Remember that the objective is to prevent field access on fields that have not been extracted. Also remember that field access can only be done in certain cases. Firstly by a decoder if that field has been extracted by that decoder. Secondly by a table's only if that field is part of the table's key or given by the table's \texttt{\color{blue}requires} clause. Thirdly by a table's flow entry whose requirements are implicitly the same. Fourthly by an event if that field is given by the event's \texttt{\color{blue}requires} clause.
+Remember that the objective is to prevent field access on fields that have not been extracted. Also remember that field access can only be done in certain cases. Firstly by a decoder if that field has been extracted by that decoder. Secondly by a table only if that field is part of the table's key or given by the table's \texttt{\color{blue}requires} clause. Thirdly by a table's flow entry whose requirements are implicitly the same. Fourthly by an event if that field is given by the event's \texttt{\color{blue}requires} clause.
 
-\textit{Proof.} Field access can only be done in certain cases, all of which are cases where the requirements allow it. By the definition of the requirements satisfaction property all nodes in a pipeline graph must have their requirements satisfied, otherwise the result is a compiler error. Therefore, it is evident that it is impossible to compile a pipeline where field access is done on non-extracted fields.
+\textit{Proof.} Field access can only be done in certain cases, all of which are cases where the requirements allow it. By the definition of the requirements satisfaction property all nodes in a pipeline graph must have their requirements satisfied, i.e. those fields must have been extracted along the path to that node, otherwise the result is a compiler error. Therefore, it is evident that it is impossible to compile a pipeline where field access is done on non-extracted fields.
+
+\subsection{Depth First Search Graph Checking} \label{dfs_desc}
+
+In order to produce the most complete error messages, the Steve compiler uses depth-first traversal with backtracking to evaluate all possible paths in a pipeline graph, see Algorithm \ref{alg:dfs}. The time complexity of finding all paths from source to a sink in a DAG is O($V^2$). Assuming we have \textit{S} number of sinks, and \textit{S} is at worst \textit{V}, the time complexity of finding all paths in a DAG is O($V^3$).
+
+As the algorithm traverses a path in the graph, it accumulates a set of productions at each node. At each node, the node's requirements are checked against the accumulating set of productions to confirm the \textbf{requirement satisfaction} property holds true. Any node which fails immediately produces a compiler error and further traversal along that path stops.
+
+At any point in a given path, if a node's edge is directed toward a previously visited node in the path, e.g. a cycle is found, traversal past that node immediately stops and a compiler error is generated warning about the error. This ensures that the \textbf{progress} property is met. The \textbf{termination} property is actually implicit as long as the progress property is met. 
+
+\begin{algorithm}
+ \caption{Depth-first traversal with backtracking used to check pipeline properties.}
+ \label{alg:dfs}
+ \begin{algorithmic}
+ \State
+ \State \textbf{Input}: Let \textit{G} be the pipeline graph. Let \textit{v} be a node in \textit{G}. Let \textit{p} be a set of productions.
+ \State \textbf{Output}: Whether or not the current stage violates the progress, termination, or requirements satisfaction property. If any property fails, output a compiler error.
+ \State 
+ 
+ \Function{DFS}{$G, v, p$}
+ 	\State v.visited = true
+ 	\State p.push(v.productions)
+ 	\If{meetsRequirements(v, p)}
+ 		\For{\textbf{all} i \textbf{in} G.adjacentNodes(v)}
+ 			\If{(i.visited == false) $\land$ canProgress(v, i)}
+ 				\State \Call{DFS}{G, i, p}
+ 			\Else
+ 				\State \Return compiler error
+ 			\EndIf
+ 		\EndFor
+	\Else 	
+ 		\State \Return compiler error
+ 	\EndIf
+ 	
+ 	\State v.visited = false \Comment{As we backtrack, we reset the visited property so we can come down this node again in different path.}
+ 	
+ 	\State p.pop(v.productions) \Comment{As we backtrack, we remove the productions of the node from the set of productions.}
+ \EndFunction
+ \end{algorithmic}
+ 
+\end{algorithm}
  
 \section{Layout Limitations} \label{layout_guide}
 
@@ -70,9 +263,17 @@ Layout declarations in Steve must be used with the following conventions.
 
 Field declarations inside layouts can only be of scalar or layout type (and eventually dynamically-sized types). Type specifications on field declarations are used to specify the length of the given field. Because this is the extent of the usage, there is no reason to support more complex user-defined types here.
 
-Objects of layout type can never be created. Remember that layouts are not classes. The primary reason for this differentiation in Steve are dynamically-sized fields in packet headers. Headers potentially have fields whose memory size is predicated upon some value discovered during runtime. These fields are said to have \textbf{dynamically-sized type}. Some examples of this are the \texttt{options} fields in IPv4, IPv6, and TCP headers. Consider that when objects of user-defined type (i.e. class type) are constructed, stack space must be allocated for them. The amount of space must be known during compilation. By including a member of DST in a class it effectively "taints" a class, making the class a user-defined DST. It suddenly becomes impossible to stack allocate an object which contains a member of DST because the amount of memory needed is unknown until runtime. Therefore, DSTs cannot be members of user-defined types. Such objects can only be heap allocated, which Steve does not currently support. The only exception is if memory is being allocated for an object of non-user-defined, dynamically-sized type. The only language which supports DSTs, Rust, only allows it under very limited circumstance \cite{rust_dst_std}.
+Objects of layout type can never be created and functions cannot have parameters or returns of layout type. The following is not legal in Steve.
 
-By extension, because layouts must contain fields of DST, Steve cannot allow layouts to function like user-defined type. Therefore, objects of layout type can never be created.
+\begin{lstlisting}
+layout l1 { ... }
+var x : l1; // Illegal.
+def foo(x : l1) -> l1 { ... } // Illegal.
+\end{lstlisting}
+
+Remember that layouts are not classes. The primary reason for this differentiation in Steve are dynamically-sized fields in packet headers. Headers potentially have fields whose length is predicated upon some value discovered during runtime. These fields are said to have \textbf{dynamically-sized type}. Some examples of this are the \texttt{options} fields in IPv4, IPv6, and TCP headers. Consider that when objects of user-defined type (i.e. class type) are constructed, stack space must be allocated for them. The amount of space must be known during compilation. By including a member of DST in a class it effectively "taints" a class, making the class a user-defined DST. It suddenly becomes impossible to stack allocate an object which contains a member of DST because the amount of memory needed is unknown until runtime. Therefore, DSTs cannot be members of user-defined types. Such objects can only be heap allocated, which Steve does not currently support. The only exception is if memory is being allocated for an object of non-user-defined, dynamically-sized type. The only language which supports user-defined DSTs, Rust, only allows it under very limited circumstance \cite{rust_dst_std}.
+
+By extension, because layouts must contain fields of DST, Steve cannot allow layouts to function like a user-defined type. Therefore, objects of layout type can never be created.
   
 Layouts cannot contain member functions. It logically follows that since objects of layout type cannot exist, there is no justification for having member functions.
 
@@ -84,11 +285,21 @@ The anatomy of a decoder is described in detail here. This section will go over 
 
 When a packet enters via ingress port, a context data structure is attached to the packet. Recall from Section \ref{context_desc} that the context is used to "remember" the location and length of extracted fields as well as storing additional metadata. 
 
-The context maintains an index to the first byte of the current header. At first, this index begins at 0, corresponding to the first byte of the packet. When an extract declaration is written, the decoder looks at the respective field declaration in a layout declaration. 
+The context maintains an index to the first byte of the current header. At first, this index begins at 0, corresponding to the first byte of the packet.
+This index represents the beginning of the \textbf{current view} of the packet. Steve uses this view mechanism to allow for partial decodes of headers. Without the ability to find fields relative to the beginning of views, decoding phases would be forced into full forward decoding, meaning for a field to be extracted, all fields prior to it would have to be extracted.
 
+ When an extract declaration is written, the decoder looks at the respective field declaration in a layout declaration. From there, the decoder uses the offset of the field relative to the beginning 
 
 \section{Tables} \label{table_guide}
 
-\section{Field Access Expressions and Implicit Declarations}
+\section{Identifier Expressions} \label{id_expr}
 
 \section{Actions} \label{action_guide}
+
+\section{Field Name} \label{field_name}
+
+\section{Field Access Expression} \label{field_access_expr}
+
+\section{Statements} \label{statements_guide}
+
+\section{Block Statements} \label{block_stmt_guide}
