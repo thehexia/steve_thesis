@@ -38,8 +38,25 @@
 	    emphstyle=[3]{\color{red}},
 	    frame=single,
 	    tabsize=2}
-	    
+
 \graphicspath{ {./images/} }
+
+\newlength{\currentparskip}
+\newenvironment{minip}
+  {\noindent\setlength{\currentparskip}{\parskip}% save the value
+   \begin{minipage}{\textwidth}% open the minipage
+   \setlength{\parskip}{\currentparskip}% restore the value
+  }
+  {\end{minipage}\vspace{\baselineskip}}
+
+%\noindent\begin{minipage}{\linewidth}
+%\begin{grammar}
+%\singlespace
+%
+%
+%\end{grammar}
+%\end{minipage}
+
 
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

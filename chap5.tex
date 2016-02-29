@@ -16,9 +16,9 @@ Identifiers are subject to the following limitations:
 \item Identifiers beginning with double underscores (\_\_) or an underscore followed by a capital letter (ex. \_F) are reserved by the compiler for internal identifiers.
 \end{itemize}
 
-Identifiers can be used as \textit{names} for \textit{entities}. An entity is a value, object, reference, function, layout, layout field, decoder, table, flow entry, port, event. In the Steve grammar, identifiers being used as names end with the suffix \textit{-name}.
+Identifiers can be used as \textit{names} for \textit{entities}. An entity is a value, object, reference, function, layout, layout field, decoder, table, flow entry, port, event, extraction. In the Steve grammar, identifiers being used as names end with the suffix \textit{-name}.
 
-Identifiers that name a variable, function, or port can be used as an expression. In this case, the identifier becomes an \textit{identifier expression}. In cases where identifier expressions refer to object declarations (see \ref{objects_guide}) a \textit{reference} to \textit{value} conversion is applied (see Section \ref{reftoval_conv}.
+Identifiers that name a variable, function, or port can be used as an expression. In this case, the identifier becomes an \textit{identifier expression}. In cases where identifier expressions refer to object declarations (see \ref{object_guide}) a \textit{reference} to \textit{value} conversion is applied (see Section \ref{reftoval_conv}.
 
 \section{Keywords} \label{keyword_guide}
 
@@ -36,7 +36,7 @@ miss   & Port    & goto    & output   & write \\
 drop   & flood   & clear   & set      & insert \\
 remove & into    & from    & event    & raise \\
 in\_port & in\_phys\_port & all & controller & reflow \\
-advance & egress & struct
+advance & egress & struct & char
 \end{tabular*}
 }
 \caption{Steve reserved keywords. Note that Steve reserves the right to make any identifiers keywords in future versions.}
@@ -93,7 +93,7 @@ The body of a layout declaration introduces a layout scope. Field declarations i
 
 \begin{itemize}
 \item Inside the scope of its layout.
-\item After the dot-operator (\texttt{.}) applied to the name of its field in as part of either a field name (see \ref{field_name}) or a field access expression (see \ref{field_access_expr}).
+\item After the dot-operator (\texttt{.}) applied to the name of its field in as part of either a field name (see \ref{field_name}) or a field access expression (see \ref{field_access_expr_guide}).
 \end{itemize}
 
 \subsection{Unqualified Name Lookup} \label{unqlfd_lookup}
@@ -138,11 +138,11 @@ Expressions of reference type can be converted to expressions of value type. An 
 
 An identifier to an object declaration is an identifier expressions whose type is a reference to the type of the object. When used in a situation where the \textit{value} of the object is needed, a reference to value conversion is applied. 
 
-In the following example, the identifier expression \texttt{x} is has type reference to integer. When used as part of an additive expression, the reference to value conversion is implicitly applied so both operands have type integer.
+In the following example, the identifier expression \texttt{x} has type reference to integer. When used as part of an additive expression, the reference to value conversion is implicitly applied so both operands have type integer.
 
 \noindent\begin{minipage}{\linewidth}
 \begin{lstlisting}
-var x : int = 10;
+var x : uint = 10;
 
 // The reference to value conversion is
 // implicitly applied on the identifier expression
@@ -153,13 +153,44 @@ x + 5;
 
 \subsection{Integer Conversions} \label{int_conv}
 
+Steve will convert the precision and signed/unsigned-ness of integers where necessary.
+
+If an integer \texttt{I1} of type \texttt{T1} must be converted to an integer of type \texttt{T2}, the following conversions get applied in order.
+
+\begin{itemize}
+\item If \texttt{T1} is an unsigned integer and \texttt{T2} is a signed integer, then the type of \texttt{I1} is converted to a signed integer type with the same precision as \texttt{T1}.
+
+\item If \texttt{T1} is a signed integer and \texttt{T2} is an unsigned integer, then the type of \texttt{I1} is converted to an unsigned integer type with the same precision as \texttt{T1}.
+
+\item If the precision of \texttt{T1} is less than the precision of \texttt{T2}, then the type of \texttt{I1} is converted (promoted) to an integer type with the same precision as \texttt{T2}.
+
+\item If the precision of \texttt{T1} is greater than the precision of \texttt{T2}, then the type of \texttt{I1} is converted (demoted) to an integer type with the same precision as \texttt{T2}.
+\end{itemize}
+
 \subsection{Port to Integer Conversions} \label{port_conv}
+
+In some cases, namely comparison and equality operators, an identifier expression of reference to port type may be converted to have integer type. A port to integer conversion takes a port object and converts its value to an integer value. The integer value is equal to the port object's system assigned ID number. Port objects which have not been initialized or are invalid have an integer value \texttt{0}.
+
+If an expression \texttt{e1} of reference to port type must be converted to type \texttt{T} of integer type, first a reference to value conversion is applied, then a port to integer conversion is applied.
+
+For example, in the following case, a port to integer conversion is implicitly applied on the identifier expression \texttt{p1} to allow it to be compared with a literal expression of integer type.
+
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+Port p1; // Uninitialized port object.
+def foo() -> bool {
+	// Implicit port to integer conversion.
+	if (p1 == 0)
+		return true;
+}
+\end{lstlisting}
+\end{minipage}
 
 \section{Objects} \label{object_guide}
 
 An \textit{object} in a Steve program is an area of memory that has size, lifetime, type, and value. An object may also optionally be given a name.
 
-Variables, ports, and tables are objects. Objects are created in Steve by declarations of variables, ports, and tables. Objects may be created where temporary values are required.
+Variables, ports, tables, and temporaries are objects. Objects are created in Steve by declarations of variables, ports, and tables. Objects may be created where temporary values are required.
 
 \section{Pipeline Guarantees} \label{pipeline_checking_guide}
 
@@ -256,50 +287,186 @@ At any point in a given path, if a node's edge is directed toward a previously v
  \end{algorithmic}
  
 \end{algorithm}
+
+\section{Context Data Structure} \label{context_guide}
+
+The context data structure, or just \textit{context}, is an object created upon packet ingress and destroyed upon packet egress. This object is used exclusively by the internals of the program to keep track of information about a packet. Management of the context's memory is exclusively handled by internal mechanics of the program during runtime.
+
+A user is never given direct access to a context. Context objects are implicit, yet invisible within the scope of all pipeline processing stages (decoders, tables, and events). Certain expressions, declarations, and actions might access, affect, or otherwise modify the data of the context in limited and well-defined ways. 
+\begin{itemize}
+\item Expressions which affect a context are: field access expressions, in port expression, and in physical port expression.
+
+\item Declarations which affect a context are: extract declarations, rebind declarations, and table declarations (indirectly).
+
+\item All actions affect a context in some way.
+\end{itemize}
+
+\section{Declarations} \label{declaration_guide}
+
+\textit{Declarations}, generally speaking, introduce an entity and a name for that entity. When using that name, the declaration is used to determine how to interpret that name.
+
+For example, a variable declaration (see \ref{variable_guide}) introduces a variable and a name for that variable. When the name for that variable is used in program text, it is used to mean the variable itself.
+
+A \textit{definition} in Steve is equivalent to a declaration in all but one case. The only case where a definition is distinct from a definition is when the \texttt{foreign} specifier (see \ref{foreign_spec}) is attached to an incomplete function declaration.
+
+Declarations have the form:
+
+\begin{minip}
+\begin{grammar}
+\singlespace
+<decl> ::=
+[ <specifier-seq> ] <decl>
+\alt <global-decl>
+\alt <key-decl>
+\alt <extract-decl>
+\alt <rebind-decl>
+\alt <flow-decl>
+\alt <field-decl>
+\alt <parameter-decl>
+\alt <variable-decl>
+
+<global-decl> :: =
+<port-decl>
+\alt <layout-decl>
+\alt <decoder-decl>
+\alt <table-decl>
+\alt <event-decl>
+\alt <function-decl>
+\end{grammar}
+\end{minip}
+
+All declarations must occur within a scope. A declaration that declares a layout, decoder, table, event, or function cause a scope to be nested in the current scope. That scope might also have scopes nested within it.
+
+Certain declarations can only occur within certain scopes.
+
+Declarations which declare ports, layouts, decoders, tables, events, and functions must occur at global scope. These cannot occur within block scope. These are known as \textit{global} declarations.
+
+Declarations may have a number of specifiers (see \ref{spec_guide}) attached to them. Specifiers modify the semantics of declarations.
+
+\section{Specifiers} \label{spec_guide}
+
+Specifiers modify the semantics of a declaration. A sequence of specifiers may optionally appear at the beginning of a declaration. Not all specifiers are allowed on all declarations. Not all specifiers are allowed to appear together before the same declaration.
+
+Specifiers have the following form:
+
+\begin{grammar}
+\singlespace
+<specifier> ::= \textbf{foreign}
+\end{grammar}
+
+\subsection{Foreign Specifier} \label{foreign_spec}
+
+The \texttt{foreign} specifier can only be applied to function declarations. This specifier says that a function has foreign linkage, that is, the function is not defined in this scope but rather in a different program. The name of a foreign function is not mangled. Function declarations with the \texttt{foreign} specifier cannot have a definition, that is, have a function body defined. This is the only case where a declaration varies from a definition.
+
+Foreign linkage is most often used to link against the C runtime library. For example, the following introduces the \texttt{puts} C-function into global scope. Function calls to \texttt{puts} will call the C-function with the same name.
+
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+foreign def puts(char[]) -> int;
+
+def main() -> int {
+	puts("Hello world.");
+}
+\end{lstlisting}
+\end{minipage}
  
-\section{Layout Limitations} \label{layout_guide}
+\section{Layout Declaration} \label{layout_guide}
 
-Layout declarations in Steve must be used with the following conventions.
+\textit{Layout declarations} in Steve have the following form:
 
-Field declarations inside layouts can only be of scalar or layout type (and eventually dynamically-sized types). Type specifications on field declarations are used to specify the length of the given field. Because this is the extent of the usage, there is no reason to support more complex user-defined types here.
+\begin{minip}
+\begin{grammar}
+\singlespace
+<layout-decl> ::=
+\textbf{layout} <layout-name> 
+\textbf{\{}
+	<field-decl> +
+\textbf{\}}
+
+<field-decl> ::=
+<field-name> \textbf{:} <type> \textbf{;}
+\end{grammar}
+\end{minip}
+
+\textit{Layout declarations} in Steve shall be used with the following conventions.
+
+\textit{Field declarations} introduce names for fields into layout scope. Field declarations inside layouts can only be of scalar or layout type (and eventually dynamically-sized types). Types of field declarations are used to specify the length of the given field. Because this is the extent of the usage, there is no reason to support more complex user-defined types here. Note that though \texttt{bool} and \texttt{char} are valid scalar types and can appear as the types of fields, they will result in a compiler error if the given field is needed as part of a table's key.
+
+Field declarations must occur in the order with which they appear in the an actual instance of a header which the layout represents. Incorrect ordering will result in incorrect extractions (see \ref{extract_guide}).
 
 Objects of layout type can never be created and functions cannot have parameters or returns of layout type. The following is not legal in Steve.
 
+\noindent\begin{minipage}{\linewidth}
 \begin{lstlisting}
 layout l1 { ... }
 var x : l1; // Illegal.
 def foo(x : l1) -> l1 { ... } // Illegal.
 \end{lstlisting}
+\end{minipage}
 
-Remember that layouts are not classes. The primary reason for this differentiation in Steve are dynamically-sized fields in packet headers. Headers potentially have fields whose length is predicated upon some value discovered during runtime. These fields are said to have \textbf{dynamically-sized type}. Some examples of this are the \texttt{options} fields in IPv4, IPv6, and TCP headers. Consider that when objects of user-defined type (i.e. class type) are constructed, stack space must be allocated for them. The amount of space must be known during compilation. By including a member of DST in a class it effectively "taints" a class, making the class a user-defined DST. It suddenly becomes impossible to stack allocate an object which contains a member of DST because the amount of memory needed is unknown until runtime. Therefore, DSTs cannot be members of user-defined types. Such objects can only be heap allocated, which Steve does not currently support. The only exception is if memory is being allocated for an object of non-user-defined, dynamically-sized type. The only language which supports user-defined DSTs, Rust, only allows it under very limited circumstance \cite{rust_dst_std}.
+\subsection{Why Objects of Layout Type can not Exist.}
 
-By extension, because layouts must contain fields of DST, Steve cannot allow layouts to function like a user-defined type. Therefore, objects of layout type can never be created.
+Remember that layouts are not classes. The primary reason for this differentiation in Steve are dynamically-sized fields in packet headers. Headers potentially have fields whose length is predicated upon some value discovered during runtime. These fields are said to have \textit{dynamically-sized type}. Some examples of this are the \texttt{options} fields in IPv4, IPv6, and TCP headers. 
+
+Consider that when objects of user-defined type (i.e. class type) are constructed, stack space must be allocated for them. The amount of space must be known during compilation. By including a member of DST in a class it effectively "taints" a class, making the class a user-defined DST. It is not possible to stack allocate an object which contains a member of DST because the amount of memory needed is unknown until runtime. It suddenly becomes impossible to create variables of that user-defined type, making the entire abstraction meaningless. Therefore, DSTs cannot be members of user-defined types. 
+
+Such objects can only be heap allocated, which Steve does not currently support. The only exception is if memory is being allocated for an object of non-user-defined, dynamically-sized type. The only language which supports user-defined DSTs, Rust, only allows it under very limited circumstance \cite{rust_dst_std}.
+
+By extension, because layouts must contain fields of DST, Steve cannot allow layouts to behave like a user-defined type. Therefore, objects of layout type can never be created.
   
 Layouts cannot contain member functions. It logically follows that since objects of layout type cannot exist, there is no justification for having member functions.
 
-Field declarations must occur in the order with which they appear in the an actual instance of a header which the layout represents. Incorrect ordering will result in incorrect extractions.
+\section{Decoder Declarations} \label{decoder_guide}
 
-\section{The Anatomy of Decoders} \label{decoder_guide}
+\textit{Decoder} declarations introduce the name and definition of decoders. Decoder declarations have the following form:
 
-The anatomy of a decoder is described in detail here. This section will go over the exact steps taken by a decoder to extract fields from a packet.
+\begin{minip}
+\begin{grammar}
+\singlespace
+<decoder-decl> ::=
+\textbf{decoder} <decoder-name> [\textbf{start}] 
+\textbf{(} <layout-id> \textbf{)}
+<block-statement>
+\end{grammar}
+\end{minip}
 
-When a packet enters via ingress port, a context data structure is attached to the packet. Recall from Section \ref{context_desc} that the context is used to "remember" the location and length of extracted fields as well as storing additional metadata. 
+The identifier given by \textit{layout-id} must name a valid layout declaration at global scope. Different decoder declarations may use the same \textit{layout-id}. The layout declaration named by \textit{layout-id} is the layout used to determine the \textit{current view} and \textit{implicit advances} generated by a decoder (see \ref{decoder_view}). Extract declarations (see \ref{extract_guide}) may only extract fields from this layout.
+
+The optional \texttt{start} keyword shall occur on exactly one decoder declaration in a given program text. This decoder shall be considered the source (root) of the pipeline graph during pipeline checking. This decoder shall be the first decoder applied to a packet context after ingress.
+
+The execution of a decoder are similar to that of a function. Each statement within \textit{block-statement} are executed in turn. 
+
+\subsection{Decoder View and Shifting} \label{decoder_view}
+
+The \textit{current view} of a packet begins where the first byte of the current header being decoded lies in memory.
 
 The context maintains an index to the first byte of the current header. At first, this index begins at 0, corresponding to the first byte of the packet.
 This index represents the beginning of the \textbf{current view} of the packet. Steve uses this view mechanism to allow for partial decodes of headers. Without the ability to find fields relative to the beginning of views, decoding phases would be forced into full forward decoding, meaning for a field to be extracted, all fields prior to it would have to be extracted.
 
- When an extract declaration is written, the decoder looks at the respective field declaration in a layout declaration. From there, the decoder uses the offset of the field relative to the beginning 
+\section{Extract Declaration} \label{extract_guide}
 
-\section{Tables} \label{table_guide}
+\subsection{Field Name} \label{field_name}
 
-\section{Identifier Expressions} \label{id_expr}
+\section{Table Declaration} \label{table_guide}
 
-\section{Actions} \label{action_guide}
+\section{Flow Declaration} \label{flow_guide}
 
-\section{Field Name} \label{field_name}
+\section{Variable Declarations} \label{variable_guide}
 
-\section{Field Access Expression} \label{field_access_expr}
+\section{Function Declarations} \label{function_guide}
+
+\section{Identifier Expressions} \label{id_expr_guide}
+
+\section{Field Access Expression} \label{field_access_expr_guide}
+
+\section{Unary Expressions} \label{unary_expr_guide}
+
+\section{Binary Expressions} \label{binary_expr_guide}
 
 \section{Statements} \label{statements_guide}
 
+\section{Actions} \label{action_guide}
+
 \section{Block Statements} \label{block_stmt_guide}
+
+\section{Assignment Statements} \label{assign_stmt_guide}
