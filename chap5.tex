@@ -43,6 +43,22 @@ advance & egress & struct & char
 \label{keywords_table}
 \end{figure}
 
+\section{Field Name} \label{field_name_guide}
+
+\textit{Field names} are special names which refer to field declarations made within a layout declaration. Field names have the form:
+
+\begin{minip}
+\begin{grammar}
+<field-name> ::=
+<layout-id> \textbf{.} <field-id>
+\alt <field-name> \textbf{.} <field-id>
+\end{grammar}
+\end{minip}
+
+In the first form \grd{layout}{id}.\grd{field}{id}, or more succinctly \texttt{E1.E2}, \texttt{E1} must be a valid identifier to a layout declaration. \texttt{E2} must be found in the layout scope of \texttt{E1} using a qualified name lookup (see \ref{qlfd_lookup}).
+
+In the second form \grd{field}{name}.\grd{field}{id}, or more succinctly \texttt{F.E}, \texttt{F} must be a valid field name which refers to a field declaration whose type, \texttt{T}, is layout type (see \ref{layout_type_guide}). \texttt{E} must be found in the layout scope of the layout declaration declaring type \texttt{T} using a qualified name lookup.
+
 \section{Scope} \label{scope_guide}
 
 Steve scope semantics borrow heavily from C++ scope semantics \cite{cpp_std}. \textit{Declarations} are used throughout program text to introduce \textit{names}. Names are \textit{identifiers} used to identify \textit{entities} (see \ref{identifiers_guide}). A \textit{name} is only \textit{valid} within parts of program text called the \textit{scope} of that name. A particular name is only considered valid if an \textit{entity} with that name can be found using an \textit{unqualified name lookup} (see \ref{unqlfd_lookup}). 
@@ -57,17 +73,17 @@ Two different declarations of the same name shall not be made at global scope. A
 
 \subsection{Block Scope} \label{block_scope}
 
-Blocks are portions of program text which can have their own local declarations. The beginning of a block is delimited by the left-brace (\{) and the end of a block is delimited by the right-brace (\}). A declaration made within a block has \textit{block scope} and is \textit{local} to that block.
+Blocks are portions of program text which can have their own local declarations. The beginning of a block is delimited by the left-brace (\{) and the end of a block is delimited by the right-brace (\}). A declaration made within a block is in \textit{block scope} and is \textit{local} to that block.
 
 Two different declarations of the same name cannot be made inside the same block. Any attempts to do this shall produce a compiler. 
 
-Blocks can be nested. In this case, the inner block is said to be the \textit{enclosed} block, and the outer block is said to be the \textit{enclosing} block. The same name can be declared in the enclosing block, and again in one or more enclosed blocks. The same is true for further nested blocks within the enclosed block. If this happens, the scope of the outer declaration is its typical scope excluding program text of the enclosed block. Unqualified name lookup (see \ref{unqlfd_lookup}) shall be used to unambiguously determine which declaration the name refers to. 
+Scopes can be nested. In this case, the inner scope is said to be the \textit{enclosed} scope, and the outer scope is said to be the \textit{enclosing} scope. The same name can be declared in the enclosing scope, and again in one or more enclosed scopes. The same is true for further nested scopes within the enclosed scope. If this happens, the scope of the outer declaration is its typical scope excluding program text of the enclosed scope. Unqualified name lookup (see \ref{unqlfd_lookup}) shall be used to unambiguously determine which declaration the name refers to. 
 
 The statements \texttt{if}, \texttt{while}, \texttt{match} all implicitly introduce a block.
 
 %Here, it is useful to talk about a concept called \textit{potential scope}, similarly found in C++ \cite{cpp_std}. The scope of a declaration is the same as its potential scope. The only exception is if there are two or more declarations of the same name in the same potential scope. In this case, the actual scope of a declaration is its potential scope excluding the potential scope of the inner declarative region.
 
-Blocks found in the program text at global scope (i.e. function bodies, layout bodies, decoder bodies, etc) introduce blocks which are nested in global scope.
+Blocks found in the program text at global scope (i.e. function bodies, layout bodies, decoder bodies, etc) introduce block scopes which are nested in global scope.
 
 For example, in the following example, the name \texttt{i} is declared twice. The scope of the first \texttt{i} is global scope and includes the entire example excluding the block between the first left-brace (\texttt{\{}) and the closing right-brace (\texttt{\}}). The scope of the second \texttt{i} begins immediately after its declaration and ends at the the closing right-brace (\texttt{\}})
 
@@ -93,21 +109,82 @@ The body of a decoder declaration (see \ref{decoder_guide}) is its \grd{block}{s
 
 \subsection{Table Scope} \label{table_scope}
 
-A table declaration (see \ref{table_guide}) has a body given by \grd{table}{initializer} which introduces a block. Declarations made inside this block are said to have \textit{table scope}.
+A table declaration (see \ref{table_guide}) has a body given by \grd{table}{initializer} which introduces a block. Declarations made inside this block are said to be in \textit{table scope}.
 
-All names of key fields given by a \grd{key}{declaration} within \grdd{key}{declaration}{sequence} have block scope starting at the beginning of the block. All field names given within \grd{requires}{clause} are implicitly declared at the beginning of the block and refer to the last \textit{extraction} with that name.
+All field names given by a \grd{key}{declaration} within \grdd{key}{declaration}{sequence} extends the scope of those field names into the table scope. Those field names are names declared via extract declaration (see \ref{extract_guide}) in a prior stage declaration of the pipeline. Field names declared via \grdd{key}{declaration} are valid and can be extended into the table scope if and only if \textit{requirements satisfaction} (see \ref{requirements_guide}) determines that field is satisfied. 
+
+All field names given by the \grd{requires}{clause} extends the scope of those field names into the table scope. \textit{Requirement satisfaction} is used to check whether or not those names are valid and can be extended.
+
+In the following example, we declare two decoders; \texttt{ipv4_d} has extract declarations for field names \texttt{ipv4.type} and \texttt{ipv4.ttl}.
+
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+decoder ipv4_d(ipv4)
+{
+	extract ipv4.type;
+	extract ipv4.ttl;
+	// ...
+	decode udp;
+}
+
+decoder udp_d(udp)
+{
+	extract udp.dst_port;
+	// ...
+	goto t1;
+}
+\end{lstlisting}
+\end{minipage}
+
+We go to table \texttt{t1} from \texttt{udp_d}. Table \texttt{t1} has the key declarations \texttt{ipv4.type} and \texttt{udp.dst_port} introduce those field names into table scope. What they are actually doing is \textit{extending} the scope of those names from the respective extract declarations into the scope of \texttt{t1}. The same \textit{scope extension} is applied to \texttt{ipv4.ttl}.
+
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+exact_table t1(ipv4.type, udp.dst_port)
+	requires(ipv4.ttl)
+{
+
+}
+\end{lstlisting}
+\end{minipage}
 
 \subsection{Flow Entry Scope} \label{flow_scope}
 
-A flow declaration has a body given by \grd{flow}{body} which introduces a block. If a flow declaration is part of a table declaration's \grd{table}{initializer}, the flow declaration has table scope. The block is nested inside table scope.
+A flow declaration has a body given by \grd{flow}{body} which introduces a block. Declarations made in this block are said to have \textit{flow entry scope}. If a flow declaration is part of a table declaration's \grd{table}{initializer}, the flow declaration has table scope. The flow entry scope is nested inside table scope.
 
-If a flow declaration is part of an \texttt{insert} action, the body is treated as if it were nested inside table scope. 
+If a flow declaration is part of an \texttt{insert} action, the body is treated as if it were nested inside the table scope of the table it is being inserted into. 
 
-Names found in the \grd{properties}{block} are treated as if they were in the scope where the flow declaration is found. That is, all identifiers which are normally valid at the point where the \grd{properties}{block} appears in the program text are valid inside the \grd{properties}{block}. However, these identifiers may not be valid for the \grd{flow}{body} in the case of an \texttt{insert} action.
+Names found in the \grd{properties}{block} follow regular scope semantics. That is, all names which are normally valid at the point where the \grd{properties}{block} appears in the program text are valid inside the \grd{properties}{block}. However, these names may not be valid for the \grd{flow}{body} in the case of an \texttt{insert} action.
+
+In the following example, the name \texttt{x} is valid in the properties block, but not in the body of the flow.
+
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+event e1 
+{
+	var x : int = 100;
+	insert
+	[timeout = x] // 'x' is valid here.
+	{ x } -> // 'x' is also valid here. 
+	{
+		// Error: The name 'x' is not valid here.
+		set eth.type = x + 1; 
+		// However, the field name 'eth.type' is valid
+		// because the flow body is treated as if nested
+		// inside the scope of table 't1', whose key declaration
+		// 'eth.type' makes the field name valid.
+		flood; 
+	}
+	into t1;
+}
+
+exact_table t1(eth.type)
+\end{lstlisting}
+\end{minipage}
 
 \subsection{Event Scope} \label{event_scope}
 
-The body of an event declaration (see \ref{event_guide}) is a \grd{block}{statement} which introduces a block. All field names given within \grd{requires}{clause} are implicitly declared with block scope inside that block and refer to the last \textit{extraction} with that name.
+The body of an event declaration (see \ref{event_guide}) is a \grd{block}{statement} which introduces a block. All field names given by the \grd{requires}{clause} \textit{extends} the scope of those field names into the block. \textit{Requirement satisfaction} is used to check whether or not those names are valid and can be extended.
 
 \subsection{Layout Scope} \label{layout_scope}
 
@@ -120,7 +197,7 @@ The body of a layout declaration (see \ref{layout_guide}) introduces a special l
 
 \subsection{Unqualified Name Lookup} \label{unqlfd_lookup}
 
-Unqualified name lookup attempts to find the corresponding declaration for a name being used. Unqualified name lookup begins at the innermost block where that given name is used and works outward toward enclosing blocks. The innermost declaration (e.g. the first one found) with that given name found is considered the corresponding declaration. 
+Unqualified name lookup attempts to find the corresponding declaration for a name being used. Unqualified name lookup begins at the innermost block, before the name is used and works outward toward enclosing blocks. If the declaration is not found in any enclosing blocks, global scope is searched. The innermost declaration (e.g. the first one found) with that given name found is considered the corresponding declaration. 
 
 If the name refers to one or more function declarations, and is being used as a function call, an \textit{overload set} is associated with the name. If this is the case, \textit{argument dependent lookup} is applied. The function declaration chosen shall be the one whose parameter types match the argument types used in the function call.
 
@@ -142,7 +219,7 @@ var i : int = 0;
 
 If unqualified lookup fails to find a corresponding declaration, the result is a compiler error.
 
-\subsection{Qualified Name Lookup}
+\subsection{Qualified Name Lookup} \label{qlfd_lookup}
 
 Qualified name lookup attempts to find the corresponding declaration for a name in a given block. The search is done only on the given block and does not expand outward to enclosing blocks.
 
@@ -391,7 +468,7 @@ def main() -> int {
  
 \section{Layout Declaration} \label{layout_guide}
 
-\textit{Layout declarations} are used to define the physical structure of packets in memory. Layout declarations have the following form:
+\textit{Layout declarations} are used to define the physical structure of packets in memory. Layout declarations declare \textit{layout types}, or more succinctly a \textit{layout}. Layout declarations have the following form:
 
 \begin{minip}
 \begin{grammar}
@@ -414,7 +491,7 @@ Field declarations must occur in the order with which they appear in the an actu
 
 All field declarations declared within a layout declaration define a \textit{complete} layout. Field declarations may not be added to a layout elsewhere.
 
-Objects of layout type can never be created and functions cannot have parameters or returns of layout type. The following is not legal in Steve.
+Though layout declarations declare layout types, objects of layout type can never be created and functions cannot have parameters or returns of layout type. The following is not legal in Steve. A layout type may only appear as the type of a field declaration in layout scope.
 
 \noindent\begin{minipage}{\linewidth}
 \begin{lstlisting}
@@ -479,8 +556,6 @@ An \textit{extract declaration} declares that a field with the specified \grd{fi
 
 An extract declaration may only be used within decoder scope.
 
-\section{Field Name} \label{field_name}
-
 \section{Table Declaration} \label{table_guide}
 
 \section{Flow Declaration} \label{flow_guide}
@@ -510,3 +585,9 @@ An extract declaration may only be used within decoder scope.
 \section{Block Statements} \label{block_stmt_guide}
 
 \section{Assignment Statements} \label{assign_stmt_guide}
+
+\section{Type} \label{type_guide}
+
+\section{Layout Type} \label{layout_type_guide}
+
+\section{Scalar Type} \label{scalar_type_guide}
