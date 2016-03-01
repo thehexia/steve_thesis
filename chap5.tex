@@ -115,7 +115,7 @@ All field names given by a \grd{key}{declaration} within \grdd{key}{declaration}
 
 All field names given by the \grd{requires}{clause} extends the scope of those field names into the table scope. \textit{Requirement satisfaction} is used to check whether or not those names are valid and can be extended.
 
-In the following example, we declare two decoders; \texttt{ipv4_d} has extract declarations for field names \texttt{ipv4.type} and \texttt{ipv4.ttl}.
+In the following example, we declare two decoders; \texttt{ipv4\_d} has extract declarations for field names \texttt{ipv4.type} and \texttt{ipv4.ttl}; \texttt{udp\_d} has extract declarations for \texttt{udp.dst\_port}.
 
 \noindent\begin{minipage}{\linewidth}
 \begin{lstlisting}
@@ -136,14 +136,22 @@ decoder udp_d(udp)
 \end{lstlisting}
 \end{minipage}
 
-We go to table \texttt{t1} from \texttt{udp_d}. Table \texttt{t1} has the key declarations \texttt{ipv4.type} and \texttt{udp.dst_port} introduce those field names into table scope. What they are actually doing is \textit{extending} the scope of those names from the respective extract declarations into the scope of \texttt{t1}. The same \textit{scope extension} is applied to \texttt{ipv4.ttl}.
+We go to table \texttt{t1} from \texttt{udp\_d}. Table \texttt{t1} has the key declarations \texttt{ipv4.type} and \texttt{udp.dst\_port} introduce those field names into table scope. What they are actually doing is \textit{extending} the scope of those names from the respective extract declarations into the scope of \texttt{t1}. The same \textit{scope extension} is applied to \texttt{ipv4.ttl}.
 
 \noindent\begin{minipage}{\linewidth}
 \begin{lstlisting}
 exact_table t1(ipv4.type, udp.dst_port)
 	requires(ipv4.ttl)
 {
-
+	{ 0x01, 80 } ->
+	{
+		// The ipv4.type field name is valid here.
+		set ipv4.type = 0x02;
+		// The udp.dst_port field name is valid here.
+		set udp.dst_port = 88;
+		// The ipv4.ttl field name is valid here.
+		set ipv4.ttl = ipv4.ttl - 1;
+	}
 }
 \end{lstlisting}
 \end{minipage}
