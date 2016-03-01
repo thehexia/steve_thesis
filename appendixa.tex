@@ -54,10 +54,7 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 
 <table-decl> ::=
 \textbf{table} <table-name> \textbf{(} <key-decl-sequence> \textbf{)} 
-[ <requires-clause> ]
-\textbf{\{} 
-<flow-decl> + 
-\textbf{\}}
+[ <requires-clause> ] flow-decl-list
 
 <key-decl> ::=
 <layout-id> \textbf{.} <field-id>
@@ -70,13 +67,12 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 
 <flow-decl> ::=
 <properties-block>
-\textbf{\{} [<expr-sequence>] \textbf{\}} \textbf{-\textgreater}
-\textbf{\{} 
-<action> +
-\textbf{\}}
+\textbf{\{} [<expr-sequence>] \textbf{\}} \textbf{-\textgreater} <flow-body>
 \alt <miss-flow-decl>
 
-<properties-block> ::=
+<flow-body> :: \textbf{\{} <action> + \textbf{\}}
+
+<properties block> ::=
 \textbf{[} <property-sequence> \textbf{]}
 
 <property> ::=
@@ -87,10 +83,7 @@ This appendix provides a complete guide of all syntax supported by the Steve pro
 \alt \textbf{egress}
 
 <miss-flow-decl> ::=
-\textbf{miss} \textbf{-\textgreater}
-\textbf{\{} 
-<action> +
-\textbf{\}}
+\textbf{miss} \textbf{-\textgreater} <flow-body>
 
 <event-decl> ::=
 \textbf{event} <event-name> <requires-clause> 

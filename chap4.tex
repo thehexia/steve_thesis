@@ -230,7 +230,7 @@ Hexadecimal literals all start with the prefix \texttt{0x} followed by any numbe
 
 \section{Layouts} \label{layout_tut}
 
-Before pipeline processing stages can be written, a \textbf{layout} is used to describe the physical structure of a packet header, i.e. what fields they have and the respective lengths of those fields. Steve decoding stages use these layouts to determine two things: what the offset of a given field is relative to the beginning of the header and the length of the field. This information is used to guide the process of extracting fields during decoding stages like a blueprint might be used to find places in a building.
+Before pipeline processing stages can be written, a \textit{layout} is used to describe the physical structure of a packet header, i.e. what fields they have and the respective lengths of those fields. Steve decoding stages use these layouts to determine two things: what the offset of a given field is relative to the beginning of the header and the length of the field. This information is used to guide the process of extracting fields during decoding stages like a blueprint might be used to find places in a building.
 
 \begin{figure}[ht]
 \begin{mdframed}
@@ -279,11 +279,11 @@ layout ethernet
 \label{fg:eth_layout_ex}
 \end{figure}
 
-A \textbf{\texttt{layout} declaration} is composed of a sequence of \textbf{field declarations}. Each field declaration corresponds to a field in a header. The type of each field declaration defines the length of the corresponding field in a header. Each field declaration in a layout must be written in the same order with which the field appears in a real instance of the header. If the ordering does not match, layouts will not function correctly during decoding stages.   
+A \textit{layout declaration} is used to declare a layout. A layout is composed of a sequence of \textit{fields} which are declared using \textit{field declarations}. Each field declaration corresponds to a field in a header. The type of each field declaration defines the length of the corresponding field in a header. Each field declaration in a layout declaration must be written in the same order with which the field appears in a real instance of the header. If the ordering does not match, layouts will not function correctly during decoding stages.   
 
-A field declaration within a layout is limited to being one of two different types. The first of these types is scalar type (most often a signed/unsigned integer type). Integer types can be given with an optional bit-length precision, with the default being 32-bits if no precision is specified. This bit-length precision is used to determine the length of the field. With Figure \ref{fg:eth_layout_ex} we have a layout composed of fields of only integer type.
+A field declaration within a layout declaration is limited to being one of two different types. The first of these types is scalar type (most often a signed/unsigned integer type). Integer types can be given with an optional bit-length precision, with the default being 32-bits if no precision is specified. This bit-length precision is used to determine the length of the field. With Figure \ref{fg:eth_layout_ex} we have a layout composed of fields of only integer type.
 
-The second supported type is layout type. This allows layouts to be nested together in case a programmer must deal structures nested within headers. In this case, a field declaration is used whose type is given as the identifier to layout declaration. In Figure \ref{fg:nested_layout_ex} we give a trivial extension of the ethernet example where we nest a \texttt{vlan} tag.
+The second supported type is layout type. This allows layouts to be nested together in case a programmer must deal with structures nested within headers. In this case, a field declaration is used whose type is given as the identifier to a layout declaration. In Figure \ref{fg:nested_layout_ex} we give a trivial extension of the ethernet example where we nest a \texttt{vlan} tag.
 
 \begin{figure}[ht]
 \begin{lstlisting}
@@ -309,7 +309,7 @@ When using layouts it is important to know that there exist distinct differences
 
 Another important note is that Steve does not currently support dynamically sized types (DST) which are types whose size is predicated upon some value known only during program runtime). These DSTs are used to represent header fields whose lengths are dynamic, e.g. predicated upon some value found earlier in the header. Some examples of fields whose types are represented using DSTs are the \texttt{options} fields in IPv4, IPv6, and TCP headers, or the \texttt{ICV} field in the IPSec header.
 
-DSTs are a language feature that will eventually be added, but is outside the scope of this thesis. Because of this, fields whose lengths are dynamic cannot currently be declared, extracted, nor used. The existence and eventual support of DSTs is one of the reasons why objects of layout type cannot be created which is further discussed in Section \ref{layout_guide}.
+DSTs are a language feature that will eventually be added, but are outside the scope of this thesis. Because of this, fields whose lengths are dynamic cannot currently be declared, extracted, nor used. The existence and eventual support of DSTs is one of the reasons why objects of layout type cannot be created which is further discussed in Section \ref{layout_guide}.
 
 An IPv4 header example can be seen in Figure \ref{fg:ipv4_layout_ex}. Note that the \texttt{options} field is skipped due to the lack of DSTs. Also note that Steve does not support non-byte aligned data types, and thus the precision of all integers are multiples of 8. Fields which are non-byte aligned must be merged to byte alignment and recovered using arithmetic operations (see Figure \ref{fg:assign_arith_ex} in Section \ref{decoder_tut} for an example). 
 
@@ -335,7 +335,7 @@ layout ipv4
 
 \section{Decoders} \label{decoder_tut}
 
-\textbf{Decoders} represent the decoding stages in the pipeline. In Steve these decoders  are special purpose functions used to handle decoding and extracting fields in a given header. By chaining multiple decoders together, a user can construct a set of functions used to parse an entire packet. \textbf{Decoder declarations} are Steve's way of defining decoding stages. Decoder declarations provide users the ability to:
+\textit{Decoders} represent the decoding stages in the pipeline. In Steve these decoders are special purpose functions used to handle decoding and extracting the fields of a given header. By chaining multiple decoders together, a user can construct a set of functions used to parse an entire packet. \textit{Decoder declarations} are Steve's way of defining decoding stages. The grammar needed to write a complete decoder is given in Figure \ref{fg:decoder_syntax}. Decoder declarations provide users the ability to:
 
 \begin{itemize}
 \item Declare which header is being decoded and which fields to extract from it.
@@ -375,7 +375,7 @@ layout ipv4
 
 \subsection{Extractions} \label{decoder_extract_tut}
 
-The primary goal of decoders is to extract fields from headers. Assume we wanted to write a decoder to extract the \texttt{src} and \texttt{dst} fields from the ethernet header. Remember, Steve allows for the partial decoding of packets, so if we do not need a field, in this case \texttt{type}, its not necessary to extract it. 
+The primary goal of decoders is to extract fields from headers. Extracted fields may be shortened to simply \textit{extractions}. Assume we wanted to write a decoder to extract the \texttt{src} and \texttt{dst} fields from the ethernet header. Remember, Steve allows for the partial decoding of packets, so if we do not need a field, in this case \texttt{type}, its not necessary to extract it. 
 
 First, a layout for the ethernet header must be defined. Steve decoders use layouts to determine where fields are relative to the beginning of the header and how long those fields are. More details on this process can be found in Section \ref{decoder_guide}. Here we can use the layout defined in Figure \ref{fg:eth_layout_ex}. 
 
@@ -396,15 +396,15 @@ decoder start eth_decode(ethernet)
 
 A decoder can only extract fields from a header defined by this layout. If an attempt is made to extract a field from a different header a compiler error is emitted. The optional \texttt{start} keyword is attached to this decoder to denote that this decoder is the first stage in the pipeline. Ethernet is the most commonly used data link layer protocol, making it the most common header to start with. There can only be one starting decoder.
 
-To extract a field, the programmer writes an \textbf{extract declaration} which requires that a field be specified using a \textbf{field name}. A field name is used to refer to a field of a layout. For example \texttt{eth.dst} refers to the \texttt{dst} field of the \texttt{ethernet} layout.  Note that this is distinctly different from member access as the \texttt{ethernet} layout is not an object. 
+To extract a field, the programmer writes an \textit{extract declaration} which requires that a field be specified using a \textit{field name}. A field name is used to refer to a field of a layout. For example \texttt{eth.dst} refers to the \texttt{dst} field of the \texttt{ethernet} layout.  Note that this is distinctly different from member access as the \texttt{ethernet} layout is not an object. 
 
 The first extract declaration (\texttt{extract ethernet.dst}) says that the decoder extracts the \texttt{dst} field of the \texttt{ethernet} header. The second extract declaration (\texttt{extract ethernet.src}) says that the decoder extracts the \texttt{src} field of the \text{ethernet} header. 
 
 \subsection{Accessing Extracted Fields} \label{decoder_access_tut}
 
-After extracting a field from a header, we generally want to use the \textit{value} of that field. To use the value of an extracted field, we need the \textbf{field access expression}. Field access expressions have the same grammar as field names, but they can be used wherever any expression is valid.  The field access expression is a lexical place-holder which refers to some field that has been extracted with the same name. A good analogy would be field access expressions are to extracted fields what variable identifiers are to variables.
+After extracting a field from a header, we generally want to use the \textit{value} of that extraction. To use the value of an extraction, we need the \textit{field access expression}. Field access expressions have the same grammar as field names, but they can be used wherever any expression is valid. The field access expression is a lexical place-holder which refers to some extraction of the same name in scope. A good analogy would be field access expressions are to extractions what variable identifiers are to variables.
 
-Figure \ref{fg:access_ex} demonstrates how the value of extracted fields can be used. In this scenario, we extract \texttt{ethernet.type}. Here we want to make a decision about what the value of \texttt{ethernet.type} means. The IEEE ethernet standard says that if the \texttt{type} field is greater than or equal to hexadecimal \texttt{0x600}, then the value of the field is used to determine the kind of header encapsulated by the ethernet header \cite{eth_std}. Otherwise, if the \texttt{type} field is less than hexadecimal \texttt{0x05dc}, the field refers to the length of the ethernet frame. Here we use field access expressions in comparison expressions and an if-else statement to determine how to proceed with the packet. 
+Figure \ref{fg:access_ex} demonstrates how the value of extractions can be used. In this scenario, we extract \texttt{ethernet.type}. Here we want to make a decision about what the value of \texttt{ethernet.type} means. The IEEE ethernet standard says that if the \texttt{type} field is greater than or equal to \texttt{0x600}, then the value of the field is used to determine the kind of header encapsulated by the ethernet header \cite{eth_std}. Otherwise, if the \texttt{type} field is less than \texttt{0x05dc}, the field refers to the length of the ethernet frame. Here we use field access expressions in comparison expressions and an if-else statement to determine how to proceed with the packet. 
 
 \begin{figure}[ht]
 \begin{lstlisting}
@@ -558,19 +558,16 @@ Then from table \texttt{t1}, if the \texttt{ipv4.protocol} field is equal \textt
 
 \section{Tables} \label{table_tut}
 
-The next stage to explore is the table matching stage. Remember that a table specifies a \textbf{key} and is comprised of a set of \textbf{flow entries}. Each flow entry specifies a priority, values for its \textbf{match fields}, and a set of \textbf{actions} to perform against matching packets. All flow entries in the table must be uniquely identifiable from its match fields and priority.
+The next stage to explore is the table matching stage. Remember that a table specifies a \textit{key} and is comprised of a set of \textit{flow entries}. Each flow entry specifies a priority, values for its \textit{match fields}, and a set of \textit{actions} to perform against matching packets. All flow entries in the table must be uniquely identifiable from its match fields and priority.
 
-Figure \ref{fg:table_syntax} provides the syntax for writing tables and flow entries in Steve. Tables are written using \textbf{table declarations} and flow entries are written using \textbf{flow declarations}.
+Figure \ref{fg:table_syntax} provides the syntax for writing tables and flow entries in Steve. Tables are written using \textit{table declarations} and flow entries are written using \textit{flow declarations}.
 
 \begin{figure}[ht]
 \begin{mdframed}
 \begin{grammar}
 <table-decl> ::=
 \textbf{exact\_table} <table-name> \textbf{(} <key-decl-sequence> \textbf{)} 
-[ <requires-clause> ]
-\textbf{\{} 
-<flow-decl> + 
-\textbf{\}}
+[ <requires-clause> ] <table-initializer>
 
 <key-decl> ::=
 <layout-id> \textbf{.} <field-id>
@@ -581,13 +578,14 @@ Figure \ref{fg:table_syntax} provides the syntax for writing tables and flow ent
 <requires-clause> ::=
 \textbf{requires} \textbf{(} <field-name-sequence> \textbf{)}
 
+<table-initializer> ::= \textbf{\{} <flow-decl> + \textbf{\}}
+
 <flow-decl> ::=
 <properties-block>
-\textbf{\{} [<expr-sequence>] \textbf{\}} \textbf{-\textgreater}
-\textbf{\{} 
-<action> +
-\textbf{\}}
+\textbf{\{} [<expr-sequence>] \textbf{\}} \textbf{-\textgreater} <flow-body>
 \alt <miss-flow-decl>
+
+<flow-body> :: \textbf{\{} <action> + \textbf{\}}
 
 <properties-block> ::=
 \textbf{[} <property-sequence> \textbf{]}
@@ -600,19 +598,16 @@ Figure \ref{fg:table_syntax} provides the syntax for writing tables and flow ent
 \alt \textbf{egress}
 
 <miss-flow-decl> ::=
-\textbf{miss} \textbf{-\textgreater}
-\textbf{\{} 
-<action> +
-\textbf{\}}
+\textbf{miss} \textbf{-\textgreater} <flow-body>
 \end{grammar}
 \end{mdframed}
 \caption{Table syntax for Steve in BNF.}
 \label{fg:table_syntax}
 \end{figure}
 
-There are three commonly used types of flow tables: \textbf{exact}, \textbf{prefix}, and \textbf{wildcard} matching tables. Steve currently only supports the exact match table. 
+There are three commonly used types of flow tables: \textit{exact}, \textit{prefix}, and \textit{wildcard} matching tables. Steve currently only supports the exact match table. 
 
-With an exact match table, each field in the packet must \textit{exactly} match a flow entry's match fields. By default, the priority of all flow entries in an exact match table are the same. The exception is the miss case which always has a priority lower than every other flow entry.
+With an exact match table, each field in the packet must \textbf{exactly} match a flow entry's match fields. By default, the priority of all flow entries in an exact match table are the same. The exception is the miss case which always has a priority lower than every other flow entry.
 
 Consider that the objective of tables is to classify packets based on their fields and perform the same actions on like-classified packets. Assume we have one such problem. We want to decode the data portion following the IPv4 header. The data following an IPv4 header is determined by the value \texttt{ipv4.protocol} field. All packets whose \texttt{ipv4.protocol} field equal \texttt{0x01} get sent to the ICMP decoder. All packets whose \texttt{ipv4.protocol} field equal \texttt{0x06} get sent to the TCP decoder, and so on.
 
@@ -667,9 +662,9 @@ The table \texttt{ip\_data\_table} declares that its keys are the \texttt{ipv4.f
 
 A flow entry must specify 1) the values of its match fields, 2) the actions to be applied to the packet.
 
-The first flow declaration declares a flow entry whose \texttt{ipv4.fragment} match field is equal to \texttt{0x0} and whose \texttt{ipv4.protocol} match field is equal to \texttt{0x01}. The second flow entry similarly has an \texttt{ipv4.fragment} match field equal to \texttt{0x0} and an \texttt{ipv4.protocol} match field equal to \texttt{0x06}.In both cases, we use the \texttt{set} action (described in Section \ref{set_action_tut}) to decrement the \textbf{ipv4.ttl} field. We then dispatch to the appropriate decoder using the \texttt{decode} action.
+The first flow declaration declares a flow entry whose \texttt{ipv4.fragment} match field is equal to \texttt{0x0} and whose \texttt{ipv4.protocol} match field is equal to \texttt{0x01}. The second flow entry similarly has an \texttt{ipv4.fragment} match field equal to \texttt{0x0} and an \texttt{ipv4.protocol} match field equal to \texttt{0x06}.In both cases, we use the \texttt{set} action (described in Section \ref{set_action_tut}) to decrement the \texttt{ipv4.ttl} field. We then dispatch to the appropriate decoder using the \texttt{decode} action.
 
-In the second flow entry we have a special case where we set the timeout \textbf{property} of the flow entry to \texttt{1000}. Properties are additional information attached to flow entries. Flow entries currently support two properties. The first is \texttt{timeout}. A flow entry is removed from a table after a \texttt{timeout} number of milliseconds. The other is the \texttt{egress} port property which allows flows to use the \texttt{\color{blue}output \color{green}egress} action described in Section \ref{output_action_tut}.
+In the second flow entry we have a special case where we set the timeout \textit{property} of the flow entry to \texttt{1000}. Properties are additional information attached to flow entries. Flow entries currently support two properties. The first is \texttt{timeout}. A flow entry is removed from a table after a \texttt{timeout} number of milliseconds. The other is the \texttt{egress} port property which allows flows to use the \texttt{\color{blue}output \color{green}egress} action described in Section \ref{output_action_tut}.
 
 \textit{So what makes using a table different from decision structures like an if-else or match statements?} As one may have noticed, the table example given in Figure \ref{fg:ip_table_ex} could just as easily be written using a combination of if-else and match statements like we used with the ethernet decoder earlier in Figure \ref{fg:transition_ex}. 
 
@@ -684,7 +679,7 @@ exact_table t1(ethernet.dst, ipv4.dst)
 }
 \end{lstlisting}
 
-Tables and their contained flow entries have access to every field that has been extracted before them using \textbf{field access expressions}. The only limitation is that field access can only occur on fields which the table either matches on or requires explicitly.
+Tables and their contained flow entries have access to every field that has been extracted before them using \textit{field access expressions}. The only limitation is that field access can only occur on fields which the table either matches on or requires explicitly.
 
 Lastly, flow entries can be added and removed from tables using the appropriate actions. This allows decision making on packets to change dynamically during runtime. It is obviously impossible to add new branches to if-else and match statements. The ability to add, or \textbf{learn}, new entries allows us to write applications which can learn, such as learning switches and routers.
 
@@ -776,7 +771,7 @@ goto t1 advance (ipv4.version_ihl & 0x0f) * 4
 
 Ports are an important part of the system. Ports are where packets enter (ingress) and leave (egress) the system. Ports are all given a unique integer identifier by the system.
 
-Steve supports a number of \textbf{reserved} ports which are required to exist on every system Steve applications runs on. These are compliant with OpenFlow port specifications \cite{openflow_spec}.
+Steve supports a number of \textit{reserved ports} which are required to exist on every system Steve applications runs on. These are compliant with OpenFlow port specifications \cite{openflow_spec}.
 
 The \texttt{all} port represents every port on the system that can be forwarded to. This port can only be used for output.
 
@@ -905,7 +900,7 @@ remove {ipv4.dst, ipv4.protocol } from ip_data_table;
 
 \subsection{Write Action} \label{write_action_tut}
 
-The context data structure keeps an \textbf{action set}. This action set is a set of actions which are written to the context using the \texttt{write} action. All actions in this section except the \texttt{raise}, \texttt{insert}, and \texttt{remove} action can be written to an action set. The execution of these written actions is deferred until egress processing.
+The context data structure keeps an \textit{action set}. This action set is a set of actions which are written to the context using the \texttt{write} action. All actions in this section except the \texttt{raise}, \texttt{insert}, and \texttt{remove} action can be written to an action set. The execution of these written actions is deferred until egress processing.
 
 \begin{lstlisting}
 // Writing a set action
@@ -927,7 +922,7 @@ clear;
 
 \subsection{Raise Action} \label{raise_action_tut}
 
-A \texttt{raise} action is used to trigger an \textbf{event}. Events are Steve's lightweight way of supporting asynchronous execution during pipeline processing. Section \ref{event_tut} demonstrates how to write events. To trigger an event, you use a \texttt{raise} action and give an event identifier as follows.
+A \texttt{raise} action is used to trigger an \textit{event}. Events are Steve's lightweight way of supporting asynchronous execution during pipeline processing. Section \ref{event_tut} demonstrates how to write events. To trigger an event, you use a \texttt{raise} action and give an event identifier as follows.
 
 \begin{lstlisting}
 // Assuming we have an event named "learn"
@@ -936,7 +931,7 @@ raise learn;
 
 \section{Events} \label{event_tut}
 
-Steve supports \textbf{events} which are lightweight asynchronous pipeline processing stages. These stages are special because their processing occurs outside of the run-to-completion model that tables and decoders have. 
+Steve supports \textit{events} which are lightweight asynchronous pipeline processing stages. These stages are special because their processing occurs outside of the run-to-completion model that tables and decoders have. 
 
 \begin{figure}[ht]
 \begin{mdframed}
@@ -952,7 +947,7 @@ Steve supports \textbf{events} which are lightweight asynchronous pipeline proce
 \label{fg:event_syntax}
 \end{figure}
 
-Each \textbf{event declaration} in Steve declares an \textbf{event handler} which (optionally) declares which fields must be extracted before that event can be raised. When a user raises an event using the \texttt{raise} action, they trigger the execution of the event handler in a separate event thread.
+Each \textit{event declaration} in Steve declares an \textit{event handler} which (optionally) declares which fields must be extracted before that event can be raised. When a user raises an event using the \texttt{raise} action, they trigger the execution of the event handler in a separate event thread.
 
 Events are most useful when performing slower actions, namely \texttt{insert} and \texttt{remove}. Inserting flow entries and removing flow entries from a table can be a bottleneck for execution. Events allow these bottleneck actions to be performed when convenient while the packet continues through the run-to-completion model.
 
@@ -986,7 +981,7 @@ event learn_mac
 
 An important thing to know when using events is that a \textbf{copy} of the packet and context are sent to the event handler. Any changes made to a packet using an action in the event handler does not modify the original packet or its context. The original packet continues moving through the pipeline after a \texttt{raise} occurs and does not wait for the event handler to execute.
 
-Another thing to note is that this usage of events to learn flow entries is distinct from OpenFlow semantics. Normally packets are sent to the \texttt{controller} port which connects to an application called the \textbf{controller}. The controller then asynchronously processes packets and potentially adds the flow entries.
+Another thing to note is that this usage of events to learn flow entries is distinct from OpenFlow semantics. Normally packets are sent to the \texttt{controller} port which connects to an application called the \textit{controller}. The controller then asynchronously processes packets and potentially adds the flow entries.
 
 The advantage here is that Steve events are written as part of the Steve application and are thus subject to the same semantic, logical, and safety guarantees applied to other pipeline stages. 
 

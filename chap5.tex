@@ -45,7 +45,7 @@ advance & egress & struct & char
 
 \section{Scope} \label{scope_guide}
 
-Steve scope semantics borrow heavily from C++ scope semantics \cite{cpp_std}. \textit{Declarations} are used throughout program text to introduce \textit{names}. Names are \textit{identifiers} used to identify \textit{entities} (see \ref{identifiers_guide}). A \textit{declarative region} is a portion of the program text where a name is considered \textit{valid}. A particular name is only considered valid if the same \textit{entity} with that name can be found using an \textit{unqualified name lookup} (see \ref{unqlfd_lookup}). Generally speaking, a \textit{name} is only \textit{valid} within a possibly discontinuous part of program text called the \textit{scope} of that name.
+Steve scope semantics borrow heavily from C++ scope semantics \cite{cpp_std}. \textit{Declarations} are used throughout program text to introduce \textit{names}. Names are \textit{identifiers} used to identify \textit{entities} (see \ref{identifiers_guide}). A \textit{name} is only \textit{valid} within parts of program text called the \textit{scope} of that name. A particular name is only considered valid if an \textit{entity} with that name can be found using an \textit{unqualified name lookup} (see \ref{unqlfd_lookup}). 
 
 \subsection{Global Scope} \label{global_scope}
 
@@ -57,19 +57,19 @@ Two different declarations of the same name shall not be made at global scope. A
 
 \subsection{Block Scope} \label{block_scope}
 
-A declaration made within a block statement (see \ref{block_stmt_guide}) is said to have \textit{block scope}. All block statements introduce a block scope nested within the containing scope. Declarations made inside a block are said to be \textit{local} to that block. The scope of these declarations begin at their point of declaration and end at the end of the block.
+Blocks are portions of program text which can have their own local declarations. The beginning of a block is delimited by the left-brace (\{) and the end of a block is delimited by the right-brace (\}). A declaration made within a block has \textit{block scope} and is \textit{local} to that block.
 
-The statements \texttt{if}, \texttt{while}, \texttt{match} all implicitly introduce a block scope.
+Two different declarations of the same name cannot be made inside the same block. Any attempts to do this shall produce a compiler. 
 
-Two different declarations of the same name cannot be made inside the same block scope. Any attempts to do this shall produce a compiler. 
+Blocks can be nested. In this case, the inner block is said to be the \textit{enclosed} block, and the outer block is said to be the \textit{enclosing} block. The same name can be declared in the enclosing block, and again in one or more enclosed blocks. The same is true for further nested blocks within the enclosed block. If this happens, the scope of the outer declaration is its typical scope excluding program text of the enclosed block. Unqualified name lookup (see \ref{unqlfd_lookup}) shall be used to unambiguously determine which declaration the name refers to. 
 
-Scopes can be nested. In this case, the inner scope is said to be the \textit{enclosed} scope, and the outer scope is said to be the \textit{enclosing} scope. The same name can be declared in the outer scope, and again in one or more inner scopes. If this happens, the scope of the outer declaration is its typical scope excluding all declarations made in the inner scope. Unqualified name lookup (see \ref{unqlfd_lookup}) shall be used to unambiguously determine which declaration the name refers to. 
+The statements \texttt{if}, \texttt{while}, \texttt{match} all implicitly introduce a block.
 
 %Here, it is useful to talk about a concept called \textit{potential scope}, similarly found in C++ \cite{cpp_std}. The scope of a declaration is the same as its potential scope. The only exception is if there are two or more declarations of the same name in the same potential scope. In this case, the actual scope of a declaration is its potential scope excluding the potential scope of the inner declarative region.
 
-Blocks found in the program text at global scope (i.e. function bodies, layout bodies, decoder bodies, etc) introduce block scopes which are implicitly nested in global scope.
+Blocks found in the program text at global scope (i.e. function bodies, layout bodies, decoder bodies, etc) introduce blocks which are nested in global scope.
 
-For example, in the following example, the name \texttt{i} is declared twice. The scope of the first \texttt{i} is global scope and includes the entire example excluding the region between the first left-brace (\texttt{\{}) and the closing right-brace (\texttt{\}}). The scope of the second \texttt{i} begins immediately after its declaration and ends at the the closing right-brace (\texttt{\}})
+For example, in the following example, the name \texttt{i} is declared twice. The scope of the first \texttt{i} is global scope and includes the entire example excluding the block between the first left-brace (\texttt{\{}) and the closing right-brace (\texttt{\}}). The scope of the second \texttt{i} begins immediately after its declaration and ends at the the closing right-brace (\texttt{\}})
 
 \noindent\begin{minipage}{\linewidth}
 \begin{lstlisting}
@@ -85,11 +85,33 @@ def f() -> int
 
 \subsection{Function Scope} \label{function_scope}
 
-The body of a function is a block statement which introduces a block scope. All names introduced by parameter declarations in a function's parameter sequence have an effective scope starting at the first left-brace of the function body and ending at the final right-brace of the function body.
+The body of a function declaration (see \ref{function_guide}) is its \grd{block}{statement} which introduces a block. All names introduced by a \grd{parameter}{declaration} in a function declaration's \grd{parameter}{sequence} have an effective scope starting at the beginning of the block.
+
+\subsection{Decoder Scope} \label{decoder_scope}
+
+The body of a decoder declaration (see \ref{decoder_guide}) is its \grd{block}{statement} which introduces a block. Declarations made inside this block are said to have \textit{decoder scope}.
+
+\subsection{Table Scope} \label{table_scope}
+
+A table declaration (see \ref{table_guide}) has a body given by \grd{table}{initializer} which introduces a block. Declarations made inside this block are said to have \textit{table scope}.
+
+All names of key fields given by a \grd{key}{declaration} within \grdd{key}{declaration}{sequence} have block scope starting at the beginning of the block. All field names given within \grd{requires}{clause} are implicitly declared at the beginning of the block and refer to the last \textit{extraction} with that name.
+
+\subsection{Flow Entry Scope} \label{flow_scope}
+
+A flow declaration has a body given by \grd{flow}{body} which introduces a block. If a flow declaration is part of a table declaration's \grd{table}{initializer}, the flow declaration has table scope. The block is nested inside table scope.
+
+If a flow declaration is part of an \texttt{insert} action, the body is treated as if it were nested inside table scope. 
+
+Names found in the \grd{properties}{block} are treated as if they were in the scope where the flow declaration is found. That is, all identifiers which are normally valid at the point where the \grd{properties}{block} appears in the program text are valid inside the \grd{properties}{block}. However, these identifiers may not be valid for the \grd{flow}{body} in the case of an \texttt{insert} action.
+
+\subsection{Event Scope} \label{event_scope}
+
+The body of an event declaration (see \ref{event_guide}) is a \grd{block}{statement} which introduces a block. All field names given within \grd{requires}{clause} are implicitly declared with block scope inside that block and refer to the last \textit{extraction} with that name.
 
 \subsection{Layout Scope} \label{layout_scope}
 
-The body of a layout declaration introduces a layout scope. Field declarations introduce field names into the layout scope. Names of a field declaration can only be used as follows:
+The body of a layout declaration (see \ref{layout_guide}) introduces a special layout block. Field declarations introduce field names into this layout block and are said to have \textit{layout scope}. Names of a field declaration can only be used as follows:
 
 \begin{itemize}
 \item Inside the scope of its layout.
@@ -98,13 +120,13 @@ The body of a layout declaration introduces a layout scope. Field declarations i
 
 \subsection{Unqualified Name Lookup} \label{unqlfd_lookup}
 
-Unqualified name lookup attempts to find the corresponding declaration for a name being used. Unqualified name lookup begins at the innermost scope where that given name is used and works outward toward enclosing scopes. The innermost declaration (e.g. the first one found) with that given name found is considered the corresponding declaration. 
+Unqualified name lookup attempts to find the corresponding declaration for a name being used. Unqualified name lookup begins at the innermost block where that given name is used and works outward toward enclosing blocks. The innermost declaration (e.g. the first one found) with that given name found is considered the corresponding declaration. 
 
-If the name refers to one or more function declarations, and is being used a function call, an \textit{overload set} is associated with the name. If this is the case, \textit{argument dependent lookup} is applied. The function declaration chosen shall be the one whose parameter types match the argument types used in the function call.
+If the name refers to one or more function declarations, and is being used as a function call, an \textit{overload set} is associated with the name. If this is the case, \textit{argument dependent lookup} is applied. The function declaration chosen shall be the one whose parameter types match the argument types used in the function call.
 
 A name must be declared before being used. Any attempts to use a name before its declaration shall result in a failed unqualified name lookup.
 
-Global names used at global scope must be declared first. Global names used at non-global scope are considered valid regardless of the order with which they are declared in the program text. For example, the following usage of the name \texttt{i} in function \texttt{foo} refers to a variable declaration made after the function declaration. This is considered valid.
+Global names used at any point are considered valid regardless of the order with which they are declared in the program text. For example, the following usage of the name \texttt{i} in function \texttt{foo} refers to a variable declaration made after the function declaration. This is considered valid.
 
 \noindent\begin{minipage}{\linewidth}
 
@@ -122,9 +144,9 @@ If unqualified lookup fails to find a corresponding declaration, the result is a
 
 \subsection{Qualified Name Lookup}
 
-Qualified name lookup attempts to find the corresponding declaration for a name in a given scope. The search is done only on the given scope and does not expand outward to enclosing scopes.
+Qualified name lookup attempts to find the corresponding declaration for a name in a given block. The search is done only on the given block and does not expand outward to enclosing blocks.
 
-Qualified name lookup is most often used for looking up of names following the 
+Qualified name lookup is most often used for looking up of names following the dot-operator, where the name lookup is limited to the scope of the layout.
 
 If qualified lookup fails to find a corresponding declaration, the result is a compiler error.
 
@@ -191,6 +213,19 @@ def foo() -> bool {
 An \textit{object} in a Steve program is an area of memory that has size, lifetime, type, and value. An object may also optionally be given a name.
 
 Variables, ports, tables, and temporaries are objects. Objects are created in Steve by declarations of variables, ports, and tables. Objects may be created where temporary values are required.
+
+\section{Context Data Structure} \label{context_guide}
+
+The context data structure, or just \textit{context}, is an object created upon packet ingress and destroyed upon packet egress. The lifetime of a context is said to be \textit{pipeline automatic}. Management of the context's memory is exclusively and automatically handled by internal mechanics of the program during runtime. This object is used exclusively by the internals of the program to keep track of information about a packet. 
+
+A user is never given direct access to a context. Context objects are implicit, yet invisible within the scope of all pipeline processing stages (decoders, tables, and events). Certain expressions, declarations, and actions might access, affect, or otherwise modify the data of the context in limited and well-defined ways. 
+\begin{itemize}
+\item Expressions which affect a context are: field access expressions, in port expression, and in physical port expression.
+
+\item Declarations which affect a context are: extract declarations, rebind declarations, and table declarations (indirectly).
+
+\item All actions affect a context in some way.
+\end{itemize}
 
 \section{Pipeline Guarantees} \label{pipeline_checking_guide}
 
@@ -288,19 +323,6 @@ At any point in a given path, if a node's edge is directed toward a previously v
  
 \end{algorithm}
 
-\section{Context Data Structure} \label{context_guide}
-
-The context data structure, or just \textit{context}, is an object created upon packet ingress and destroyed upon packet egress. This object is used exclusively by the internals of the program to keep track of information about a packet. Management of the context's memory is exclusively handled by internal mechanics of the program during runtime.
-
-A user is never given direct access to a context. Context objects are implicit, yet invisible within the scope of all pipeline processing stages (decoders, tables, and events). Certain expressions, declarations, and actions might access, affect, or otherwise modify the data of the context in limited and well-defined ways. 
-\begin{itemize}
-\item Expressions which affect a context are: field access expressions, in port expression, and in physical port expression.
-
-\item Declarations which affect a context are: extract declarations, rebind declarations, and table declarations (indirectly).
-
-\item All actions affect a context in some way.
-\end{itemize}
-
 \section{Declarations} \label{declaration_guide}
 
 \textit{Declarations}, generally speaking, introduce an entity and a name for that entity. When using that name, the declaration is used to determine how to interpret that name.
@@ -313,39 +335,36 @@ Declarations have the form:
 
 \begin{minip}
 \begin{grammar}
-\singlespace
-<decl> ::=
-[ <specifier-seq> ] <decl>
-\alt <global-decl>
-\alt <key-decl>
-\alt <extract-decl>
-\alt <rebind-decl>
-\alt <flow-decl>
-\alt <field-decl>
-\alt <parameter-decl>
-\alt <variable-decl>
+<declaration> ::=
+[ <specifier-seq> ] <declaration>
+\alt <global-declaration>
+\alt <key-declaration>
+\alt <extract-declaration>
+\alt <rebind-declaration>
+\alt <flow-declaration>
+\alt <field-declaration>
+\alt <parameter-declaration>
+\alt <variable-declaration>
 
-<global-decl> :: =
-<port-decl>
-\alt <layout-decl>
-\alt <decoder-decl>
-\alt <table-decl>
-\alt <event-decl>
-\alt <function-decl>
+<global-declaration> :: =
+<port-declaration>
+\alt <layout-declaration>
+\alt <decoder-declaration>
+\alt <table-declaration>
+\alt <event-declaration>
+\alt <function-declaration>
 \end{grammar}
 \end{minip}
 
-All declarations must occur within a scope. A declaration that declares a layout, decoder, table, event, or function cause a scope to be nested in the current scope. That scope might also have scopes nested within it.
+All declarations must occur within a scope. A declaration that declares a layout, decoder, table, event, or function causes a scope to be nested in the current scope. That scope might also have scopes nested within it.
 
-Certain declarations can only occur within certain scopes.
+Certain declarations can only occur within certain scopes. Specifically, declarations which declare ports, layouts, decoders, tables, events, and functions must occur at global scope. These cannot occur within block scope. These are known as \textit{global} declarations.
 
-Declarations which declare ports, layouts, decoders, tables, events, and functions must occur at global scope. These cannot occur within block scope. These are known as \textit{global} declarations.
-
-Declarations may have a number of specifiers (see \ref{spec_guide}) attached to them. Specifiers modify the semantics of declarations.
+Declarations may have a number of specifiers (see \ref{spec_guide}) attached to them, given by \grd{specifier}{seq}. Specifiers modify the semantics of declarations.
 
 \section{Specifiers} \label{spec_guide}
 
-Specifiers modify the semantics of a declaration. A sequence of specifiers may optionally appear at the beginning of a declaration. Not all specifiers are allowed on all declarations. Not all specifiers are allowed to appear together before the same declaration.
+Specifiers modify the semantics of a declaration. A sequence of specifiers may optionally appear at the beginning of a declaration. Not all specifiers are allowed on all declarations. Not all specifiers are allowed to appear together before the same declaration. Note that there is currently only one supported specifier. A number of other specifiers will eventually be introduced.
 
 Specifiers have the following form:
 
@@ -356,7 +375,7 @@ Specifiers have the following form:
 
 \subsection{Foreign Specifier} \label{foreign_spec}
 
-The \texttt{foreign} specifier can only be applied to function declarations. This specifier says that a function has foreign linkage, that is, the function is not defined in this scope but rather in a different program. The name of a foreign function is not mangled. Function declarations with the \texttt{foreign} specifier cannot have a definition, that is, have a function body defined. This is the only case where a declaration varies from a definition.
+The \texttt{foreign} specifier can only appear before \grd{function}{declaration}. This specifier says that a function has foreign linkage, that is, the function is not defined in this scope but rather in a different program. This function is said to be a \textit{foreign function}. The name of a foreign function is not mangled. Foreign functions cannot have a definition, that is, the \grd{function}{declaration} cannot have a \grd{block}{statement}. This is the only case where a declaration varies from a definition.
 
 Foreign linkage is most often used to link against the C runtime library. For example, the following introduces the \texttt{puts} C-function into global scope. Function calls to \texttt{puts} will call the C-function with the same name.
 
@@ -372,27 +391,28 @@ def main() -> int {
  
 \section{Layout Declaration} \label{layout_guide}
 
-\textit{Layout declarations} in Steve have the following form:
+\textit{Layout declarations} are used to define the physical structure of packets in memory. Layout declarations have the following form:
 
 \begin{minip}
 \begin{grammar}
-\singlespace
-<layout-decl> ::=
+<layout-declaration> ::=
 \textbf{layout} <layout-name> 
 \textbf{\{}
-	<field-decl> +
+	<field-declaration> +
 \textbf{\}}
 
-<field-decl> ::=
+<field-declaration> ::=
 <field-name> \textbf{:} <type> \textbf{;}
 \end{grammar}
 \end{minip}
 
-\textit{Layout declarations} in Steve shall be used with the following conventions.
+Layout declarations shall be used with the following conventions.
 
-\textit{Field declarations} introduce names for fields into layout scope. Field declarations inside layouts can only be of scalar or layout type (and eventually dynamically-sized types). Types of field declarations are used to specify the length of the given field. Because this is the extent of the usage, there is no reason to support more complex user-defined types here. Note that though \texttt{bool} and \texttt{char} are valid scalar types and can appear as the types of fields, they will result in a compiler error if the given field is needed as part of a table's key.
+Layout declarations shall contain one or more \textit{field declarations}, denoted in the grammar as \grd{field}{declaration}. Field declarations introduce names for fields into layout scope. The type of a field declaration, denoted by \gr{type} shall be scalar or layout type. \footnote{Though \texttt{bool} and \texttt{char} are valid scalar types and can appear as \gr{type}, they will result in a compiler error if the given field is needed as part of a table's key. This is a limitation that will be adjusted in later revisions.} Types of field declarations are used to specify the length of the given field. Because this is the extent of the usage, there is no reason to support more complex user-defined types here. 
 
 Field declarations must occur in the order with which they appear in the an actual instance of a header which the layout represents. Incorrect ordering will result in incorrect extractions (see \ref{extract_guide}).
+
+All field declarations declared within a layout declaration define a \textit{complete} layout. Field declarations may not be added to a layout elsewhere.
 
 Objects of layout type can never be created and functions cannot have parameters or returns of layout type. The following is not legal in Steve.
 
@@ -423,29 +443,43 @@ Layouts cannot contain member functions. It logically follows that since objects
 \begin{minip}
 \begin{grammar}
 \singlespace
-<decoder-decl> ::=
+<decoder-declaration> ::=
 \textbf{decoder} <decoder-name> [\textbf{start}] 
 \textbf{(} <layout-id> \textbf{)}
 <block-statement>
 \end{grammar}
 \end{minip}
 
-The identifier given by \textit{layout-id} must name a valid layout declaration at global scope. Different decoder declarations may use the same \textit{layout-id}. The layout declaration named by \textit{layout-id} is the layout used to determine the \textit{current view} and \textit{implicit advances} generated by a decoder (see \ref{decoder_view}). Extract declarations (see \ref{extract_guide}) may only extract fields from this layout.
+The identifier given by \grd{layout}{id} must name a valid layout declaration at global scope. Different decoder declarations may use the same \grd{layout}{id}. The layout declaration named by \grd{layout}{id} is used to determine the \textit{current view} and \textit{implicit advances} generated by a decoder (see \ref{decoder_view}). Extract declarations (see \ref{extract_guide}) may only extract fields from this layout.
 
 The optional \texttt{start} keyword shall occur on exactly one decoder declaration in a given program text. This decoder shall be considered the source (root) of the pipeline graph during pipeline checking. This decoder shall be the first decoder applied to a packet context after ingress.
 
-The execution of a decoder are similar to that of a function. Each statement within \textit{block-statement} are executed in turn. 
+The execution of a decoder is similar to that of a function. Each statement within \grd{block}{statement} is executed in turn. 
 
 \subsection{Decoder View and Shifting} \label{decoder_view}
 
-The \textit{current view} of a packet begins where the first byte of the current header being decoded lies in memory.
+The \textit{current view} of a packet begins where the first byte of the current header being decoded lies in memory. The end of the current view is found at the position of the beginning plus the length of the current header. For headers whose lengths can be determined during compile time, the current view is said to be \textit{statically-sized}. For headers whose lengths must be determined by operations performed at runtime, the current view is said to be \textit{dynamically-sized}.
 
-The context maintains an index to the first byte of the current header. At first, this index begins at 0, corresponding to the first byte of the packet.
-This index represents the beginning of the \textbf{current view} of the packet. Steve uses this view mechanism to allow for partial decodes of headers. Without the ability to find fields relative to the beginning of views, decoding phases would be forced into full forward decoding, meaning for a field to be extracted, all fields prior to it would have to be extracted.
+Steve uses this view mechanism to allow for partial decodes of headers. Without the ability to find fields relative to the beginning of views, decoding phases would be forced into full forward decoding, meaning for a field to be extracted, all fields prior to it would have to be extracted.
+
+The context is used to maintain a positional index, known as the \textit{view index}, corresponding to the beginning of the current view. At first, this index begins at 0, corresponding to the first byte of the packet, and thus the first byte of the first header. Each decoder shifts the current view by the length of the current header before transitioning to the next stage, that is, the length of the current header is added to the view index upon the execution of a \texttt{decode} or a \texttt{goto} action (see \ref{decode_guide} \& \ref{goto_guide}).
+
+If the view is statically-sized, the shift is implicitly calculated by the compiler. If the view is dynamically-sized, the length of the shift must be explicitly qualified using the \texttt{\color{blue}advance} clause. 
 
 \section{Extract Declaration} \label{extract_guide}
 
-\subsection{Field Name} \label{field_name}
+Extract declarations have the following form:
+
+\begin{grammar}
+<extract-decl> ::=
+\textbf{extract} <field-name> \textbf{;}
+\end{grammar}
+
+An \textit{extract declaration} declares that a field with the specified \grd{field}{name} (see \ref{field_name}) is to be extracted by the decoder. The extracted field, or \textit{extraction}, is an object in memory whose name is equivalent \grd{field}{name}. An extract declaration introduces the name \grd{field}{name} into scope.
+
+An extract declaration may only be used within decoder scope.
+
+\section{Field Name} \label{field_name}
 
 \section{Table Declaration} \label{table_guide}
 
@@ -466,6 +500,12 @@ This index represents the beginning of the \textbf{current view} of the packet. 
 \section{Statements} \label{statements_guide}
 
 \section{Actions} \label{action_guide}
+
+\section{Decode Action} \label{decode_guide}
+
+\section{Goto Action} \label{goto_guide}
+
+\section{Insert Action} \label{insert_guide}
 
 \section{Block Statements} \label{block_stmt_guide}
 
