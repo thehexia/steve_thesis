@@ -45,7 +45,7 @@ advance & egress & struct & char
 
 \section{Field Name} \label{field_name_guide}
 
-\textit{Field names} are special names which refer to field declarations made within a layout declaration. Field names have the form:
+\textit{Field names} are special, \textit{qualified} names which refer to field declarations made within a layout declaration. Field names have the form:
 
 \begin{minip}
 \begin{grammar}
@@ -57,11 +57,13 @@ advance & egress & struct & char
 
 In the first form \grd{layout}{id}.\grd{field}{id}, or more succinctly \texttt{E1.E2}, \texttt{E1} must be a valid identifier to a layout declaration. \texttt{E2} must be found in the layout scope of \texttt{E1} using a qualified name lookup (see \ref{qlfd_lookup}).
 
-In the second form \grd{field}{name}.\grd{field}{id}, or more succinctly \texttt{F.E}, \texttt{F} must be a valid field name which refers to a field declaration whose type, \texttt{T}, is layout type (see \ref{layout_type_guide}). \texttt{E} must be found in the layout scope of the layout declaration declaring type \texttt{T} using a qualified name lookup.
+In the second form \grd{field}{name}.\grd{field}{id}, or more succinctly \texttt{E1.E2}, \texttt{E1} must be a valid field name which refers to a field declaration whose type, \texttt{T}, is layout type (see \ref{layout_type_guide}). \texttt{E2} must be found in the layout scope of the layout declaration declaring type \texttt{T} using qualified name lookup.
 
-The \textit{containing layout identifier} is the phrase used to mean the leftmost layout identifier in a field name, that is, \grd{layout}{id}.
+In both forms, \texttt{E1} is referred to as the \textit{container} and \texttt{E2} is referred to as the \textit{contained field}.
 
-Field names used as expressions become \textit{field access expressions} (see \ref{field_access_expr_guide}). Field access expressions may be used to mean the last extraction of that field name. Though field access expressions are parsed as \textit{postfix expressions} (see \ref{postfix_expr_guide}), they are made linear by the language to be \textit{primary expressions}.
+The \textit{containing layout identifier} is the phrase used to mean the leftmost identifier in a field name.
+
+Field names used as expressions become \textit{field access expressions} (see \ref{field_access_expr_guide}). Field access expressions may be used to refer to the value of the last extraction of that field name.
 
 \section{Scope} \label{scope_guide}
 
@@ -513,8 +515,6 @@ def main() -> int {
 \end{grammar}
 \end{minip}
 
-Layout declarations shall be used with the following conventions.
-
 Layout declarations shall contain one or more \textit{field declarations}, denoted in the grammar as \grd{field}{declaration}. Field declarations introduce names for fields into layout scope. The type of a field declaration, denoted by \gr{type} shall be scalar or layout type. \footnote{Though \texttt{bool} and \texttt{char} are valid scalar types and can appear as \gr{type}, they will result in a compiler error if the given field is needed as part of a table's key. This is a limitation that will be adjusted in later revisions.} Types of field declarations are used to specify the length of the given field. Because this is the extent of the usage, there is no reason to support more complex user-defined types here. 
 
 Field declarations must occur in the order with which they appear in the an actual instance of a header which the layout represents. Incorrect ordering will result in incorrect extractions (see \ref{extract_guide}).
@@ -592,11 +592,100 @@ The containing layout identifier of \grd{field}{name} (see \ref{field_name_guide
 
 \subsection{Determining the Location and Length of Extracted Fields}
 
-Extract declarations execute a deterministic set of instructions to extract a field and save its location and length in the \textit{context} (see \ref{context_guide}). 
+An extract declaration produces an extraction by executing a set of instructions on a packet which saves the extraction's \textit{location} and \textit{length} to the context's header environment (see \ref{context_desc}, \ref{context_guide}). Information gathered from \grd{field}{name} is used to calculate these two values. This process is completely opaque to the user, and is described below.
 
-\section{Table Declaration} \label{table_guide}
+\begin{enumerate}
+\item Discover the field declaration $f$ referred to by \grd{field}{name}. The length of the extracted field is calculated by a function $len(f)$. The result of $len(f)$ is the \textit{size} (see \ref{type_size}) of $f$'s type.
 
-\section{Flow Declaration} \label{flow_guide}
+\item The \grd{field}{name} is has the form \texttt{E1.E2} where \texttt{E1} is the \textit{container} and \texttt{E2} is the \textit{contained field}. The set $L$ is the set of all field declarations preceding $f$ in its containing layout declaration. The function used to calculate the \textit{relative offset} of $f$ is given as $rel(E1, E2)$ and is defined as:
+
+\begin{enumerate}
+
+\item If \texttt{E1} is a \grd{layout}{id}, then the $rel(f) = \sum_{x \in L}{} len(x)$.
+
+\item If \texttt{E1} is a \grd{field}{name}, \texttt{E1}'s container is denoted as \texttt{E1.c}, and \texttt{E1}'s contained field is denoted as \texttt{E1.d}, then $rel(f) = \sum_{x \in L}{} ( rel(E1.c, E1.d) + len(f) )$
+
+\end{enumerate}
+
+\item Given a field name of the form \texttt{E1.E2}, and the current view index (see \ref{decoder_view}), $i$, the \textit{absolute offset} of the field being extracted is this $i + rel(E1, E2)$.
+
+\item The location of an extracted field is its absolute offset, that is, the number of bytes it is away from the beginning of the packet.
+\end{enumerate}
+
+
+\section{Table and Flow Declarations} \label{table_guide}
+
+Table declarations have the following form:
+
+\begin{minip}
+\begin{grammar}
+<table-declaration> ::=
+\textbf{table} <table-name> \textbf{(} <key-declaration-sequence> \textbf{)} 
+[ <requires-clause> ] <table-initializer>
+
+<key-declaration> ::=
+<layout-id> \textbf{.} <field-id>
+\alt <key-declaration> \textbf{.} <field-id>
+\alt \textbf{in\_port}
+\alt \textbf{in\_phys\_port}
+
+<requires-clause> ::=
+\textbf{requires} \textbf{(} <field-name-sequence> \textbf{)}
+
+<table-initializer> ::= \textbf{\{} [ <flow-declaration-list> ] \textbf{\}} 
+
+<flow-declaration-list> ::= <flow-declaration> 
+\alt <flow-declaration-list> <flow-declaration>
+\end{grammar}
+\end{minip}
+
+Table declarations may cause table objects to be created. After loading a Steve generated application, the runtime system (see \ref{flowpath}) shall receive a number of table allocation requests from the Steve program corresponding to each table declaration made in the program text. These requests are made as part of load-time configuration (see \ref{config_guide}). Each request shall provide:
+
+\begin{itemize}
+\item A table name.
+\item The set of key fields that comprise the table's key.
+\item A maximum number of flow entries.
+\end{itemize}
+
+If tables with those properties already exist, the runtime system provides the Steve application with the already existing table. This can happen if multiple Steve applications are run on the same device.
+
+The table's \textit{key fields} are a set of one or more fields which together compose a \textit{key}. A table's key is given by \grdd{key}{declaration}{sequence} in the grammar. Each \grd{key}{declaration} shall also be a valid field name, or be the keywords \texttt{in\_port} or \texttt{in\_phys\_port}. The type of \grd{key}{declaration} shall be the type of the field declaration named by the same field name, or shall be port type (see \ref{port_type_guide}) in the case of \texttt{in\_port} or \texttt{in\_phys\_port}.
+
+The \grd{requires}{clause} is optional. Each field name within the \grd{requires}{clause} must be a valid field name. A field name here may have the same program text as a \grd{key}{declaration} in the same table declaration. There is no change in semantics when this happens. Field names given by \grdd{key}{declaration}{sequence} are implicitly required.
+
+Each table has a set of \textit{flow entries} declared in Steve using a \grd{flow}{declaration} of the following form:
+
+\begin{minip}
+\begin{grammar}
+<flow-decl> ::=
+<properties-block>
+\textbf{\{} <match-field-sequence> \textbf{\}} \textbf{-\textgreater} <flow-body>
+\alt <miss-flow-declaration>
+
+<match-field> ::= <expression>
+
+<flow-body> :: \textbf{\{} <action> + \textbf{\}}
+
+<properties block> ::=
+\textbf{[} <property-sequence> \textbf{]}
+
+<property> ::=
+<property-kind> \textbf{=} <expr>
+
+<property-kind> ::=
+\textbf{timeout}
+\alt \textbf{egress}
+
+<miss-flow-decl> ::=
+\textbf{miss} \textbf{-\textgreater} <flow-body>
+\end{grammar}
+\end{minip}
+
+The \textit{match fields} of a flow entry, that is, values corresponding to a table's key fields, is given by \grdd{match}{field}{sequence}. The type of each \grd{match}{field} must be the same type as its corresponding \grd{key}{declaration}. The count of \grd{match}{field} in \grdd{match}{field}{sequence} shall be equal to the count of \grd{key}{declaration} in \grdd{key}{declaration}{sequence}.
+
+All flow entries in the same table must be uniquely identifiable by their \textit{match fields} and their \textit{priority} (since we only support exact match tables, the priority is the same on all flow entries). If a flow entry being inserted into a table has the same value in each match field as an already existing flow entry in the table, the previous flow entry is removed and replaced by the new flow entry.
+
+The set of \textit{initial flow entries}, that is, the flow entries which are inserted into the table during load-time configuration, are given as \grd{flow}{declarations} within \grd{table}{initializer}. Each initial flow entry is inserted with the order in which they are declared. There may only be one or less \grd{miss}{flow}{decl} shall appear here.
 
 \section{Variable Declarations} \label{variable_guide}
 
@@ -626,6 +715,12 @@ Extract declarations execute a deterministic set of instructions to extract a fi
 
 \section{Type} \label{type_guide}
 
+\subsection{Type Size} \label{type_size}
+
 \section{Layout Type} \label{layout_type_guide}
 
 \section{Scalar Type} \label{scalar_type_guide}
+
+\section{Port Type} \label{port_type}
+
+\section{Runtime Configuration} \label{config_guide}
