@@ -1,8 +1,10 @@
 \chapter{User's Guide} \label{users_guide}
 
-This chapter will explore the "anatomy" of Steve. It will dissect the semantics and limitations for each language feature. Some semantics from the Tutorial chapter will be repeated and expanded. Whereas the Tutorial demonstrated conventional usage of Steve language features, this chapter will elaborate on unconventional and illegal uses which should be avoided.
+This chapter will explore the "anatomy" of Steve. It will dissect the semantics and limitations for each language feature. This chapter expects that the user has read the Tutorial and has a basic understanding of Steve. Some semantics from the Tutorial chapter will be repeated and expanded. 
 
-Steve also makes guarantees about the logical correctness and safety of pipeline stage composition. This section will detail how the Steve language enforces those guarantees and prove that these guarantees can be correctly enforced.
+This section shall elaborate on the conventional and illegal uses of the language. In many cases, the syntax used by the programmer has been abstracted away from much grittier details via "compiler magic". This chapter shall also elaborate on these inner mechanics.
+
+Steve makes guarantees about the logical correctness and safety of pipeline stage composition. This section will detail how the Steve language enforces those guarantees and prove that these guarantees can be correctly enforced.
 
 \section{Identifiers} \label{identifiers_guide}
 
@@ -545,7 +547,7 @@ Layouts cannot contain member functions. It logically follows that since objects
 
 \section{Decoder Declarations} \label{decoder_guide}
 
-\textit{Decoder} declarations introduce the name and definition of decoders. Decoder declarations have the following form:
+Decoder declarations have the following form:
 
 \begin{minip}
 \begin{grammar}
@@ -580,7 +582,7 @@ If the view is dynamically-sized, the length of the shift must be explicitly qua
 Extract declarations have the following form:
 
 \begin{grammar}
-<extract-decl> ::=
+<extract-declaration> ::=
 \textbf{extract} <field-name> \textbf{;}
 \end{grammar}
 
@@ -588,7 +590,14 @@ An \textit{extract declaration} declares that a field with the specified \grd{fi
 
 An extract declaration must be in decoder scope. Attempting to put an extract declaration in any other context shall result in a compiler error.
 
-The containing layout identifier of \grd{field}{name} (see \ref{field_name_guide}) shall be the same layout identifier as the one given by the decoder's \textit{layout rule} (see \ref{decoder_guide}).
+The containing layout identifier of \grd{field}{name} (see \ref{field_name_guide}) shall be the same layout identifier as the one given by the decoder's \textit{layout rule} (see \ref{decoder_guide}). A decoder shall not extract fields from layouts which are not it's layout rule. For example, the following is illegal:
+
+\begin{code}
+decoder eth_d(eth) {
+	// Error: Illegal, this decoder does not extract ipv4.
+	extract ipv4.dst; 
+}
+\end{code}
 
 \subsection{Determining the Location and Length of Extracted Fields}
 
@@ -612,6 +621,26 @@ An extract declaration produces an extraction by executing a set of instructions
 \item The location of an extracted field is its absolute offset, that is, the number of bytes it is away from the beginning of the packet.
 \end{enumerate}
 
+\subsection{Extracting the Same Field More Than Once}
+
+It is important to note that a decoder is only ever looking at one header of a packet at once. Using an extract declaration with the same field name more than once in the same decoder will result in the same instance of that field being extracted multiple times, which is completely redundant. Though legal, this should be avoided in most cases.
+
+\subsection{Rebind Declaration} \label{rebind_guide}
+
+At certain times, it may be convenient to extract a certain field, but \textit{alias} that field with a different name than the original. This can be done with the \textit{extract-as}, otherwise known as the \textit{rebind} declaration. A rebind declaration has the following form:
+
+\begin{minip}
+\begin{grammar}
+<rebind-declaration> ::=
+\textbf{extract} <field-name> \textbf{as} <field-name> \textbf{;}
+\end{grammar}
+\end{minip}
+
+The rebind declaration requires two field names be given. The first \grd{field}{name}, or more succinctly \texttt{N1}, shall be known as the \textit{original field name}. The second \grd{field}{name}, or more succinctly \texttt{N2}, shall be known as the \textit{alias field name}. \texttt{N1} and \texttt{N2} must both be valid field names.
+
+The field declaration named by \texttt{N1} shall have the same type as the field declaration named by \texttt{N2}. 
+
+A rebind declaration causes \texttt{N1} and \texttt{N2} to be in scope. Both names are added to the decoder's productions (see \ref{requirements_guide}). The names \texttt{N1} and \texttt{N2} may be used as field names in either key declarations or requires clauses in tables and events later in the pipeline. 
 
 \section{Table and Flow Declarations} \label{table_guide}
 
@@ -687,7 +716,34 @@ All flow entries in the same table must be uniquely identifiable by their \texti
 
 The set of \textit{initial flow entries}, that is, the flow entries which are inserted into the table during load-time configuration, are given as \grd{flow}{declarations} within \grd{table}{initializer}. Each initial flow entry is inserted with the order in which they are declared. There may only be one or less \grd{miss}{flow}{decl} shall appear here.
 
+\section{Port Declaration} \label{port_guide}
+
+A port declaration has the following form:
+
+\begin{minip}
+\begin{grammar}
+<port-decl> ::=
+\textbf{Port} <port-name> \textbf{;}
+
+\end{grammar}
+\end{minip}
+
 \section{Variable Declarations} \label{variable_guide}
+
+Variable declarations have the form:
+
+\begin{minip}
+\begin{grammar}
+<variable-decl> ::=
+\textbf{var} <variable-name> \textbf{:} <type> [ <variable-initializer> ] \textbf{;}
+
+<variable-initializer> ::= \textbf{=} <expression>
+\end{grammar}
+\end{minip}
+
+A variable declaration may have an optional \grd{variable}{initializer} following \gr{type}.  If this initializer is not given, the result is default initialization. Default initialization of scalar types shall result in their objects having a binary value of zero.
+
+If \grd{variable}{initializer} is given, the type of \gr{expression} shall match the type given by \gr{type}, or there shall exist a conversion sequence (see \ref{conversions_guide}) from the type of \gr{expression} to the type given by \gr{type}. The value given by \gr{expression} shall be copied into the allocated object memory, that is, \textit{copy initialized}.
 
 \section{Function Declarations} \label{function_guide}
 
