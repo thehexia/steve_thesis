@@ -8,7 +8,28 @@ Steve makes guarantees about the logical correctness and safety of pipeline stag
 
 \section{Identifiers} \label{identifiers_guide}
 
-An \textit{identifier} is an arbitrarily long sequence of characters. Supported characters include uppercase Latin letters (\texttt{A - Z}), lowercase Latin letters (\texttt{a - z}), digits (\texttt{0 - 9}), and underscores (\_). A valid identifier must begin with a non-digit character. Identifiers are case sensitive. In the Steve grammar, identifiers end with the suffix \textit{-id}.
+An \textit{identifier} is an arbitrarily long sequence of characters. Supported characters include uppercase Latin letters (\texttt{A - Z}), lowercase Latin letters (\texttt{a - z}), digits (\texttt{0 - 9}), and underscores (\_). A valid identifier must begin with a non-digit character. Identifiers are case sensitive. In the Steve grammar, identifiers end with the suffix \textit{-id}. The grammar of identifiers is as follows:
+
+\begin{minip}
+\begin{grammar}
+<identifier> ::= <letter><identifier-characters>+
+
+<identifier-character> :: <letter>
+\alt <digit>
+\alt \textbf{\_}
+
+<letter> ::= "A" | "B" | "C" | "D" | "E" | "F" | "G"
+       | "H" | "I" | "J" | "K" | "L" | "M" | "N"
+       | "O" | "P" | "Q" | "R" | "S" | "T" | "U"
+       | "V" | "W" | "X" | "Y" | "Z" | "a" | "b"
+       | "c" | "d" | "e" | "f" | "g" | "h" | "i"
+       | "j" | "k" | "l" | "m" | "n" | "o" | "p"
+       | "q" | "r" | "s" | "t" | "u" | "v" | "w"
+       | "x" | "y" | "z"
+
+<digit> ::= 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+\end{grammar}
+\end{minip}
 
 Identifiers are subject to the following limitations:
 
@@ -95,7 +116,7 @@ Blocks found in the program text at global scope (i.e. function bodies, layout b
 
 For example, in the following example, the name \texttt{i} is declared twice. The scope of the first \texttt{i} is global scope and includes the entire example excluding the block between the first left-brace (\texttt{\{}) and the closing right-brace (\texttt{\}}). The scope of the second \texttt{i} begins immediately after its declaration and ends at the the closing right-brace (\texttt{\}})
 
-\noindent\begin{minipage}{\linewidth}
+\begin{minip}
 \begin{lstlisting}
 var i : int = 0;
 def f() -> int
@@ -105,7 +126,7 @@ def f() -> int
 	return j; // Result here shall be 3.
 }
 \end{lstlisting}
-\end{minipage}
+\end{minip}
 
 \subsection{Function Scope} \label{function_scope}
 
@@ -125,7 +146,7 @@ All field names given by the \grd{requires}{clause} extends the scope of those f
 
 In the following example, we declare two decoders; \texttt{ipv4\_d} has extract declarations for field names \texttt{ipv4.type} and \texttt{ipv4.ttl}; \texttt{udp\_d} has extract declarations for \texttt{udp.dst\_port}.
 
-\noindent\begin{minipage}{\linewidth}
+\begin{minip}
 \begin{lstlisting}
 decoder ipv4_d(ipv4)
 {
@@ -142,11 +163,11 @@ decoder udp_d(udp)
 	goto t1;
 }
 \end{lstlisting}
-\end{minipage}
+\end{minip}
 
 We go to table \texttt{t1} from \texttt{udp\_d}. Table \texttt{t1} has the key declarations \texttt{ipv4.type} and \texttt{udp.dst\_port} introduce those field names into table scope. What they are actually doing is \textit{extending} the scope of those names from the respective extract declarations into the scope of \texttt{t1}. The same \textit{scope extension} is applied to \texttt{ipv4.ttl}.
 
-\noindent\begin{minipage}{\linewidth}
+\begin{minip}
 \begin{lstlisting}
 exact_table t1(ipv4.type, udp.dst_port)
 	requires(ipv4.ttl)
@@ -162,7 +183,7 @@ exact_table t1(ipv4.type, udp.dst_port)
 	}
 }
 \end{lstlisting}
-\end{minipage}
+\end{minip}
 
 \subsection{Flow Entry Scope} \label{flow_scope}
 
@@ -174,7 +195,7 @@ Names found in the \grd{properties}{block} follow regular scope semantics. That 
 
 In the following example, the name \texttt{x} is valid in the properties block, but not in the body of the flow.
 
-\noindent\begin{minipage}{\linewidth}
+\begin{minip}
 \begin{lstlisting}
 event e1 
 {
@@ -196,7 +217,7 @@ event e1
 
 exact_table t1(eth.type) { }
 \end{lstlisting}
-\end{minipage}
+\end{minip}
 
 \subsection{Event Scope} \label{event_scope}
 
@@ -221,8 +242,7 @@ A name must be declared before being used. Any attempts to use a name before its
 
 Global names used at any point are considered valid regardless of the order with which they are declared in the program text. For example, the following usage of the name \texttt{i} in function \texttt{foo} refers to a variable declaration made after the function declaration. This is considered valid.
 
-\noindent\begin{minipage}{\linewidth}
-
+\begin{minip}
 \begin{lstlisting}
 // The name 'i' is used even though it is declared later
 // in global scope.
@@ -230,8 +250,7 @@ def foo() -> int { return 3 + i; }
 // The name 'i' is declared here.
 var i : int = 0;
 \end{lstlisting}
-
-\end{minipage}
+\end{minip}
 
 If unqualified lookup fails to find a corresponding declaration, the result is a compiler error.
 
@@ -255,7 +274,7 @@ An identifier to an object declaration is an identifier expressions whose type i
 
 In the following example, the identifier expression \texttt{x} has type reference to integer. When used as part of an additive expression, the reference to value conversion is implicitly applied so both operands have type integer.
 
-\noindent\begin{minipage}{\linewidth}
+\begin{minip}
 \begin{lstlisting}
 var x : uint = 10;
 
@@ -264,7 +283,7 @@ var x : uint = 10;
 // 'x' here.
 x + 5;
 \end{lstlisting}
-\end{minipage}
+\end{minip}
 
 \subsection{Integer Conversions} \label{int_conv}
 
@@ -290,7 +309,7 @@ If an expression \texttt{e1} of reference to port type must be converted to type
 
 For example, in the following case, a port to integer conversion is implicitly applied on the identifier expression \texttt{p1} to allow it to be compared with a literal expression of integer type.
 
-\noindent\begin{minipage}{\linewidth}
+\begin{minip}
 \begin{lstlisting}
 Port p1; // Uninitialized port object.
 def foo() -> bool {
@@ -299,7 +318,7 @@ def foo() -> bool {
 		return true;
 }
 \end{lstlisting}
-\end{minipage}
+\end{minip}
 
 \section{Objects} \label{object_guide}
 
@@ -376,9 +395,9 @@ Paired with the \textbf{progress} principle, the pipeline can logically guarante
 
 Note that this property is not required of event stages. Events operate on copies of packets which are managed by the runtime environment and are thus not subject to the same risks of memory leakage.
 
-\subsection{Requirement Satisfaction} \label{requirements_guide}
+\subsection{Requirements Satisfaction} \label{requirements_guide}
 
-\textbf{Requirement Satisfaction} ensures that field access can only be done on extracted fields. 
+\textbf{Requirements Satisfaction} ensures that field access can only be done on extracted fields. 
 
 Every node in a pipeline graph has a set of \textbf{productions} and \textbf{requirements}.
 
@@ -490,7 +509,7 @@ The \texttt{foreign} specifier can only appear before \grd{function}{declaration
 
 Foreign linkage is most often used to link against the C runtime library. For example, the following introduces the \texttt{puts} C-function into global scope. Function calls to \texttt{puts} will call the C-function with the same name.
 
-\noindent\begin{minipage}{\linewidth}
+\begin{minip}
 \begin{lstlisting}
 foreign def puts(char[]) -> int;
 
@@ -498,7 +517,7 @@ def main() -> int {
 	puts("Hello world.");
 }
 \end{lstlisting}
-\end{minipage}
+\end{minip}
  
 \section{Layout Declaration} \label{layout_guide}
 
@@ -525,13 +544,13 @@ All field declarations declared within a layout declaration define a \textit{com
 
 Though layout declarations declare layout types, objects of layout type can never be created and functions cannot have parameters or returns of layout type. The following is not legal in Steve. A layout type may only appear as the type of a field declaration in layout scope.
 
-\noindent\begin{minipage}{\linewidth}
+\begin{minip}
 \begin{lstlisting}
 layout l1 { ... }
 var x : l1; // Illegal.
 def foo(x : l1) -> l1 { ... } // Illegal.
 \end{lstlisting}
-\end{minipage}
+\end{minip}
 
 \subsection{Why Objects of Layout Type can not Exist.}
 
@@ -592,12 +611,15 @@ An extract declaration must be in decoder scope. Attempting to put an extract de
 
 The containing layout identifier of \grd{field}{name} (see \ref{field_name_guide}) shall be the same layout identifier as the one given by the decoder's \textit{layout rule} (see \ref{decoder_guide}). A decoder shall not extract fields from layouts which are not it's layout rule. For example, the following is illegal:
 
-\begin{code}
+\begin{minip}
+\begin{lstlisting}
 decoder eth_d(eth) {
 	// Error: Illegal, this decoder does not extract ipv4.
 	extract ipv4.dst; 
+	// ...
 }
-\end{code}
+\end{lstlisting}
+\end{minip}
 
 \subsection{Determining the Location and Length of Extracted Fields}
 
@@ -606,24 +628,68 @@ An extract declaration produces an extraction by executing a set of instructions
 \begin{enumerate}
 \item Discover the field declaration $f$ referred to by \grd{field}{name}. The length of the extracted field is calculated by a function $len(f)$. The result of $len(f)$ is the \textit{size} (see \ref{type_size}) of $f$'s type.
 
-\item The \grd{field}{name} is has the form \texttt{E1.E2} where \texttt{E1} is the \textit{container} and \texttt{E2} is the \textit{contained field}. The set $L$ is the set of all field declarations preceding $f$ in its containing layout declaration. The function used to calculate the \textit{relative offset} of $f$ is given as $rel(E1, E2)$ and is defined as:
+\item The \grd{field}{name} has the form \texttt{E1.E2} where \texttt{E1} is the \textit{container} and \texttt{E2} is the \textit{contained field}. The set $P$ is the set of all field declarations preceding $f$ in its containing layout declaration. The function used to calculate the \textit{relative offset} of $f$ is given as $rel(E1)$ and is defined as:
 
 \begin{enumerate}
 
-\item If \texttt{E1} is a \grd{layout}{id}, then the $rel(f) = \sum_{x \in L}{} len(x)$.
+\item If \texttt{E1} is a \grd{layout}{id}, then the $rel(E1) = \sum_{x \in P}{} len(x)$.
 
-\item If \texttt{E1} is a \grd{field}{name}, \texttt{E1}'s container is denoted as \texttt{E1.c}, and \texttt{E1}'s contained field is denoted as \texttt{E1.d}, then $rel(f) = \sum_{x \in L}{} ( rel(E1.c, E1.d) + len(f) )$
+\item If \texttt{E1} is a \grd{field}{name} and \texttt{E1}'s container is denoted as \texttt{E1.c}, then $rel(E1) = rel(E1.c) + \sum_{x \in P}{} len(x)$
 
 \end{enumerate}
 
-\item Given a field name of the form \texttt{E1.E2}, and the current view index (see \ref{decoder_view}), $i$, the \textit{absolute offset} of the field being extracted is this $i + rel(E1, E2)$.
+\item Given a field name of the form \texttt{E1.E2}, and the current view index (see \ref{decoder_view}), $i$, the \textit{absolute offset} of the field being extracted is this $i + rel(E1)$.
 
 \item The location of an extracted field is its absolute offset, that is, the number of bytes it is away from the beginning of the packet.
 \end{enumerate}
 
+The following example shall be used to demonstrate how each calculation is made. Two layouts, \texttt{L} and \texttt{LN}, and a decoder, \texttt{D}, are provided. \texttt{L} has three fields: \texttt{a}, \texttt{b}, and \texttt{c}.  \texttt{LN} has two fields: \texttt{d} and \texttt{f}. Field \texttt{L.c} has layout type \texttt{LN} and is thus a nested layout. \texttt{D} decodes \texttt{L} and extracts \texttt{L.a} and \texttt{L.c.f}.
+
+\begin{minip}
+\begin{lstlisting}
+layout L {
+	a : uint;
+	b : uint;
+	c : LN;
+}
+
+layout LN {
+	d : uint(8);
+	f : uint(16);
+}
+
+decoder D(L) {
+	extract L.a;
+	extract L.c;
+	// ...
+}
+\end{lstlisting}
+\end{minip}
+
+The first extract declaration is \texttt{extract L.a}. \texttt{L.a} refers to field declaration \texttt{a} in layout \texttt{L}. The type of \texttt{a} is \texttt{uint} (by default this is a 32-bit unsigned integer). The result of $len(a)$ is thus expected to be 32-bits or 4 bytes. The relative offset of \texttt{a} in \texttt{L} is the sum of the lengths of all field declaration which precede it. In this case, no fields precede it, thus the relative offset for the field denoted by \texttt{L.a} is 0.
+
+The second extract declaration is \texttt{extract L.c.f}. \texttt{L.c.f} refers to field declaration \texttt{f} in \texttt{LN} which, in turn, is the type of \texttt{L.c}. \texttt{L.c} refers to field declaration \texttt{c} in \texttt{L}. Here is the case of the nested layout. The type of \texttt{f} is \texttt{uint(16)}, thus the result of $len(f)$ is 16-bits or 2 bytes. The relative offset of \texttt{f} is the sum of the length of all field declaration which precede it in \texttt{LN}, in this case, 8-bits or 1 byte, plus the relative offset of \texttt{c} in \texttt{L}. The relative offset of \texttt{c} in \texttt{L} is 64-bits or 8-bytes long. Thus, the relative offset for  \texttt{L.c.f} is 72-bits or 9-bytes.
+
+Assuming the beginning of the current view for \texttt{D} is 14 bytes past the beginning of the packet. The \textit{absolute offset} for \texttt{L.a} would be 14 bytes. The absolute offset for \texttt{L.c.f} would be $14+9$ or 23 bytes.
+
 \subsection{Extracting the Same Field More Than Once}
 
 It is important to note that a decoder is only ever looking at one header of a packet at once. Using an extract declaration with the same field name more than once in the same decoder will result in the same instance of that field being extracted multiple times, which is completely redundant. Though legal, this should be avoided in most cases.
+
+The following is not considered good practice, though it is valid:
+
+\begin{minip}
+\begin{lstlisting}
+decoder d1(l1) {
+	var x : int = 0; 	
+	while (x < 5) {
+		extract l1.f1;
+		// ...
+	}
+	// ...
+}
+\end{lstlisting}
+\end{minip}
 
 \subsection{Rebind Declaration} \label{rebind_guide}
 
@@ -638,9 +704,84 @@ At certain times, it may be convenient to extract a certain field, but \textit{a
 
 The rebind declaration requires two field names be given. The first \grd{field}{name}, or more succinctly \texttt{N1}, shall be known as the \textit{original field name}. The second \grd{field}{name}, or more succinctly \texttt{N2}, shall be known as the \textit{alias field name}. \texttt{N1} and \texttt{N2} must both be valid field names.
 
-The field declaration named by \texttt{N1} shall have the same type as the field declaration named by \texttt{N2}. 
+The field declaration named by \texttt{N1} shall have the same type as the field declaration named by \texttt{N2}. For example:
 
-A rebind declaration causes \texttt{N1} and \texttt{N2} to be in scope. Both names are added to the decoder's productions (see \ref{requirements_guide}). The names \texttt{N1} and \texttt{N2} may be used as field names in either key declarations or requires clauses in tables and events later in the pipeline. 
+\begin{minip}
+\begin{lstlisting}
+layout l1 {
+	a : uint(16);
+	b : uint(24);
+}
+
+layout l2 {
+	c : uint(16);
+	d : uint(32);
+}
+
+// ...
+
+decoder d2(l2)
+{
+	// Legal. l2.c has the same type as l1.a
+	extract l2.c as l1.a;
+	// Error: Illegal. Mismatched types.
+	extract l2.d as l1.b;
+	// ...
+} 
+\end{lstlisting}
+\end{minip}
+
+A rebind declaration causes \texttt{N1} and \texttt{N2} to be in scope. Both names may be used to refer to the same extraction. Both names are added to the decoder's productions (see \ref{requirements_guide}). The names \texttt{N1} and \texttt{N2} may be used as field names in either key declarations or requires clauses in tables and events later in the pipeline. 
+
+The extractions which \texttt{N1} can refer to are a subset of the extractions \texttt{N2} can refer to. The aliased name naturally can refer to extractions which are from a different kind of field than the original name. To demonstrate this, the following revision is made to the prior example:
+
+\begin{minip}
+\begin{lstlisting}
+decoder D1(L1) {
+	extract L1.a;
+	if (l1.a == 0)
+		goto L1;
+	decode d2;
+}
+
+decoder D2(L2) {
+	extract L2.c as L1.a;
+	// Valid usage of L2.c.
+	var i : uint(16) = L2.c;
+	// Valid usage of L1.a to refer to the same extraction.
+	var j = uint(16) = L1.a;
+	// ...
+	set L2.c = 1;
+	goto T1;
+}
+
+// Key field L1.a will refer to the last extraction of L1.a.
+// If D1 sends the packet to T1, then it will be the L1.a field.
+// 
+// If D2 sends the packet to T1, then L1.a shall refer to an
+// extraction of L2.c instead.
+exact_table T1(L1.a) {
+	{ 0 } -> { drop; }
+	{ 1 } -> { flood; }
+}
+\end{lstlisting}
+\end{minip}
+
+Here we have two decoders \texttt{D1} and \texttt{D2}. If a packet is sent directly to table \texttt{T1} from decoder \texttt{D1}, the value of the last extraction of \texttt{L1.a} will be \texttt{0} (based on the \texttt{if} condition). In this scenario, the packet is dropped. 
+
+However, if the packet is sent from decoder \texttt{D2}, the field name (and by extension the extraction) \texttt{L2.c} has been aliased as \texttt{L1.a}. The field \texttt{L2.c} also has its value set to \texttt{1}. Here, the last extraction of \texttt{L1.a} shall be \texttt{1} because L2.c has a value of \texttt{1} and it has been aliased by the name \texttt{L1.a}. Therefore, when the packet is matched against \texttt{T1}'s flow entries, the packet shall be flooded.
+
+Supposing table \texttt{T1} from the prior example were replaced with the following version of \texttt{T1}, then the \texttt{goto t1} action in decoder \texttt{D1} would actually produce a compiler error for violating requirements satisfaction (see \ref{requirements_guide}). 
+
+\begin{minip}
+\begin{lstlisting}
+exact_table T1(L2.c) {
+	// ...
+}
+\end{lstlisting}
+\end{minip}
+
+This version of \texttt{T1} uses \texttt{L2.c} as a key field. However, \texttt{L1.a} is not the same field as \texttt{L2.c} and has not been aliased as such.
 
 \section{Table and Flow Declarations} \label{table_guide}
 
@@ -680,13 +821,15 @@ If tables with those properties already exist, the runtime system provides the S
 
 The table's \textit{key fields} are a set of one or more fields which together compose a \textit{key}. A table's key is given by \grdd{key}{declaration}{sequence} in the grammar. Each \grd{key}{declaration} shall also be a valid field name, or be the keywords \texttt{in\_port} or \texttt{in\_phys\_port}. The type of \grd{key}{declaration} shall be the type of the field declaration named by the same field name, or shall be port type (see \ref{port_type_guide}) in the case of \texttt{in\_port} or \texttt{in\_phys\_port}.
 
-The \grd{requires}{clause} is optional. Each field name within the \grd{requires}{clause} must be a valid field name. A field name here may have the same program text as a \grd{key}{declaration} in the same table declaration. There is no change in semantics when this happens. Field names given by \grdd{key}{declaration}{sequence} are implicitly required.
+The \grd{requires}{clause} is optional. Each field name within the \grd{requires}{clause} must be a valid field name. A field name here may have the same field name as a \grd{key}{declaration} in the same table declaration. There is no change in semantics when this happens. Field names given by \grdd{key}{declaration}{sequence} are implicitly required.
+
+Field names given in the \grdd{key}{declaration}{sequence} and the \grd{requires}{clause} are valid inside the block of \grd{table}{initializer} based on table scope semantics (see \ref{table_scope}).
 
 Each table has a set of \textit{flow entries} declared in Steve using a \grd{flow}{declaration} of the following form:
 
 \begin{minip}
 \begin{grammar}
-<flow-decl> ::=
+<flow-declaration> ::=
 <properties-block>
 \textbf{\{} <match-field-sequence> \textbf{\}} \textbf{-\textgreater} <flow-body>
 \alt <miss-flow-declaration>
@@ -695,7 +838,7 @@ Each table has a set of \textit{flow entries} declared in Steve using a \grd{flo
 
 <flow-body> :: \textbf{\{} <action> + \textbf{\}}
 
-<properties block> ::=
+<properties-block> ::=
 \textbf{[} <property-sequence> \textbf{]}
 
 <property> ::=
@@ -716,6 +859,55 @@ All flow entries in the same table must be uniquely identifiable by their \texti
 
 The set of \textit{initial flow entries}, that is, the flow entries which are inserted into the table during load-time configuration, are given as \grd{flow}{declarations} within \grd{table}{initializer}. Each initial flow entry is inserted with the order in which they are declared. There may only be one or less \grd{miss}{flow}{decl} shall appear here.
 
+\section{Event Declaration} \label{event_guide}
+
+An event declaration has the following form:
+
+\begin{minip}
+\begin{grammar}
+<event-decl> ::=
+\textbf{event} <event-name> [ <requires-clause> ]
+<block-statement>
+\end{grammar}
+\end{minip}
+
+An event declaration defines a special function, known as an \textit{event handler}, which has access to extractions (see \ref{extract_guide}) and actions (see \ref{action_guide}) just like decoders. 
+
+An event declaration can only be invoked via the raise action. The execution of an event handler typically happens immediately upon the raise action being used. However, the behaviour is runtime implementation specific. A \textit{copy} of the context (see \ref{context_guide}) and packet are always passed to an event handler. 
+
+Any modifications to a packet via actions within an event shall not apply to the original. For example, in the following, it is demonstrated that a field modified via \texttt{set} action only affects a copy and never the original packet.
+
+\begin{minip}
+\begin{lstlisting}
+exact_table t1(eth.dst)
+{
+	{ 0x12_34_56_78_90_ab } ->
+	{
+		// event1 tries to set eth.dst to 0x0
+		raise event1;
+		// eth.dst will still be 0x12_34_56_78_90_ab
+		// after the raise action is finished because
+		// only a copy is passed to event1.
+		
+		// ...
+	}
+}
+
+event event1
+	requires(eth.dst)
+{
+	// This will not modify the original.
+	// Only a copy of the context and packet are
+	// operated on.
+	set eth.dst = 0x0;
+}
+\end{lstlisting}
+\end{minip}
+
+Event declarations are subject to meeting the \textit{requirements satisfaction} property of pipelines, even though they themselves are not completely separate stages.
+
+The \grd{requires}{clause} is optional. The field names given in \grd{requires}{clause} must be valid field names. Those field names become valid inside \grd{block}{statement} by event scope semantics (see \ref{event_scope}).
+
 \section{Port Declaration} \label{port_guide}
 
 A port declaration has the following form:
@@ -723,10 +915,19 @@ A port declaration has the following form:
 \begin{minip}
 \begin{grammar}
 <port-decl> ::=
-\textbf{Port} <port-name> \textbf{;}
+\textbf{Port} <port-name> [ <port-initializer> ] \textbf{;}
 
+<port-initializer> ::= \textbf{=} <integer-literal>
 \end{grammar}
 \end{minip}
+
+Port declarations are required to be in global scope.
+
+A port declaration may have an optional \grd{port}{initializer}. The \grd{port}{initializer} shall be \grd{integer}{literal}. If \grd{port}{initializer} is not given, \grd{port}{initializer} shall be implicit and the value of \grd{integer}{literal} shall be 0.
+
+Upon load-time configuration (see \ref{flowpath}), for each port declaration, a discovery request is made to the runtime system for a port whose system-assigned identifier is equal to the value given by \grd{integer}{literal}. Any requests for port's whose identifiers do not exist result in the Steve application failing to load.
+
+The port identifier zero (0) is reserved as the \textit{invalid port}. It exists, but forwarding to it results in packet drop.
 
 \section{Variable Declarations} \label{variable_guide}
 
@@ -747,11 +948,99 @@ If \grd{variable}{initializer} is given, the type of \gr{expression} shall match
 
 \section{Function Declarations} \label{function_guide}
 
+A function declaration has the following form:
+
+\begin{minip}
+\begin{grammar}
+<function-declaration> ::=
+\textbf{def} <function-name> \textbf{(} [<parameter-decl-sequence>] \textbf{)} \textbf{-\textgreater} <type> 
+ <block-statement>
+\end{grammar}
+\end{minip}
+
+The type of a function declaration (see \ref{function_type_guide}) is determined by its \textit{return type}, given by \gr{type}, and its \textit{parameters}, given by \grdd{parameter}{decl}{sequence}. The body of the function, given by \grd{block}{statement}, is the set of instructions that get executed upon calling the function.
+
+There may be multiple declarations of a function with the same \grd{function}{name} if and only if:
+
+\begin{itemize}
+\item Each function declaration has a different type.
+\item The types of each parameter or the number of parameters are different.
+\item Two function declarations of the same type may not vary only in their return type.
+\end{itemize} 
+
+\section{Expressions} \label{expr_guide}
+
+Expressions, generally speaking, perform some type of operations or computations which may return results or have side effects. Steve has the following expressions:
+
+\begin{minip}
+\begin{grammar}
+<expression> ::=
+<primary-expression>
+\alt <binary-expression>
+\alt <unary-expression>
+\end{grammar}
+\end{minip}
+
+\section{Primary Expressions} \label{primary_expr_guide}
+
+Primary expressions are expressions which have no operands. Primary expressions have the following form:
+
+\begin{minip}
+\begin{grammar}
+<primary-expression> ::= 
+<identifier-expression>
+\alt <field-access-expression>
+\alt <literal-expression>
+\alt <port-expression>
+\end{grammar}
+\end{minip}
+
 \section{Identifier Expressions} \label{id_expr_guide}
+
+When an identifier (see \ref{identifiers_guide}) is used where an \gr{expression} is expected, it is considered an identifier expression. Identifier expressions have the form:
+
+\begin{minip}
+\begin{grammar}
+<identifier-expression> ::= <identifier>
+\end{grammar}
+\end{minip}
+
+Identifier expressions most often refer to a specific declaration of that name. When used as an expression, an identifier returns the entity being referred to. When the entity is an object, a reference-to-value conversion (see \ref{reftoval_conv}) is performed.
 
 \section{Field Access Expression} \label{field_access_expr_guide}
 
+When a field name (see \ref{field_name_guide}) is used where an \gr{expression} is expected, it is considered a field access expression. Field access expressions have the form:
+
+\begin{minip}
+\begin{grammar}
+<field-access-expression> ::= <field-name>
+\end{grammar}
+\end{minip}
+
+Field access expressions refer to a field extracted by a decoder, or an \textit{extraction} for short. Field access expressions are similar to identifier expressions (see \ref{id_expr_guide}), except they specifically refer to extractions.
+
+A field access expression may only occur within the scope of a decoder declaration (see \ref{decoder_guide}), a flow declaration (see \ref{table_guide}), or an event declaration (see \ref{event_guide}).
+
+A field access expression may only occur:
+\begin{itemize}
+\item In a decoder declaration if and only if an extract declaration (see \ref{extract_guide}) extracts a field with the same field name before the field access expression's use.
+
+\item In a flow declaration if and only if the table containing the flow uses the same field name as a key, or lists it in its requires clause.
+
+\item In an event declaration if and only if the event lists the same field name in its requires clause.
+\end{itemize}
+
+\section{Literal Expressions} \label{literal_expr_guide}
+
+Literal expressions are expressions which represent constant values. Steve supports decimal integer literals, binary literals, hexadecimal literals, and string literals. Literals have the following form:
+
+
+
 \section{Unary Expressions} \label{unary_expr_guide}
+
+Unary expressions have a single operator and a single operand. Unary expressions have the following form:
+
+
 
 \section{Binary Expressions} \label{binary_expr_guide}
 
@@ -777,6 +1066,8 @@ If \grd{variable}{initializer} is given, the type of \gr{expression} shall match
 
 \section{Scalar Type} \label{scalar_type_guide}
 
-\section{Port Type} \label{port_type}
+\section{Port Type} \label{port_type_guide}
+
+\section{Function Type} \label{function_type_guide}
 
 \section{Runtime Configuration} \label{config_guide}

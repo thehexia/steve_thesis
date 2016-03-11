@@ -28,9 +28,10 @@
 \usepackage{graphicx}
 \usepackage{changebar}
 \usepackage{url}
+\usepackage{environ}
 
 \lstset{basicstyle=\ttfamily\singlespacing\small,
-	    emph={layout, int, uint, decoder, extract, var, else, if, requires, exact_table, event, output, decode, goto, advance, drop, flood, set, write, clear, raise, insert, into, remove, from, match, case, while, miss, break, continue, Port, return, def},
+	    emph={layout, int, uint, decoder, extract, as, var, else, if, requires, exact_table, event, output, decode, goto, advance, drop, flood, set, write, clear, raise, insert, into, remove, from, match, case, while, miss, break, continue, Port, return, def},
 	    emph=[2]{ start, in\_port, in\_phys\_port, egress, reflow, controller, all, timeout },
 	    emph=[3]{ Error },
 	    emphstyle={\color{blue}\textbf},
@@ -51,11 +52,7 @@
    \setlength{\parskip}{\currentparskip}% restore the value
   }
   {\end{minipage}\vspace{\baselineskip}}
-  
 
-\newenvironment{code}
-  {\noindent\begin{minipage}{\linewidth}\begin{lstlisting}}
-  {\end{lstlisting}\end{minipage}}
 
 %\noindent\begin{minipage}{\linewidth}
 %\begin{grammar}
@@ -79,6 +76,7 @@
 \newcommand\grdd[3]{$\la #1 \mn #2 \mn #3 \ra$}
 \newcommand\grd[2]{$\la #1 \mn #2 \ra$}
 \newcommand\gr[1]{$\la #1 \ra$}
+
 %
 
 \title{Steve - A Programming Language for Packet Processing}
