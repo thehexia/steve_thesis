@@ -29,16 +29,41 @@
 \usepackage{changebar}
 \usepackage{url}
 \usepackage{environ}
+%\usepackage{inconsolata}
 
-\lstset{basicstyle=\ttfamily\singlespacing\small,
-	    emph={layout, int, uint, decoder, extract, as, var, else, if, requires, exact_table, event, output, decode, goto, advance, drop, flood, set, write, clear, raise, insert, into, remove, from, match, case, while, miss, break, continue, Port, return, def},
+\lstdefinelanguage{steve}
+{
+	morecomment=[l][\textit]{//}
+}
+
+\lstset{
+		language=steve,
+		basicstyle=\ttfamily\singlespacing\small,
+	    emph={layout, int, uint, decoder, extract, as, var, else, if, requires, exact_table,
+	    event, output, decode, goto, advance, drop, flood, set, write, clear, raise, insert, 
+	    into, remove, from, match, case, while, miss, break, continue, Port, return, def},
 	    emph=[2]{ start, in\_port, in\_phys\_port, egress, reflow, controller, all, timeout },
 	    emph=[3]{ Error },
 	    emphstyle={\color{blue}\textbf},
 	    emphstyle=[2]{\color{green}\textbf},
 	    emphstyle=[3]{\color{red}},
 	    frame=single,
-	    tabsize=2}
+	    tabsize=2
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%   Dealing with grammar style
+
+\renewcommand{\syntleft}{$\langle$\ttfamily\itshape}
+\renewcommand{\syntright}{$\rangle$}
+
+\renewcommand{\litleft}{\ttfamily\bfshape}
+\renewcommand{\litright}{}
+
+\renewcommand{\ulitleft}{\ttfamily}
+\renewcommand{\ulitright}{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \graphicspath{ {./images/} }
 
@@ -70,12 +95,16 @@
 %
 \def\ds{\displaystyle}
 \def\E{\epsilon}
+
+%%%%%%%%%%%%%%%%%%%%
+% Defining inline grammar macros
+%%%%%%%%%%%%%%%%%%%%
 \def\la{\langle}
 \def\ra{\rangle}
 \def\mn{\text{-}}
-\newcommand\grdd[3]{$\la #1 \mn #2 \mn #3 \ra$}
-\newcommand\grd[2]{$\la #1 \mn #2 \ra$}
-\newcommand\gr[1]{$\la #1 \ra$}
+\newcommand\grdd[3]{$\la \textit{\texttt{#1}} \mn \textit{\texttt{#2}} \mn \textit{\texttt{#3}} \ra$}
+\newcommand\grd[2]{$\la \textit{\texttt{#1}} \mn \textit{\texttt{#2}} \ra$}
+\newcommand\gr[1]{$\la \textit{\texttt{#1}} \ra$}
 
 %
 
@@ -123,8 +152,8 @@
 %followed by n \input{filename} commands, similar to the \input{chapx}
 %commands above.
 % DO NOT USE SECTIONS OR SUBSECTIONS IN AN APPENDIX OR APPENDICES
-% \appendix{3}
-% \input{appendixa}
+\appendix{1}
+\input{appendixa}
 % \input{appendixb}
 % \input{appendixc}
 

@@ -615,12 +615,8 @@ The containing layout identifier of \grd{field}{name} (see \ref{field_name_guide
 \begin{lstlisting}
 decoder eth_d(eth) {
 	// Error: Illegal, this decoder does not extract ipv4.
-<<<<<<< HEAD
 	extract ipv4.dst; 
 	// ...
-=======
-	extract ipv4.dst;
->>>>>>> a55be94b4a606e59f3664e999b828647eafc1ab3
 }
 \end{lstlisting}
 \end{minip}
@@ -708,7 +704,6 @@ At certain times, it may be convenient to extract a certain field, but \textit{a
 
 The rebind declaration requires two field names be given. The first \grd{field}{name}, or more succinctly \texttt{N1}, shall be known as the \textit{original field name}. The second \grd{field}{name}, or more succinctly \texttt{N2}, shall be known as the \textit{alias field name}. \texttt{N1} and \texttt{N2} must both be valid field names.
 
-<<<<<<< HEAD
 The field declaration named by \texttt{N1} shall have the same type as the field declaration named by \texttt{N2}. For example:
 
 \begin{minip}
@@ -787,11 +782,6 @@ exact_table T1(L2.c) {
 \end{minip}
 
 This version of \texttt{T1} uses \texttt{L2.c} as a key field. However, \texttt{L1.a} is not the same field as \texttt{L2.c} and has not been aliased as such.
-=======
-The field declaration named by \texttt{N1} shall have the same type as the field declaration named by \texttt{N2}.
-
-A rebind declaration causes \texttt{N1} and \texttt{N2} to be in scope. Both names are added to the decoder's productions (see \ref{requirements_guide}). The names \texttt{N1} and \texttt{N2} may be used as field names in either key declarations or requires clauses in tables and events later in the pipeline.
->>>>>>> a55be94b4a606e59f3664e999b828647eafc1ab3
 
 \section{Table and Flow Declarations} \label{table_guide}
 
@@ -993,7 +983,7 @@ Expressions, generally speaking, perform some type of operations or computations
 
 \section{Primary Expressions} \label{primary_expr_guide}
 
-Primary expressions are expressions which have no operands. Primary expressions have the following form:
+Primary expressions are expressions which have no operators. Primary expressions have the following form:
 
 \begin{minip}
 \begin{grammar}
@@ -1044,7 +1034,42 @@ A field access expression may only occur:
 
 Literal expressions are expressions which represent constant values. Steve supports decimal integer literals, binary literals, hexadecimal literals, and string literals. Literals have the following form:
 
+\begin{minip}
+\begin{grammar}
+<literal-expr> ::=
+<integer-literal>
+\alt <binary-literal>
+\alt <hexadecimal-literal>
 
+<decimal-digit> ::= \textbf{0} | \textbf{1} | \textbf{2} | \textbf{3} | \textbf{4} | \textbf{5} | \textbf{6} | \textbf{7} | \textbf{8} | \textbf{9}
+
+<hexadecimal-digit> ::= \textbf{\_} | <decimal-digit> | \textbf{a} | \textbf{b} | \textbf{c} | \textbf{d} | \textbf{e} | \textbf{f}             
+
+<binary-digit> ::= \textbf{\_} | \textbf{0} | \textbf{1}
+
+<integer-literal> ::=
+<decimal-digit> +
+
+<hexadecimal-literal> ::=
+\textbf{0x} <hexadecimal-digit> +
+
+<binary-literal> ::=
+\textbf{0b} <binary-digit> +
+
+<character-literal> ::=
+\textbf{\"} <letter> + \textbf{\"}
+
+<letter> ::= "A" | "B" | "C" | "D" | "E" | "F" | "G"
+       | "H" | "I" | "J" | "K" | "L" | "M" | "N"
+       | "O" | "P" | "Q" | "R" | "S" | "T" | "U"
+       | "V" | "W" | "X" | "Y" | "Z" | "a" | "b"
+       | "c" | "d" | "e" | "f" | "g" | "h" | "i"
+       | "j" | "k" | "l" | "m" | "n" | "o" | "p"
+       | "q" | "r" | "s" | "t" | "u" | "v" | "w"
+       | "x" | "y" | "z"
+
+\end{grammar}
+\end{minip}
 
 \section{Unary Expressions} \label{unary_expr_guide}
 
