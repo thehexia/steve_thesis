@@ -1005,7 +1005,7 @@ When an identifier (see \ref{identifiers_guide}) is used where an \gr{expression
 \end{grammar}
 \end{minip}
 
-Identifier expressions most often refer to a specific declaration of that name. When used as an expression, an identifier returns the entity being referred to. When the entity is an object, a reference-to-value conversion (see \ref{reftoval_conv}) is performed.
+Identifier expressions most often refer to a specific declaration of that name. When used as an expression, an identifier returns the entity being referred to. If the identifier refers to an object (see \ref{object_guide}), the type of the object is \texttt{T}, and the identifier expression has \texttt{T&} type. If the value of the object is required, then a reference-to-value conversion is applied (see \ref{reftoval_conv}).
 
 The grammar shall refer to identifier expressions refering to specific kinds of declarations using \grd{kind}{id}, where \texttt{\textit{kind}} is the kind of declaration. For example, an identifier expression refering to a decoder shall be \grd{decoder}{id}.
 
@@ -1281,7 +1281,6 @@ Given a type \texttt{T}, assuming the type of the first operand is \texttt{T1}, 
 The bitwise expressions compares each bit of the first operand with each corresponding bit in the second operand and performs the appropriate bitwise operation.
 
 \begin{minip}
-\begin{flushleft}
 \begin{grammar}
 <bitwise-and-expression> ::= <bitwise-and-expression> "\&" <equality-expression>
 \alt <equality-expression>
@@ -1292,7 +1291,6 @@ The bitwise expressions compares each bit of the first operand with each corresp
 <bitwise-or-expression> ::= <bitwise-or-expression> "^" <bitwise-xor-expression>
 \alt <bitwise-xor-expression> 
 \end{grammar}
-\end{flushleft}
 \end{minip}
 
 Given a type \texttt{T}, assuming the type of the first operand is \texttt{T1}, and the type of the second is \texttt{T2}, there must exist a sequence of conversions from \texttt{T1} to \texttt{T} and from \texttt{T2} to \texttt{T}. In other words, the types of both operands must be convertible to some common type. The type of the result shall be \texttt{T}.
@@ -1308,7 +1306,6 @@ With bitwise-or, for each bit position, if either bit is 1, then the result shal
 Logical-and and Logical-or operations have the following form:
 
 \begin{minip}
-\begin{flushleft}
 \begin{grammar}
 <logical-and-expression> ::= <logical-and-expression> "\&\&" <bitwise-or-expression>
 \alt <bitwise-or-expression>
@@ -1316,14 +1313,78 @@ Logical-and and Logical-or operations have the following form:
 <logical-or-expression> ::= <logical-and-expression> "||" <logical-and-expression>
 \alt <logical-and-expression> 
 \end{grammar}
-\end{flushleft}
 \end{minip}
 
 The type of both operands shall be boolean type. The result of shall have boolean type.
 
 \section{Statements} \label{statements_guide}
 
+Statements are pieces of code which are executed in sequence, and have some side-effects, but unlike expressions do not evaluate to any value or return any results. Statements generally only appear inside a block. Statements have the following form:
+
+\begin{minip}
+\begin{grammar}
+<statement> ::=
+<expression-statement>
+\alt <declaration-statement>
+\alt <block-statement>
+\alt <assign-statement>
+\alt <if-then-statement>
+\alt <if-else-statement>
+\alt <match-statement>
+\alt <case-statement>
+\alt <while-statement>
+\alt <break-statement>
+\alt <continue-statement>
+\alt <return-statement>
+\alt <action>
+\end{grammar}
+\end{minip}
+
+\section{Declaration Statement} \label{decl_stmt_guide}
+
+A declaration statement introduces a declaration upon execution. Declaration statements have the following form:
+
+\begin{minip}
+\begin{grammar}
+<declaration-statement> ::=
+<declaration> ";"
+\end{grammar}
+\end{minip}
+
+Because a statement generally only appears in a block, global declarations (see \ref{declaration_guide}) may not appear in declaration statements. 
+
+\section{Block Statement} \label{block_stmt_guide}
+
+Block statements are a subsection of program text which begins with the right-curly brace (\{) and ends with the left-curly brace (\}). Block statements have the form:
+
+\begin{minip}
+\begin{grammar}
+<block-statement> ::=
+"{" [<statement>] "}"
+\end{grammar}
+\end{minip}
+
+A block statement defines a block scope (see \ref{block_scope}). Block statements may be nested. A block statement may contain no statements. Each statement in a block statement is executed in order.
+
+\section{Assignment Statements} \label{assign_stmt_guide}
+
+Assignment statements allow the contents of one object to be replaced with the contents of another. Assignment statements have the following form:
+
+\begin{minip}
+\begin{grammar}
+<assign-statement> ::=
+<identifier-expression> "=" <expression> ";"
+\end{grammar}
+\end{minip}
+
+The \grd{identifier}{expression} must refer to a valid object declaration. That object must be \textit{assignable}. Only variables and ports are assignable. Assuming that object has type \texttt{T}, then the type of the identifier expression must have \texttt{T&} type and the type of \gr{expression} must by \texttt{T}.
+
+\section{Conditional Statements} \label{condition_guide}
+
+
 \section{Actions} \label{action_guide}
+
+An action is a special statement that can only occur within the body of a decoder, flow, or event declaration. Actions may affect the state of a packet, its context, or a table. 
 
 \section{Decode Action} \label{decode_guide}
 
@@ -1332,10 +1393,6 @@ The type of both operands shall be boolean type. The result of shall have boolea
 \section{Insert Action} \label{insert_guide}
 
 \section{Output Action} \label{output_guide}
-
-\section{Block Statements} \label{block_stmt_guide}
-
-\section{Assignment Statements} \label{assign_stmt_guide}
 
 \section{Type} \label{type_guide}
 
