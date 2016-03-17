@@ -7,14 +7,14 @@
 \contentsline {figure}{\numberline {4.5}{\ignorespaces An example of the ethernet layout with a nested vlan in Steve.}}{22}
 \contentsline {figure}{\numberline {4.6}{\ignorespaces An example of how the IPv4 header is written in Steve. Note that the "options" field is not included because Steve does not currently support extraction or usage of dynamic length fields.}}{23}
 \contentsline {figure}{\numberline {4.7}{\ignorespaces Decoder syntax for Steve in BNF.}}{25}
-\contentsline {figure}{\numberline {4.8}{\ignorespaces An example of how to extract \texttt {src} and \texttt {dst} fields from the ethernet header using a decoder. Note we do not extract the \texttt {type} field here.}}{26}
+\contentsline {figure}{\numberline {4.8}{\ignorespaces An example of how to extract \texttt {src} and \texttt {dst} fields from the ethernet header using a decoder. Note we do not extract the \texttt {type} field here.}}{25}
 \contentsline {figure}{\numberline {4.9}{\ignorespaces An example of accessing a field using the field access expression in an if-else statement.}}{28}
 \contentsline {figure}{\numberline {4.10}{\ignorespaces Using arithmetic operations, bitwise operations, and variable assignment with fields in a Steve program.}}{29}
 \contentsline {figure}{\numberline {4.11}{\ignorespaces An example of incorrect field access.}}{30}
 \contentsline {figure}{\numberline {4.12}{\ignorespaces An example of using \texttt {decode} and \texttt {goto} to transition between stages.}}{31}
-\contentsline {figure}{\numberline {4.13}{\ignorespaces Table syntax for Steve in BNF.}}{34}
+\contentsline {figure}{\numberline {4.13}{\ignorespaces Table syntax for Steve in BNF.}}{33}
 \contentsline {figure}{\numberline {4.14}{\ignorespaces An example of a simple table used to classify IPv4 packets.}}{35}
-\contentsline {figure}{\numberline {4.15}{\ignorespaces Action syntax for Steve in BNF.}}{39}
+\contentsline {figure}{\numberline {4.15}{\ignorespaces Action syntax for Steve in BNF.}}{38}
 \contentsline {figure}{\numberline {4.16}{\ignorespaces Event syntax for Steve in BNF.}}{45}
 \contentsline {figure}{\numberline {4.17}{\ignorespaces An example of an event used to learn which ports are receiving packets from which MAC addresses.}}{46}
 \contentsline {figure}{\numberline {5.1}{\ignorespaces Steve reserved keywords. Note that Steve reserves the right to make any identifiers keywords in future versions.}}{57}

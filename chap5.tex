@@ -8,7 +8,7 @@ Steve makes guarantees about the logical correctness and safety of pipeline stag
 
 \section{Identifiers} \label{identifiers_guide}
 
-An \textit{identifier} is an arbitrarily long sequence of characters. Supported characters include uppercase Latin letters (\texttt{A - Z}), lowercase Latin letters (\texttt{a - z}), digits (\texttt{0 - 9}), and underscores (\_). A valid identifier must begin with a non-digit character. Identifiers are case sensitive. In the Steve grammar, identifiers end with the suffix \textit{-id}. The grammar of identifiers is as follows:
+An \textit{identifier} is an arbitrarily long sequence of characters. Supported characters include uppercase Latin letters (\texttt{A - Z}), lowercase Latin letters (\texttt{a - z}), digits (\texttt{0 - 9}), and underscores (\_). A valid identifier must begin with a non-digit character. Identifiers are case sensitive. The grammar of identifiers is as follows:
 
 \begin{minip}
 \begin{grammar}
@@ -39,9 +39,9 @@ Identifiers are subject to the following limitations:
 \item Identifiers beginning with double underscores (\_\_) or an underscore followed by a capital letter (ex. \_F) are reserved by the compiler for internal identifiers.
 \end{itemize}
 
-Identifiers can be used as \textit{names} for \textit{entities}. An entity is a value, object, reference, function, layout, layout field, decoder, table, flow entry, port, event, extraction. In the Steve grammar, identifiers being used as names end with the suffix \textit{-name}.
+Identifiers can be used as \textit{names} for \textit{entities}. An entity is a value, object, reference, function, layout, layout field, decoder, table, flow entry, port, event, extraction. In the Steve grammar, identifiers being used as names for a kind of declarations shall have the form \grd{kind}{name}, where \texttt{\textit{kind}} shall be the declaration kind. For example, a decoder name would be represented in the grammar as \grd{decoder}{name}.
 
-Identifiers that name a variable, function, or port can be used as an expression. In this case, the identifier becomes an \textit{identifier expression}. In cases where identifier expressions refer to object declarations (see \ref{object_guide}) a \textit{reference} to \textit{value} conversion is applied (see Section \ref{reftoval_conv}.
+Identifiers that name a variable, function, decoder, table, or port can be used as an expression. In this case, the identifier becomes an \textit{identifier expression}. Identifier expressions refer to a declaration. In cases where identifier expressions refer to object declarations (see \ref{object_guide}) a \textit{reference} to \textit{value} conversion is applied (see Section \ref{reftoval_conv}. In the Steve grammar, identifier expressions shall have the form \grd{kind}{id}, where \texttt{\textit{kind}} shall be the declaration kind. For example, an identifier to a variable would be represented in the grammar as \grd{variable}{id}.
 
 \section{Keywords} \label{keyword_guide}
 
@@ -857,6 +857,8 @@ The \textit{match fields} of a flow entry, that is, values corresponding to a ta
 
 All flow entries in the same table must be uniquely identifiable by their \textit{match fields} and their \textit{priority} (since we only support exact match tables, the priority is the same on all flow entries). If a flow entry being inserted into a table has the same value in each match field as an already existing flow entry in the table, the previous flow entry is removed and replaced by the new flow entry.
 
+Flow entries may optionally have a \grd{properties}{block}. \textit{Properties} are additional metadata that can be attached to flow entries. There are currently two properties: \texttt{timeout} and \texttt{egress}. The \texttt{timeout} property specifies the duration (in milliseconds) that the flow entry will remain the table. The \texttt{egress} property specifies an egress port that can be accessed in the flow entry. This is most useful for using the \texttt{output egress} action within added flow entries (see \ref{output_guide}).
+
 The set of \textit{initial flow entries}, that is, the flow entries which are inserted into the table during load-time configuration, are given as \grd{flow}{declarations} within \grd{table}{initializer}. Each initial flow entry is inserted with the order in which they are declared. There may only be one or less \grd{miss}{flow}{decl} shall appear here.
 
 \section{Event Declaration} \label{event_guide}
@@ -871,11 +873,11 @@ An event declaration has the following form:
 \end{grammar}
 \end{minip}
 
-An event declaration defines a special function, known as an \textit{event handler}, which has access to extractions (see \ref{extract_guide}) and actions (see \ref{action_guide}) just like decoders. 
+An event declaration defines a special function, known as an \textit{event handler}, which has access to extractions (see \ref{extract_guide}) and actions (see \ref{action_guide}) just like decoders. They implicitly take a context (see \ref{context_guide}) as a parameter. These are used when an exceptional \textit{event} has occured and certain slower actions need to be applied, e.g. adding and removing flow entries.
 
-An event declaration can only be invoked via the raise action. The execution of an event handler typically happens immediately upon the raise action being used. However, the behaviour is runtime implementation specific. A \textit{copy} of the context (see \ref{context_guide}) and packet are always passed to an event handler. 
+An event handler can only be invoked via the raise action. At this time, a \textit{copy} of the context is passed to the runtime. The runtime shall forward the context and event handler packaged together to the controller port. A program sits on the controller port waiting to receive these contexts and event handlers. This program shall execute the event handler on the given context. The execution of an event handler happens immediately upon the raise action being used if the runtime is single-threaded. However, the behaviour is runtime implementation specific. The execution may be multi-threaded and asynchronous, therefore, the user should have no expectations on the order of execution. 
 
-Any modifications to a packet via actions within an event shall not apply to the original. For example, in the following, it is demonstrated that a field modified via \texttt{set} action only affects a copy and never the original packet.
+A \textit{copy} of the context  and packet are always passed to an event handler. Any modifications to a packet via actions within an event shall not apply to the original. For example, in the following, it is demonstrated that a field modified via \texttt{set} action only affects a copy and never the original packet.
 
 \begin{minip}
 \begin{lstlisting}
@@ -936,9 +938,9 @@ Variable declarations have the form:
 \begin{minip}
 \begin{grammar}
 <variable-decl> ::=
-\textbf{var} <variable-name> \textbf{:} <type> [ <variable-initializer> ] \textbf{;}
+"var" <variable-name> ":" <type> [<variable-initializer>]";"
 
-<variable-initializer> ::= \textbf{=} <expression>
+<variable-initializer> ::= "=" <expression>
 \end{grammar}
 \end{minip}
 
@@ -953,8 +955,7 @@ A function declaration has the following form:
 \begin{minip}
 \begin{grammar}
 <function-declaration> ::=
-\textbf{def} <function-name> \textbf{(} [<parameter-decl-sequence>] \textbf{)} \textbf{-\textgreater} <type> 
- <block-statement>
+"def"<function-name>"("[<parameter-decl-sequence>]")" "->" <type> <block-statement>
 \end{grammar}
 \end{minip}
 
@@ -964,8 +965,7 @@ There may be multiple declarations of a function with the same \grd{function}{na
 
 \begin{itemize}
 \item Each function declaration has a different type.
-\item The types of each parameter or the number of parameters are different.
-\item Two function declarations of the same type may not vary only in their return type.
+\item Two function declarations of the same name, but different type, may not vary only in their return type.
 \end{itemize} 
 
 \section{Expressions} \label{expr_guide}
@@ -1007,6 +1007,8 @@ When an identifier (see \ref{identifiers_guide}) is used where an \gr{expression
 
 Identifier expressions most often refer to a specific declaration of that name. When used as an expression, an identifier returns the entity being referred to. When the entity is an object, a reference-to-value conversion (see \ref{reftoval_conv}) is performed.
 
+The grammar shall refer to identifier expressions refering to specific kinds of declarations using \grd{kind}{id}, where \texttt{\textit{kind}} is the kind of declaration. For example, an identifier expression refering to a decoder shall be \grd{decoder}{id}.
+
 \section{Field Access Expression} \label{field_access_expr_guide}
 
 When a field name (see \ref{field_name_guide}) is used where an \gr{expression} is expected, it is considered a field access expression. Field access expressions have the form:
@@ -1030,13 +1032,48 @@ A field access expression may only occur:
 \item In an event declaration if and only if the event lists the same field name in its requires clause.
 \end{itemize}
 
+\section{Port Expressions} \label{port_expr_guide}
+
+A port expression is either an identifier which refers to a port declaration, or a keyword refering to a number of reserved port names. Port expressions have the following form:
+
+\begin{minip}
+\begin{grammar}
+<port-expression> ::= <port-id>
+\alt <input-port-expression>
+\alt <input-physical-port-expression>
+\alt <egress-port-expression>
+\alt <all-port-expr>
+\alt <reflow-port-expr>
+
+<input-port-expression> ::= "in_port"
+
+<input-physical-port-expression> ::= "in_phys_port"
+
+<egress-port-expression> ::= "egress"
+
+<all-port-expression> ::= "all"
+
+<reflow-port-expression> ::= "reflow"
+\end{grammar}
+\end{minip} 
+
+The \grdd{input}{port}{expression} shall evaluate to the port which the current packet entered the network on. It must occur within the scope of a decoder, table, or event because these are the only entities which operate on packets.
+
+The \grddd{input}{physical}{port}{expression} shall evaluate to the physical port which the current packet entered on. It must occur within the scope of a decoder, table, or event because these are the only entities which operate on packets.
+
+The \grdd{egress}{port}{expression} shall evaluate the egress port property set in a flow entry's properties block (see \ref{table_guide}). It shall only occur in the body of a flow entry whose egress property has been set.
+
+The \grdd{all}{port}{expression} shall evaluate to the all port. The all port is a logical port which represents every port on the system.
+
+The \grdd{reflow}{port}{expression} shall evaluate to the reflow port. The reflow port is a logical port which represent re-entry into the pipeline. When output to this port, a packet's context data is reset and the packet is sent back to the beginning of the pipeline.
+
 \section{Literal Expressions} \label{literal_expr_guide}
 
 Literal expressions are expressions which represent constant values. Steve supports decimal integer literals, binary literals, hexadecimal literals, and string literals. Literals have the following form:
 
 \begin{minip}
 \begin{grammar}
-<literal-expr> ::=
+<literal-expression> ::=
 <integer-literal>
 \alt <binary-literal>
 \alt <hexadecimal-literal>
@@ -1056,7 +1093,9 @@ Literal expressions are expressions which represent constant values. Steve suppo
 <binary-literal> ::=
 \textbf{0b} <binary-digit> +
 
-<character-literal> ::=
+<boolean-literal> ::= "true" | "false"
+
+<string-literal> ::=
 \textbf{\"} <letter> + \textbf{\"}
 
 <letter> ::= "A" | "B" | "C" | "D" | "E" | "F" | "G"
@@ -1071,13 +1110,216 @@ Literal expressions are expressions which represent constant values. Steve suppo
 \end{grammar}
 \end{minip}
 
+Hexadecimal, binary, and integer literals may be used interchangeably to represent the same integer value. Hexadecimal and binary literals may optionally use the underscore(\_) as an organizational seperator. This is purely lexical and has no effect on the value of the literal. For example:
+
+\begin{minip}
+\begin{lstlisting}
+10 // Integer literal 10
+0b1010 // Binary literal 10
+0b10_10 // Binary literal 10 w/ underscore
+0x0A  // Hexadecimal literal 10
+0x00_0A // Hexadecimal literal 10 w/ underscore  
+\end{lstlisting}
+\end{minip}
+
+Character and string literals are rarely if ever used in Steve at the moment. Its not common to need strings in a langauge directed towards packet processing, which is largely binary data. However, it may become useful in the future if Steve chooses to support text-based protocols.
+
+\begin{minip}
+\begin{lstlisting}
+// A single character literal.
+var c1 : char = "a";
+// A string literal.
+var s1 : char[] = "Hello, world."; 
+\end{lstlisting}
+\end{minip}
+
+
 \section{Unary Expressions} \label{unary_expr_guide}
 
 Unary expressions have a single operator and a single operand. Unary expressions have the following form:
 
+\begin{minip}
+\begin{grammar}
+<unary-expression> ::= 
+<not-expression>
+\alt <negative-expression>
+\end{grammar}
+\end{minip}
 
+\subsection{Not Expression} \label{not_expr_guide}
+
+The not expression is used to take the logical-not of a boolean value. The not expression has the form: 
+
+\begin{minip}
+\begin{grammar}
+<not-expression> ::= "!" <expression> 
+\end{grammar}
+\end{minip}
+
+The type of \gr{expression} shall be boolean type. If the value of \gr{expr} is \texttt{true}, the result shall be \texttt{false}. If the value of \gr{expression} is \texttt{false}, the result shall be \texttt{true}. The type of \grd{not}{expression} shall be boolean type.
+
+\subsection{Negative Expression} \label{neg_expr_guide}
+
+The negative expression is used to change the sign of an integer value. Negative expressions have the following form:
+
+\begin{minip}
+\begin{grammar}
+<negative-expression> ::= "-" <expression>
+\end{grammar}
+\end{minip}
+
+The type of \gr{expression} shall be signed integer type. The evaluation of this expression shall be the equivalent of multiplying the value of \gr{expression} by \texttt{-1}. The result type shall be signed integer type.
 
 \section{Binary Expressions} \label{binary_expr_guide}
+
+Binary expressions are expressions with a single operator and two operands. Binary expressions have the following form:
+
+\begin{minip}
+\begin{grammar}
+<binary-expr> ::= <multiplicative-expression>
+\alt <additive-expression>
+\alt <bitshift-expression>
+\alt <ordering-expression>
+\alt <equality-expression>
+\alt <bitwise-and-expression>
+\alt <bitwise-xor-expression>
+\alt <bitwise-or-expression>
+\alt <logical-and-expression>
+\alt <logical-or-expression>
+\end{grammar}
+\end{minip}
+
+The precedence of each operator is enforced by the grammar. The operators with the highest precedence (i.e. the lowest number), get evaluated first when composed together. Operator precedence is as follows:
+
+\begin{enumerate}
+\singlespacing
+\item Unary expressions
+\item Multiplicative expressions
+\item Additive expressions
+\item Bit-shift expressions
+\item Ordering expressions
+\item Equality expressions
+\item Bit-wise And
+\item Bit-wise Xor
+\item Bit-wise Or
+\item Logical And
+\item Logical Or
+\end{enumerate}
+
+\subsection{Multiplicative Expression} \label{mult_expr_guide}
+
+Multiplicative expressions are multiplication, division, and modulo operators. They have the following form:
+
+\begin{minip}
+\begin{grammar}
+<multiplicative-expression> ::= <multiplicative-expression> 
+<mult-operator> <unary-expression>
+\alt <unary-expression>
+
+<multiplicative-operator> ::= "*" | "/" | "\%"
+\end{grammar}
+\end{minip}
+
+Both operands must be of integer type. Integer conversion (see \ref{int_conv}) is applied to both operands so that they both have type \texttt{T}, where T is the smallest possible integer type capable of representing both operands. The type of result shall be \texttt{T}. 
+
+\subsection{Additive Expression} \label{add_expr_guide}
+
+Additive expressions are addition and subtraction. They have the form: 
+
+\begin{minip}
+\begin{grammar}
+<additive-expression> ::= <additive-expression> 
+<add-operator> <multiplicative-expression>
+\alt <multiplicative-expression>
+
+<add-operator> ::= "+" | "-"
+\end{grammar}
+\end{minip}
+
+Both operands must be of integer type. Integer conversion (see \ref{int_conv}) is applied to both operands so that they both have type \texttt{T}, where T is the smallest possible integer type capable of representing both operands. The type of result shall be \texttt{T}.
+
+\subsection{Bit-shift Expression} \label{bit_shift_guide}
+
+The bit-shift expression allows the user to shift the bits of an integer either left or right. A bitshift expression has the following form:
+
+\begin{minip}
+\begin{grammar}
+<bitshift-expression> ::= <bitshift-expression> 
+<shift-operator> <additive-expression>
+\alt <additive-expression>
+
+<shift-operator> ::= "<<" | ">>"
+\end{grammar}
+\end{minip}
+
+The bitshift expression will shift the bits in \grd{bitshift}{expression} to be shifted either left or right by the number of positions given by \grd{additive}{expression}. Bits shifted off the end shall be discarded. Bit positions that are vacated are filled with zeroes. The type of both operands shall be integer type. The type of the result shall be the type of \grd{bitshift}{expression}.
+
+\subsection{Ordering and Equality Expression} \label{ordering_expr_guide}
+
+Ordering expressions check whether or not the value of two operands are: less than, less than or equal, greater than, or greater than or equal. Equality expressions check whether or not the value of two operands are equal or not equal. The result is always \texttt{true} or \texttt{false}. These expressions have the form: 
+
+\begin{minip}
+\begin{grammar}
+<ordering-expression> ::= <ordering-expression> 
+<ordering-operator> <bitshift-expression>
+\alt <bitshift-expression>
+
+<ordering-operator> ::= "<" | "<=" | ">" | ">="
+
+<equality-expression> ::= <equality-expression>
+<equality-operator> <ordering-expression>
+\alt <ordering-expression>
+
+<equality-operator> ::= "==" | "!="
+\end{grammar}
+\end{minip}
+
+Given a type \texttt{T}, assuming the type of the first operand is \texttt{T1}, and the type of the second is \texttt{T2}, there must exist a sequence of conversions from \texttt{T1} to \texttt{T} and from \texttt{T2} to \texttt{T}. In other words, the types of both operands must be convertible to some common type. The type of the result shall be boolean type.
+
+\subsection{Bitwise And, Xor, and Or Expressions} \label{bitwise_expr_guide}
+
+The bitwise expressions compares each bit of the first operand with each corresponding bit in the second operand and performs the appropriate bitwise operation.
+
+\begin{minip}
+\begin{flushleft}
+\begin{grammar}
+<bitwise-and-expression> ::= <bitwise-and-expression> "\&" <equality-expression>
+\alt <equality-expression>
+
+<bitwise-xor-expression> ::= <bitwise-xor-expression> "|" <bitwise-and-expression>
+\alt <bitwise-and-expression>
+
+<bitwise-or-expression> ::= <bitwise-or-expression> "^" <bitwise-xor-expression>
+\alt <bitwise-xor-expression> 
+\end{grammar}
+\end{flushleft}
+\end{minip}
+
+Given a type \texttt{T}, assuming the type of the first operand is \texttt{T1}, and the type of the second is \texttt{T2}, there must exist a sequence of conversions from \texttt{T1} to \texttt{T} and from \texttt{T2} to \texttt{T}. In other words, the types of both operands must be convertible to some common type. The type of the result shall be \texttt{T}.
+
+With bitwise-and, for each bit position, if both bits are 1, then the result shall be 1, otherwise the resulting bit shall be 0. 
+
+With bitwise-xor, for each bit position, if only one of the two bits is 1, then the result shall be 1, otherwise the resulting bit shall be 0.
+
+With bitwise-or, for each bit position, if either bit is 1, then the result shall be 1, otherwise the resulting bit shall be 0.
+
+\subsection{Logical And and Logical Or Expression} \label{logical_expr_guide}
+
+Logical-and and Logical-or operations have the following form:
+
+\begin{minip}
+\begin{flushleft}
+\begin{grammar}
+<logical-and-expression> ::= <logical-and-expression> "\&\&" <bitwise-or-expression>
+\alt <bitwise-or-expression>
+
+<logical-or-expression> ::= <logical-and-expression> "||" <logical-and-expression>
+\alt <logical-and-expression> 
+\end{grammar}
+\end{flushleft}
+\end{minip}
+
+The type of both operands shall be boolean type. The result of shall have boolean type.
 
 \section{Statements} \label{statements_guide}
 
@@ -1088,6 +1330,8 @@ Unary expressions have a single operator and a single operand. Unary expressions
 \section{Goto Action} \label{goto_guide}
 
 \section{Insert Action} \label{insert_guide}
+
+\section{Output Action} \label{output_guide}
 
 \section{Block Statements} \label{block_stmt_guide}
 
