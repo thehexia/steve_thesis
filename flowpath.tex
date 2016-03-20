@@ -1,0 +1,24 @@
+\chapter{Flowpath} \label{ch:flowpath}
+
+Some stuff about the runtime and interface...
+
+
+Some stuff about the fast path and why Steve targets flowpath...
+
+\section{Runtime Configuration} \label{config_guide}
+
+Steve applications are shared object libraries (.so files). They are not, by themselves, executable. They must be loaded by an instance of the Flowpath runtime. In order to do this, a C++ driver must be written for the Flowpath runtime which will load the Steve application. Flowpath will expect that Steve supports three interface functions. These functions get executed in a specific order once the Steve application is loaded.
+
+\begin{enumerate}
+\item \textit{Configuration}. The first thing Flowpath will do is call the Steve application's configuration function. This function allows Steve to make requests for tables and initial flow entries. The Steve application will ask for a table with a certain ID number, size, and key width. Flowpath will allocate such a table and return a handle to the table back to the Steve application. Once the handle is received, the Steve application will request that all initial flow entries are inserted into the table. Next, all ports declared with an initial port initializer are requested. If they exist, then their identifiers are return, otherwise the identifier to the invalid port (i.e. zero) is returned.
+
+\item \textit{Port Changed Notifications}. If a port has changed, then a notification is sent to the Steve application about that change. A port change notification may state whether a port has gone up or down. If a port has gone up, then an uninitialized prot declared by the Steve application is set to that port. If a port has gone down, then any declared port with that value is set to the invalid port (i.e. zero).
+
+\item \textit{Process}. Flowpath will begin sending contexts to the Steve application for pipeline processing through this interface.
+\end{enumerate}
+
+\section{Egress Processing} \label{egress_process}
+
+Egress processing occurs right before a packet is forwarded. Egress processing begins when a pipeline processing stage (decoder, event, or table) has finished, but has not sent the context to another stage. At this time, actions written to the context's action set are executed. These actions may have special semantics when executed at this time (see \ref{write_guide}). Each action is executed in the order with which it was written. Once the action set is finished executing, the forwarding decision is made.
+
+The context's output port field indicates which port to forward the original packet on. If the output port field is not set, the packet will be dropped and deleted from memory. Once the packet has been forwarded, the context memory is deleted. 

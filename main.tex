@@ -29,6 +29,7 @@
 \usepackage{changebar}
 \usepackage{url}
 \usepackage{environ}
+\usepackage{textcomp}
 %\usepackage{inconsolata}
 
 \lstdefinelanguage{steve}
@@ -97,13 +98,13 @@
 %%%%%%%%%%%%%%%%%%%%
 % Defining inline grammar macros
 %%%%%%%%%%%%%%%%%%%%
-\def\la{\langle}
-\def\ra{\rangle}
+\def\la{\textlangle{}}
+\def\ra{\textrangle{}}
 \def\mn{\text{-}}
-\newcommand\grddd[4]{$\la \textit{\texttt{#1}} \mn \textit{\texttt{#2}} \mn \textit{\texttt{#3}} \mn \textit{\texttt{#4}} \ra$}
-\newcommand\grdd[3]{$\la \textit{\texttt{#1}} \mn \textit{\texttt{#2}} \mn \textit{\texttt{#3}} \ra$}
-\newcommand\grd[2]{$\la \textit{\texttt{#1}} \mn \textit{\texttt{#2}} \ra$}
-\newcommand\gr[1]{$\la \textit{\texttt{#1}} \ra$}
+\newcommand\grddd[4]{\la\textit{\texttt{#1}} \mn \textit{\texttt{#2}} \mn \textit{\texttt{#3}} \mn \textit{\texttt{#4}}\ra}
+\newcommand\grdd[3]{\la\textit{\texttt{#1}} \mn \textit{\texttt{#2}} \mn \textit{\texttt{#3}}\ra}
+\newcommand\grd[2]{\la\textit{\texttt{#1}} \mn \textit{\texttt{#2}}\ra}
+\newcommand\gr[1]{\la\textit{\texttt{#1}}\ra}
 
 %
 
@@ -138,11 +139,12 @@
 
 \begin{document}
 \maketitle
-\input{chap1}
-\input{chap2}
-\input{chap3}
-\input{chap4}
-\input{chap5}
+\input{intro}
+\input{related}
+\input{pipeline}
+\input{flowpath}
+\input{tutorial}
+\input{guide}
 
 \bibliographystyle{unsrt}
 \bibliography{bio}
@@ -152,7 +154,7 @@
 %commands above.
 % DO NOT USE SECTIONS OR SUBSECTIONS IN AN APPENDIX OR APPENDICES
 \appendix{1}
-\input{appendixa}
+% \input{appendixa}
 % \input{appendixb}
 % \input{appendixc}
 
