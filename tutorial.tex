@@ -173,7 +173,7 @@ Hexadecimal literals all start with the prefix \texttt{0x} followed by any numbe
 
 Now that we've gotten the general purpose things out of the way, we can move on to packet processing specific language features.
 
-\textit{Layouts} are something which will appear in almost all Steve programs. They let us describe the \textit{structure} of a packet header. More specifically, they describe \textit{what} fields are present, their \textit{lengths}, the \textit{order} in which they appear, and, by extension, their \textit{relative offset} from the beginning of the header. Layouts become pivotal during decoding stages, where all this information is used to guide the extraction of fields from a packet. 
+\textit{Layouts} are something which will appear in almost all Steve programs. They let us describe the \textit{structure} of a packet header. More specifically, they describe \textit{what} fields are present, their \textit{lengths}, the \textit{order} in which they appear, and their \textit{relative offset} from the beginning of the header. Layouts become pivotal during decoding stages, where all this information is used to guide the extraction of fields from a packet. 
 
 \textit{What is the difference between a layout and a header?} Before moving on, it is important to make this distinction clear. A layout is like a blueprint for a header. It gives us information; it \textit{describes} that header. The header is an actual sequence of bits, a portion of the packet, which we get off of the network. The header \textit{exists} whereas a layout merely helps us \textit{understands} it.d. 
 
@@ -195,7 +195,9 @@ layout ethernet
 \end{lstlisting}
 \end{codepage}
 
-Here, we declare a layout named \texttt{ethernet}. Each layout defines which fields it has with a \textit{field declarations} (\ref{guide:layout}). Each field is given a \textit{name} and a \textit{type} (\ref{guide:type}). In this example, we declare three such fields: \texttt{dst}, \texttt{src}, and \texttt{type}. The \textit{length} of each field is denoted by the \textit{size} required to store an object of that \textit{type}. Here, each field has unsigned integer type (\ref{guide:integer_type}), \texttt{uint}, with an (optional) precision. The precision denotes the size (in bits) needed to store that integer. Thus the \texttt{dst} and \texttt{src} fields have a length of 48 bits, and the \texttt{type} field has a length of 16 bits. 
+Here, we declare a layout named \texttt{ethernet}. Each layout defines which fields it has with a \textit{field declarations} (\ref{guide:layout}). Each field is given a \textit{name} and a \textit{type} (\ref{guide:type}). In this example, we declare three such fields: \texttt{dst}, \texttt{src}, and \texttt{type}. The \textit{length} of each field is denoted by the \textit{size} required to store an object of that \textit{type}. Here, each field has unsigned integer type (\ref{guide:integer_type}), \texttt{uint}, with an (optional) precision. The precision denotes the size (in bits) needed to store that integer. Thus the \texttt{dst} and \texttt{src} fields have a length of 48 bits, and the \texttt{type} field has a length of 16 bits.
+
+The \textit{relative offset} of each field is the number of bytes it is away from the beginning of the header. The first field will always have a relative offset of 0 bytes. The relative offset of each subsequent field is equal to the sum of the lengths of all fields preceding it. Here, \texttt{dst} has a relative offset of 0 bytes, \texttt{src} has one of 6 bytes, and \texttt{type} has one of 12 bytes.
 
 Note that the fields appear in the order with which they would normally appear in an ethernet header. This is important. Field ordering should always be preserved when declaring layouts. If the ordering is incorrect, decoders will assume a sequence of bits is a certain field when it truly is not.
 
@@ -307,14 +309,15 @@ In this example, our decoder is named \texttt{eth\_d}. The layout rule is \textt
 
 \subsection{Extractions} \label{tut:decoder_extract}
 
-The primary goal of decoders is to extract fields from headers. These extracted fields, or \textit{extractions} for short, are found using information gathered by the \textit{layout rule}.
+The primary goal of a decoder is to extract fields from a single header. These extracted fields, or \textit{extractions} for short, are found using information gathered by the \textit{layout rule}.
 
 To extract a field, we write an \textit{extract declaration} in the decoder's body. We decide that we want all fields extracted from the ethernet header. Our decoder now looks like the following.
 
 \begin{codepage}
 \begin{lstlisting}
 // The ethernet decoder extracts all fields.
-decoder start eth_d(ethernet) {
+decoder start eth_d(ethernet) 
+{
 	extract ethernet.dst; 
 	extract ethernet.src;
 	extract ethernet.type; 
@@ -322,58 +325,94 @@ decoder start eth_d(ethernet) {
 \end{lstlisting}
 \end{codepage}
 
-Each extract declaration gives a \textit{field name} (\ref{guide:field_name}). The field name refers to a valid field in the \textit{layout rule}. It would obviously make no sense to extract a field not in the header. The decoder gathers information to find the location and length of the field, then saves it in our context (\ref{context_desc}). This process can be found in Section \ref{guide:extract}.
+Each extract declaration gives a \textit{field name} (\ref{guide:field_name}). The field name refers to a field in the \textit{layout rule}. Here \texttt{ethernet.dst}, \texttt{ethernet.src}, and \texttt{ethernet.type} are our field names.
+
+We can only use field names which refer to fields in the layout rule. It would obviously make no sense to extract a field not in the header. The decoder gathers information to find the location and length of the field, then saves it in our context (\ref{context_desc}).
 
 \subsection{How Decoder's Extract Fields} \label{tut:extract_how}
 
-\subsection{Accessing Extracted Fields} \label{tut:decoder_access}
+Before we continue, we must discuss exactly how a decoder uses a layout rule to extract fields. A decoder has a very limited look into a packet. It only has access to a subset of contiguous bytes, known as the \textit{view} of the decoder. A decoder's view begins where the header it decodes begins, and ends (implicitly) where that header ends. Its view ends implicitly because a layout only provides information on a single header's fields. It is obvious that a decoder would not be able to decode past the final field it knows about from its layout rule.
 
-After extracting a field from a header, we generally want to use the \textit{value} of that extraction. To use the value of an extraction, we need the \textit{field access expression}. Field access expressions have the same grammar as field names, but they can be used wherever any expression is valid. The field access expression is a lexical place-holder which refers to some extraction of the same name in scope. A good analogy would be field access expressions are to extractions what variable identifiers are to variables.
-
-Figure \ref{fg:access_ex} demonstrates how the value of extractions can be used. In this scenario, we extract \texttt{ethernet.type}. Here we want to make a decision about what the value of \texttt{ethernet.type} means. The IEEE ethernet standard says that if the \texttt{type} field is greater than or equal to \texttt{0x600}, then the value of the field is used to determine the kind of header encapsulated by the ethernet header \cite{eth_std}. Otherwise, if the \texttt{type} field is less than \texttt{0x05dc}, the field refers to the length of the ethernet frame. Here we use field access expressions in comparison expressions and an if-else statement to determine how to proceed with the packet. 
+Figure \ref{fg:decoding} demonstrates how decoders and their views work. In this case, we're decoding a typical packet with ethernet, IPv4, and UDP headers. The starting decoder's view always starts at the beginning of the packet. In the case of Figure \ref{fg:view1}, the first header is ethernet.
 
 \begin{figure}[ht]
+\begin{subfigure}[t]{.45\textwidth}
+  \centering
+  \includegraphics[width=.8\linewidth]{view1}
+  \caption{Here we have the view of the starting decoder, in this case, the ethernet decoder. The beginning of the view is the same as the beginning of the ethernet header, which is also the beginning of the packet.}
+  \label{fg:view1}
+\end{subfigure}%
+\hfill
+\begin{subfigure}[t]{.45\textwidth}
+  \centering
+  \includegraphics[width=.8\linewidth]{view2}
+  \caption{The beginning of a field is discovered by its relative offset from the beginning of the view. The end is determined by the field's length. Here we find \texttt{dst} 0 bytes from the beginning, \texttt{src} 6 bytes in, and \texttt{type} 12 bytes in.}
+  \label{fg:view2}
+\end{subfigure}
+
+\begin{subfigure}[t]{.45\textwidth}
+  \centering
+  \includegraphics[width=.8\linewidth]{view3}
+  \caption{When a decoder is finished working, it \textit{shifts} the view to the next header. The shift moves the beginning of the view by the length of the header -- 14 bytes.}
+  \label{fg:view3}
+\end{subfigure}%
+\hfill
+\begin{subfigure}[t]{.45\textwidth}
+  \centering
+  \includegraphics[width=.8\linewidth]{view4}
+  \caption{The view shifts again by 20 bytes once the IPv4 decoder finishes.}
+  \label{fg:view4}
+\end{subfigure}
+\caption{A demonstration of the decoding processing in action.}
+\label{fg:decoding}
+\end{figure}
+
+Each field in the header is discovered by information gathered by the layout rule. Recall that our layout rule tells us the location, or relative offset, of each field from the beginning of the header (which is equivalent to the beginning of the view). Also recall our layout rule gives us the length of each field. From here, our decoder can go about discovering which bits form each field as demonstrated in Figure \ref{fg:view2}.
+
+When a decoder finishes, it \textit{shifts} the view, as seen in Figure \ref{fg:view3}. The beginning of the view is moved by the length of header. The view now starts one byte \textit{after} where the previous header ended. The end of the view is implicit. Once the next decoder is reached, its view is already on the header is decodes. When this next decoder finishes, it shifts the view once again, as seen in Figure \ref{fg:view4}.
+
+\subsection{Accessing Extracted Fields} \label{tut:decoder_access}
+
+After extracting a field from a header, we generally want to use the \textit{value} of that extraction. To use the value of an extraction, we need the \textit{field access expression} (\ref{guide:field_access_expr}). When we use the field names from our extract declarations in other operations, such as the condition of an if-else statement, or an operand in addition, we use it to mean the value of that field. That field name \textit{becomes} a field access expression.
+
+Now, let us go about using some of our extracted fields from the ethernet header. A typical operation on an ethernet header is determining which protocol it encapsulates, i.e. the header which comes next.
+
+\begin{codepage}
 \begin{lstlisting}
-decoder start eth_decode(ethernet)
+decoder start eth_d(ethernet) 
 {
   extract ethernet.dst;
   extract ethernet.src;
   extract ethernet.type;
-  
-  // Using a field access expression 
-  // with logical operator >=
-  if (ethernet.type >= 0x600)
-  {
-    // Then this field determines what
-    // header comes next.
+  // Using a field access expression with logical operator >=
+  if (ethernet.type >= 0x600) {
+    // Then this field determines what header comes next.
   }
-  // Using a field access expression 
-  // with logical operator <=
-  else if (ethernet.type <= 0x05dc)
-  {
-    // Then this field describes the
-    // length of the entire packet.
+  // Using a field access expression with logical operator <=
+  else if (ethernet.type <= 0x05dc) {
+    // Then this field is the length of the entire packet.
   }
   // ...
 }
 \end{lstlisting}
-\caption{An example of accessing a field using the field access expression in an if-else statement.}
-\label{fg:access_ex}
-\end{figure}
+\end{codepage}
 
-Field access expressions can also be used in arithmetic operations, bitwise operations, and can be stored and assigned to local variables. Figure \ref{fg:assign_arith_ex} demonstrates how this can be done using an IPv4 decoder as an example.
+The IEEE ethernet standard says that \texttt{type} fields greater than or equal to \texttt{0x600} indicate the next header \cite{eth_std}. Any \texttt{type} fields less than \texttt{0x05dc} indicate the ethernet frame's length. Here we use field access to compare \texttt{ethernet.type} to hexadecimal literals in an if-else statement to determine the meaning of that field.
 
-\begin{figure}[ht]
+Our field values can also be used in arithmetic operations, bitwise operations, and can be stored and assigned to local variables. In the following, we present a trivial IPv4 decoder demonstrating some of these basic operations.
+
+\begin{codepage}
 \begin{lstlisting}
-decoder ipv4_decode(ipv4)
+decoder ipv4_d(ipv4)
 {
-  extract ipv4.len;
-  extract ipv4.version_ihl;
+  extract ipv4.len; // Note that we do not have to extract
+  extract ipv4.version_ihl; // fields in order.
   extract ipv4.ttl;
+  extract ipv4.src;
+  extract ipv4.dst;
   
-  // We can assign to variables
+  // We can assign to field values to variables
   var pktlen : uint = ipv4.len;
-  
   // We can perform bitwise operations.
   var ihl : uint(8) = ipv4.version_ihl & 0x0f;
   // We can also perform shifts.
@@ -382,27 +421,21 @@ decoder ipv4_decode(ipv4)
   // Determine what the Time-to-Live is after this
   // device finishes with the packet.
   var next_ttl : uint = ipv4.ttl - 1;
-  
   // ...
 }
 \end{lstlisting}
-\caption{Using arithmetic operations, bitwise operations, and variable assignment with fields in a Steve program.}
-\label{fg:assign_arith_ex}
-\end{figure}
+\end{codepage}
 
-First we assign \texttt{ipv4.len} field to a local variable named \texttt{pktlen}. We attempt to recover the \texttt{ihl} value by using bitwise-and to mask the first 4 bits (to deal with the limitation of supporting only byte aligned fields). After that we recover the version field by performing a right shift operation by 4 bits. In case we wanted to know the time-to-live value after the packet leaves this device, we perform subtraction on the \texttt{ipv4.ttl} field.
+In this example, we also present a solution for recovering non-byte aligned fields. We bitwise-and (\ref{guide:bitwise_expr}) \texttt{ipv4.version\_ihl} with \texttt{0x0f} to recover the \texttt{ihl} field. We left-shift \texttt{ipv4.version\_ihl} by 4 bits to get the \texttt{version} field. We also demonstrate subtraction on \texttt{ipv4.ttl}, another common operation when dealing with IPv4 headers.
 
-Field access expressions do have a number of limitations. A field access expression can only be used \textit{after} an extract declaration is used for that field. After all, it is impossible to recover the value of a field which has not been extracted. They cannot be used in decoders which have not extracted that field. A decoder focuses on exactly one header and has no knowledge of previous headers or extractions. Field access expressions cannot be assigned to like a variable identifier. To modify the value of a field in a header, an action must be used (see Section \ref{tut:action}). Figure \ref{fg:bad_access_ex} shows incorrect usage of field access expressions.
+Field access expressions do have a number of limitations. The following example demonstrates this.
 
-\begin{figure}[ht]
+\begin{codepage}
 \begin{lstlisting}
-decoder start eth_decode(ethernet)
+decoder start eth_d(ethernet)
 {
   // Error: Cannot use eth.type before its extracted.
-  if (ethernet.type >= 0x600) 
-  {
-    // Do something...
-  }
+  if (ethernet.type >= 0x600) { }
   
   extract eth.type;
   
@@ -415,72 +448,66 @@ decoder start eth_decode(ethernet)
 decoder ipv4_decode(ipv4)
 {
   // Error: eth.type was not extracted by this decoder.
-  if (ethernet.type == 0x800)
+  if (ethernet.type == 0x800) { }
   // ...
 }
 \end{lstlisting}
-\caption{An example of incorrect field access.}
-\label{fg:bad_access_ex}
-\end{figure}
+\end{codepage}
+
+A field access expression can only be used \textit{after} an extract declaration is made for that field. After all, it is impossible to recover the value of a field which has not been extracted. By extensions, they cannot be used in decoders which have not extracted that field. A decoder focuses on exactly one header and has no knowledge of previous headers or extractions. 
+
+Field access expressions cannot be assigned to like a variable. To modify the value of a field, a set action must be used (see Section \ref{tut:set_action} for an example).
 
 \subsection{Moving to Other Stages} \label{tut:decoder_next}
 
-As mentioned earlier, decoding and table matching stages can be chained together in a number of flexible ways. A decoder can transition a packet to another decoder, it can transition to a table matching stage, or it can forward/drop the packet. Its up to the programmer to decide which is appropriate. Every stage in the pipeline is \textbf{required} to do one of these three.
+Now that we have completed extracting fields, we must answer the question, "What do I do next?" Recall from Chapter \ref{ch:pipeline_model} that decoding and table matching stages can be chained together in a number of flexible ways. 
 
-To transition to another decoding stage, a \texttt{decode} action is used. To transition to a table matching stage, a \texttt{goto} action (not to be confused with a C-like \texttt{goto}) is used. 
+A decoder can move a packet to another decoder, table, or it can forward/drop the packet. Its up to the programmer to decide which is appropriate.
 
-Figure \ref{fg:transition_ex} demonstrates how to move from a decoder to a decoder, from a decoder to a table, then from a table to another decoder. We present two decoders and one table. The \texttt{eth\_decode} decoder transitions to \texttt{ipv4\_decode} if the \texttt{ethernet.type} field is equal to \texttt{0x800}. The line \texttt{decode ipv4\_decode} causes the transition of the packet that decoding stage.
+To move to another decoding stage, a decode action (\ref{guide:decode_action})) is used. In the following example, we bridge the ethernet and IPv4 decoders we declared in an earlier example. We use the match statement (\ref{guide:match_stmt}) to check if \texttt{ethernet.type} is equal to \texttt{0x800}. If it is, we use the decode action to move the packet to the IPv4 decoder.
 
-\begin{figure}
+\begin{codepage}
 \begin{lstlisting}
-decoder start eth_decode(ethernet)
+decoder start eth_d(ethernet)
 {
-  extract ethernet.type;
-  if (ethernet.type >= 0x600) 
-  {
-  	// Check to see if the next header is ipv4.
-    match (ethernet.type)
-    {
-      case 0x800: decode ipv4_decode;
-    }
-  }
-  
-  // Do something else...
+	extract ethernet.dst;
+	extract ethernet.src;
+	extract ethernet.type;
+	if (ethernet.type >= 0x600)
+	  	// The next header is IPv4 if the type field is 0x800.
+	    match (ethernet.type) {
+	      case 0x800: decode ipv4_d;
+	    }
 }
 
-decoder ipv4_decode(ipv4)
-{
-  extract ipv4.version_ihl;
-  extract ipv4.dst;
-  extract ipv4.protocol;
-  
-  var ihl : uint(8) = ipv4.version_ihl & 0x0f;
-  
-  goto t1 advance ihl;
-}
-
-exact_table t1(ipv4.protocol)
-{
-  {0x11} ->
-  {
-    // Assuming a udp decoder exists named "udp_decode"
-    decode udp_decode;
-  }
-  
-  miss -> { drop; }
+decoder ipv4_d(ipv4) {
+	// ...
 }
 \end{lstlisting}
-\caption{An example of using \texttt{decode} and \texttt{goto} to transition between stages.}
-\label{fg:transition_ex}
-\end{figure}
+\end{codepage}
 
-When we decode headers from packets, there is a concept of a \textit{current view} of the packet. The \textit{current view} begins at the byte offset in the packet where the current header starts and ends where the header ends. Imagine it like a window which the decoder uses to "look" in on the current header. Remember that decoders use layouts to determine the location of fields by calculating their offset from the beginning of their respective header. By extension, the location of a field is its offset from the beginning of the \textit{current view}. 
+To transition to a table matching stage, a goto action (\ref{guide:goto}) (not to be confused with a C-like \texttt{goto}) is used. 
 
-When a packet transitions away from a decoder towards another stage, the \textit{current view} of the packet must shift. Normally, the view is implicitly shifted by the length of the header. The user does not have to quantify how far the view must shift. However, in cases where a header's length is dynamic and predicated on some value, the user must quantify exactly how far the view must shift. To do this, an \textit{optional} \texttt{advance} clause can be attached to both \texttt{decode} and \texttt{goto} actions. Further details about how this view and shifting process work can be found in Chapter \ref{users_guide} Section \ref{decoder_view}.
+\begin{codepage}
+\begin{lstlisting}
+decoder ipv4_d(ipv4)
+{
+  extract ipv4.version_ihl;
+  extract ipv4.protocol;
+  extract ipv4.src;
+  extract ipv4.dst;
+  // Calculate internet header length (ihl).
+  var ihl : uint(8) = (ipv4.version_ihl & 0x0f) * 4;
+  // We apply the advance clause to shift our view by a given
+  // number of bytes.
+  goto t1 advance ihl;
+}
+\end{lstlisting}
+\end{codepage}
 
-In this case, the \texttt{ipv4\_decode} decoder transitions to table \texttt{t1} using a \texttt{goto} action. Remember that real IPv4 headers can have a dynamic length \texttt{options} field even if we cannot extract it in Steve yet. The length of an IPv4 header (in bytes) is the value of its \texttt{ihl} field times 4. When we transition, we must quantify the length of this header with the \texttt{advance} clause which explicitly shifts the view by the given amount.
+In this example, we use a goto action to send the packet to a hypothetical table named \texttt{t1}. We will go into more details about writing tables in the next section. The most important thing to note from this example is the \texttt{advance} clause.
 
-Then from table \texttt{t1}, if the \texttt{ipv4.protocol} field is equal \texttt{0x11}, the packet is transitioned to a hypothetical UDP decoder.
+Recall from Section \ref{tut:extract_how} that a decoder shifts the \textit{view} of a packet before moving to the next stage. That shift is by the length of the header. IPv4 headers are dynamic in length. Even though we do not currently support extract dynamic length fields, we must still account for them. To correctly do this, we apply the \texttt{advance} clause. The \texttt{advance} clause may appear on both goto and decode actions. This explicitly shifts the view by the given number of \textit{bytes}. We make the assumption that all headers are word-aligned, and thus an advancing by a number of bytes rather than bits would be appropriate.
 
 \section{Tables} \label{tut:table}
 
