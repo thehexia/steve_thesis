@@ -1,100 +1,38 @@
 \chapter{Tutorial} \label{ch:tutorial}
 
-This chapter provides a tutorial on the syntax of Steve and using its language features. Steve's primary focus is to provide language features for declaring, specifying, and constructing the pipeline processing stages described in Chapter \ref{pipeline_model}. This chapter will explain how to represent packet headers, how to write decoding stages, how to write table stages, and how to use actions.
+\textit{How do I write a Steve program?} This chapter will answer this question through examples. Steve's primary focus is to provide language features for defining and connecting the pipeline processing stages described in Chapter \ref{ch:pipeline_model}. This chapter will explain how we write each of these components. Specifically, we will talk about how headers are represented, how to write decoders, how to write tables, and how to apply actions to packets.
 
-By the end of this chapter, a user should be able to write many basic network applications using Steve. Three such applications will be presented; a simple learning switch, a simple learning router and a wire. Each example will be composed of smaller components described in this tutorial. To skip directly to these examples, move to Section \ref{examples_tut}.
+By the end of this chapter, a user should be able to write many basic network applications using Steve. Three such applications will be presented: a simple learning switch, a simple learning router and a wire. Many of the examples presented throughout this chapter are just smaller parts of these applications presented in isolation. As we work through this tutorial, we will slowly build up these little components and explain what they do before finally presenting the complete program at the end.  
 
-This chapter will briefly mention semantic details and limitations of each language feature. For the complete anatomy of Steve, see the User's Guide in Chapter \ref{users_guide}. For a complete reference of all Steve syntax, see Appendix \ref{ap:a}.
+However, if you are feeling impatient, you may skip directly to these examples in Section \ref{tut:examples}.
 
-\section{General Purpose Language Features} \label{gen_purp_tut}
+As we walk through this tutorial, we will mention some semantics and limitations of Steve, but only in minor detail. For the complete semantic description of Steve, including grammar, typing rules, and other restrictions, see the User's Guide in Chapter \ref{ch:users_guide}. For a complete reference of all Steve grammar, see Appendix \ref{ap:a}.
 
-\begin{figure}
-\begin{mdframed}
-\begin{grammar}
+\section{General Purpose Language Features} \label{tut:gen_purp}
 
-<function-decl> ::=
-\textbf{def} <function-name> \textbf{-\textgreater} <type> 
-\textbf{(} [<parameter-decl-sequence>] \textbf{)} <block-statement>
+Before we delve into language features specifically designed for packet processing, first we must mention a few language features which are more "general purpose." These language features are common to most programming languages and are not explicitly for packet processing, though they may prove useful. These language features are provided as part of the Beaker programming language \footnote{https://github.com/asutton/beaker} from which Steve derives.
 
-<parameter-decl> ::=
-<parameter-name> \textbf{:} <type-id>
+\subsection{Variables} \label{tut:variable}
 
-<variable-decl> ::=
-\textbf{var} <variable-name> \textbf{:} <type-id> \textbf{=} <expression>
+Steve allows us to allocate variables for storing values like any other language. Suppose we wanted to write a variable named \texttt{x} which holds an integer value \texttt{10}. We would write it as follows.
 
-<stmt> ::=
-<expr-stmt>
-\alt <decl-stmt>
-\alt <block-stmt>
-\alt <return-stmt>
-\alt <assign-stmt>
-\alt <match-stmt>
-\alt <case-stmt>
-\alt <if-then-stmt>
-\alt <if-else-stmt>
-\alt <while-stmt>
-\alt <break-stmt>
-\alt <continue-stmt>
-
-<expr-stmt> ::= <expr> \textbf{;}
-
-<decl-stmt> ::= <decl> \textbf{;}
-
-<block-stmt> ::= 
-\textbf{\{}
-	[ <stmt> + ]
-\textbf{\}}
-
-<return-stmt> ::= \textbf{return;}
-
-<assign-stmt> ::= <decl-id> \textbf{=} <expr>
-
-<match-stmt> ::= \textbf{match} \textbf{(} <expr> \textbf{)}
-\textbf{\{}
-	[ <case-stmt> + ]
-\textbf{\}}
-
-<case-stmt> ::=
-\textbf{case} <literal-expr> \textbf{:} <stmt>
-\alt \textbf{miss:} <stmt>
-
-<if-then-stmt> ::= \textbf{if} \textbf{(} <expr> \textbf{)}
-<stmt>
-
-<if-else-stmt> ::= \textbf{if} \textbf{(} <expr> \textbf{)}
-<stmt> \textbf{else} <stmt>
-
-<while-stmt> ::= \textbf{while} \textbf{(} <expr> \textbf{)}
-<stmt>
-
-<break-stmt> ::= \textbf{break;}
-
-<continue-stmt> ::= \textbf{continue;}
-
-\end{grammar}
-\end{mdframed}
-\caption{"General purpose" language feature syntax for Steve in BNF.}
-\label{fg:general_syntax}
-\end{figure}
-
-Figure \ref{fg:general_syntax} provides syntax for these features in BNF notation. Before we delve into language features specifically designed for packet processing, first we must mention a few language features which are more "general purpose." These language features are common to most programming languages and are not explicitly for packet processing, though they are useful and can appear in parts of Steve. These language features are provided as part of the Beaker programming language \footnote{https://github.com/asutton/beaker} from which Steve derives.
-
-\subsection{Variables} \label{variable_tut}
-
-Suppose we wanted to write a variable named \texttt{x} which holds an integer value \texttt{10}. We would write it as follows.
-
+\begin{codepage}
 \begin{lstlisting}
 var x : int = 10;
 \end{lstlisting}
+\end{codepage}
 
-We can assign a new value to it.
+Note that the type of the variable, \texttt{int}, follows the colon (\texttt{:}). We can assign a new value to it.
 
+\begin{codepage}
 \begin{lstlisting}
 x = 1;
 \end{lstlisting}
+\end{codepage}
 
-We can perform arithmetic and bitwise operations as well. The complete set of arithmetic and bitwise operations can be found in Appendex \cite{ap:a}.
+We can perform arithmetic and bitwise operations as well. The complete set of arithmetic and bitwise operations can be found in Section \ref{guide:binary_expr}.
 
+\begin{codepage}
 \begin{lstlisting}
 var y : int = 2;
 var z : int = 3;
@@ -103,13 +41,16 @@ z = y + z + 1;
 z = z << 4; // Left shift.
 var a : int = y & z; // bitwise and
 \end{lstlisting}
+\end{codepage}
 
-\subsection{Conditional Statements} \label{condition_tut}
 
-Steve supports three conditional statements: the if-statement, the if-else statement, and match-statement.
+\subsection{Conditional Statements} \label{tut:condition}
 
-An if-statements and if-else statements can be written as follows.
+Steve supports some common language constructs for conditional decision making. Specifically, we have three conditional statements: the if statement, the if-else statement, and the match statement.
 
+The if and if-else statements are written just like in most C-like languages. The behavior works the same as well.
+
+\begin{codepage}
 \begin{lstlisting}
 var a : bool = true;
 var b : bool = false;
@@ -122,18 +63,19 @@ if (a && b) { }
 else if (a) { }
 else { }
 \end{lstlisting}
+\end{codepage}
 
-A match statement is similar to a C-like switch statement with an implied \texttt{break} after every case. The condition and labels must be integers just like in C. A match statements can be written as follows.
+A match statement allows for a decision to be made given a number of possible case values. This makes it similar to a C-like switch statement, with the only major difference being that there is no "fall-through" behavior. In other words, after the execution of a case statement, control jumps out of the match statement rather than moving to the next case (i.e. an implied break). The condition and labels must be integers just like in C. A match statements can be written as follows.
 
+\begin{codepage}
 \begin{lstlisting}
 // Assuming there are integer variables named x and y.
-match (x)
-{
+match (x) {
   case 0: x = x + 1;
-  // Multiple statements following the label must be enclosed in a block.
-  case 1:
-  {
-    x = x + 1;
+  // Multiple statements following the label must be 
+  // enclosed in a block.
+  case 1: {
+    x = x + 2;
     y = y * x;
   }
   
@@ -141,157 +83,134 @@ match (x)
   miss: x = 0;
 }
 \end{lstlisting}
+\end{codepage}
 
-\subsection{While Loops} \label{while_tut}
+Here, if \texttt{x} equals \texttt{0}, then \texttt{x = x + 1} gets executed. If \texttt{x} equals \texttt{1}, then two statements get executed in order: \texttt{x = x + 2}, then \texttt{y = y * x}. If \texttt{x} is neither, then \texttt{x = 0} is executed.
+
+\subsection{While Loops} \label{tut:while}
 
 While loops appear in Steve just like they appear in C-like languages. They also support the \texttt{break} and \texttt{continue} statements for limited branching abilities inside a loop.
 
+In the following, we present a trivial while loop which demonstrate the basics of \texttt{break} and \texttt{continue}.
+
+\begin{codepage}
 \begin{lstlisting}
 var x : int = 0;
 var z : int = 0;
+// Loop while x is less than 5.
 while (x < 5) {
   x = x + 1;
+  // If x equals 3, control goes back to the
+  // first statement in the loop body.
   if (x == 3)
     continue;
-	
-  if (z == 3) 
+    
+  // This part is never reached if x == 2.
+  // If z equals 2, then we exit the loop
+  // altogether.
+  if (z == 2) 
     break;
+  // This will never execute when z == 2.
   z = z + 1;
 }
 \end{lstlisting}
+\end{codepage}
 
-\subsection{Functions} \label{function_tut}
+Here, the value of \texttt{x} will end up being \texttt{4} and \texttt{z} will be \texttt{2} by the end of this loop.
 
-Suppose we wanted to write a function named \texttt{sum} which takes two integers, \texttt{a} and \texttt{b}, and returned an integer which is the sum of those two integers. We would write \texttt{sum} as follows.
+The usage of while loops in packet processing right now is rather limited. Usage of loops will rarely come up in defining pipeline processing stages. However, they may become more useful as other features are added.
 
+\subsection{Functions} \label{tut:function}
+
+Steve supports writing simple functions, though the syntax is a little different from C-like languages. Functions can be called with parameters and can return results just like any other language. 
+
+Suppose we wanted to write a function named \texttt{sum} which takes two integers, \texttt{a} and \texttt{b}, and returned the integer sum of \texttt{a} and \texttt{b}. We would write \texttt{sum} as follows.
+
+\begin{codepage}
 \begin{lstlisting}
 def sum(a : int, b : int) -> int
 {
   return a + b;
 }
 \end{lstlisting}
+\end{codepage}
 
-To call that function we would write the following.
+Note that the return type follows the \texttt{->} in Steve functions. To call the \texttt{sum} function we would write the following. Here, the result of \texttt{sum} would be \texttt{3}.
 
+\begin{codepage}
 \begin{lstlisting}
 var x : int = 1;
 var y : int = 2;
 var z : int = sum(x, y);
 \end{lstlisting}
+\end{codepage}
 
-\subsection{Literals} \label{literal_tut}
-
-\begin{figure}[ht]
-\begin{mdframed}
-\begin{grammar}
-<literal-expr> ::=
-<integer-literal>
-\alt <binary-literal>
-\alt <hexadecimal-literal>
-
-<decimal-digit> ::= \textbf{0} | \textbf{1} | \textbf{2} | \textbf{3} | \textbf{4} | \textbf{5} | \textbf{6} | \textbf{7} | \textbf{8} | \textbf{9}
-
-<hexadecimal-digit> ::= \textbf{\_} | <decimal-digit> | \textbf{a} | \textbf{b} | \textbf{c} | \textbf{d} | \textbf{e} | \textbf{f}             
-
-<binary-digit> ::= \textbf{\_} | \textbf{0} | \textbf{1}
-
-<integer-literal> ::=
-<decimal-digit> +
-
-<hexadecimal-literal> ::=
-\textbf{0x} <hexadecimal-digit> +
-
-<binary-literal> ::=
-\textbf{0b} <binary-digit> +
-
-\end{grammar}
-\end{mdframed}
-\caption{Syntax for literals in Steve in BNF.}
-\label{fg:literal_syntax}
-\end{figure}
+\subsection{Literals} \label{tut:literal}
 
 Steve supports decimal, binary, and hexadecimal integer literals. Steve does not currently support things like IP address literals or MAC address literals. Decimal integers can be written like any other language.
 
-Binary literals all start with the prefix \texttt{0b} followed by any number of \texttt{0} and \texttt{1}. The underscore (\texttt{\_}) can optionally occur anywhere in the literal following the prefix similar to P4 \cite{p4_spec}. This is purely for organization and readability.
+Binary literals all start with the prefix \texttt{0b} followed by any number of \texttt{0}'s and \texttt{1}'s. The underscore (\texttt{\_}) can optionally occur anywhere in the literal following the prefix; a feature similar to Java. This is purely for organization and readability.
 
+\begin{codepage}
 \begin{lstlisting}
 // These are the same value.
 0b10101010
 0b1010_1010
 \end{lstlisting}
+\end{codepage}
 
 Hexadecimal literals all start with the prefix \texttt{0x} followed by any number of digits between \texttt{0} and \texttt{9}. The underscore (\texttt{\_}) can optionally occur anywhere in the literal following the prefix similar to binary literals.
 
+\begin{codepage}
 \begin{lstlisting}
 // These are the same value.
 0x0800
 0x08_00
 \end{lstlisting}
+\end{codepage}
 
-\section{Layouts} \label{layout_tut}
+\section{Layouts} \label{tut:layout}
 
-Before pipeline processing stages can be written, a \textit{layout} is used to describe the physical structure of a packet header, i.e. what fields they have and the respective lengths of those fields. Steve decoding stages use these layouts to determine two things: what the offset of a given field is relative to the beginning of the header and the length of the field. This information is used to guide the process of extracting fields during decoding stages like a blueprint might be used to find places in a building.
+Now that we've gotten the general purpose things out of the way, we can move on to packet processing specific language features.
 
-\begin{figure}[ht]
-\begin{mdframed}
-\begin{grammar}
+\textit{Layouts} are something which will appear in almost all Steve programs. They let us describe the \textit{structure} of a packet header. More specifically, they describe \textit{what} fields are present, their \textit{lengths}, the \textit{order} in which they appear, and, by extension, their \textit{relative offset} from the beginning of the header. Layouts become pivotal during decoding stages, where all this information is used to guide the extraction of fields from a packet. 
 
-<layout-decl> ::=
-\textbf{layout} <layout-name> 
-\textbf{\{}
-	<field-decl> +
-\textbf{\}}
+\textit{What is the difference between a layout and a header?} Before moving on, it is important to make this distinction clear. A layout is like a blueprint for a header. It gives us information; it \textit{describes} that header. The header is an actual sequence of bits, a portion of the packet, which we get off of the network. The header \textit{exists} whereas a layout merely helps us \textit{understands} it.d. 
 
-<field-decl> ::=
-<field-name> \textbf{:} <type> \textbf{;}
+\textit{How does one write a layout?} Let us begin with a simple example: the ethernet header \cite{eth_std}. Ethernet is probably the most common Layer 2 (\cite{osi_model} protocol in use. The first header most programs decode is ethernet.
 
-<type> ::=
-<scalar-type>
-\alt <layout-type>
+An ethernet header has three fields: \texttt{dst} and \texttt{src} which are both 6 bytes (or 48-bits) long, and a type field which is 2 bytes (or 16-bits long). To write a layout describing the ethernet header, we use a \textit{layout declaration} (\ref{guide:layout}). In the following, we present an ethernet layout declaration matching these specifications.
 
-<scalar-type> ::= <integer-type>
-
-<integer-type> ::=
-\textbf{int} [ \textbf{(} <integer-literal> \textbf{)} ]
-\alt \textbf{uint} [ \textbf{(} <integer-literal> \textbf{)} ]
-
-<layout-type> ::=
-<layout-decl-id>
-
-\end{grammar}
-\end{mdframed}
-\caption{Layout syntax for Steve in BNF.}
-\label{fg:layout_syntax}
-\end{figure}
-
-Suppose we wanted to write a standard ethernet header in Steve \cite{eth_std}. An ethernet header has three fields; \texttt{dst} and \texttt{src} which are both 6 bytes (or 48-bits) long, and a type field which is 2 bytes (or 16-bits long). To write this in Steve, we would use a \texttt{layout} declaration as in Figure \ref{fg:eth_layout_ex}.
-
-\begin{figure}[ht]
+\begin{codepage}
 \begin{lstlisting}
+// This layout describes the ethernet header.
 layout ethernet
 {
-  dst  : uint(48);
-  src  : uint(48);
-  type : uint(16);
+	// Each field is a pair of names and types.
+	// Each type specifies that field's length.
+	dst  : uint(48); // This is 48 bits long.
+	src  : uint(48); // This is 48 bits long.
+	type : uint(16); // This is 16 bits long.
 }
 \end{lstlisting}
-\caption{An example of the ethernet layout in Steve.}
-\label{fg:eth_layout_ex}
-\end{figure}
+\end{codepage}
 
-A \textit{layout declaration} is used to declare a layout. A layout is composed of a sequence of \textit{fields} which are declared using \textit{field declarations}. Each field declaration corresponds to a field in a header. The type of each field declaration defines the length of the corresponding field in a header. Each field declaration in a layout declaration must be written in the same order with which the field appears in a real instance of the header. If the ordering does not match, layouts will not function correctly during decoding stages.   
+Here, we declare a layout named \texttt{ethernet}. Each layout defines which fields it has with a \textit{field declarations} (\ref{guide:layout}). Each field is given a \textit{name} and a \textit{type} (\ref{guide:type}). In this example, we declare three such fields: \texttt{dst}, \texttt{src}, and \texttt{type}. The \textit{length} of each field is denoted by the \textit{size} required to store an object of that \textit{type}. Here, each field has unsigned integer type (\ref{guide:integer_type}), \texttt{uint}, with an (optional) precision. The precision denotes the size (in bits) needed to store that integer. Thus the \texttt{dst} and \texttt{src} fields have a length of 48 bits, and the \texttt{type} field has a length of 16 bits. 
 
-A field declaration within a layout declaration is limited to being one of two different types. The first of these types is scalar type (most often a signed/unsigned integer type). Integer types can be given with an optional bit-length precision, with the default being 32-bits if no precision is specified. This bit-length precision is used to determine the length of the field. With Figure \ref{fg:eth_layout_ex} we have a layout composed of fields of only integer type.
+Note that the fields appear in the order with which they would normally appear in an ethernet header. This is important. Field ordering should always be preserved when declaring layouts. If the ordering is incorrect, decoders will assume a sequence of bits is a certain field when it truly is not.
 
-The second supported type is layout type. This allows layouts to be nested together in case a programmer must deal with structures nested within headers. In this case, a field declaration is used whose type is given as the identifier to a layout declaration. In Figure \ref{fg:nested_layout_ex} we give a trivial extension of the ethernet example where we nest a \texttt{vlan} tag.
+Not all header structures are as simple as the ethernet header. Sometimes we must deal with headers nested inside headers. It is for this very reason, that we allow layouts to be nested. 
 
-\begin{figure}[ht]
+In the following, we present such a case, where we expect a VLAN header \cite{vlan_std} is nested right before the \texttt{type} field of an ethernet header. 
+
+\begin{codepage}
 \begin{lstlisting}
+// Layouts may be nested like this.
 layout ethernet
 {
   dst  : uint(48);
   src  : uint(48);
-  vlan_tag : vlan;
+  vlan_tag : vlan; // Nested layout
   type : uint(16);
 }
 
@@ -301,106 +220,113 @@ layout vlan
   tci  : uint(16);
 }
 \end{lstlisting}
-\caption{An example of the ethernet layout with a nested vlan in Steve.}
-\label{fg:nested_layout_ex}
-\end{figure}
+\end{codepage}
 
-When using layouts it is important to know that there exist distinct differences between layouts and C++-like classes. A layout, though similar to a class, is not a class. Their fields must all be of scalar or layout type. Objects of layout type can never be created and they cannot contain member functions. For further details on layout limitations, refer to Section \ref{layout_guide} in the User's Guide.
+In this example, we declare two layouts: \texttt{ethernet} and \texttt{vlan}. To achieve a nested layout, we add a field named \texttt{vlan\_tag} to \texttt{ethernet}, and we give its type as the name of the layout, \texttt{vlan}. Then length of the \texttt{vlan\_tag} field would be the sum of its sub-fields, in this case, 32 bits.
 
-Another important note is that Steve does not currently support dynamically sized types (DST) which are types whose size is predicated upon some value known only during program runtime). These DSTs are used to represent header fields whose lengths are dynamic, e.g. predicated upon some value found earlier in the header. Some examples of fields whose types are represented using DSTs are the \texttt{options} fields in IPv4, IPv6, and TCP headers, or the \texttt{ICV} field in the IPSec header.
+\textit{How do layouts differ from classes in other languages?} With the way layouts are described, it is easy to draw the comparison between layouts and classes in object-oriented languages. However, layouts do \textbf{not} function like classes at all. Layouts are much stricter.
 
-DSTs are a language feature that will eventually be added, but are outside the scope of this thesis. Because of this, fields whose lengths are dynamic cannot currently be declared, extracted, nor used. The existence and eventual support of DSTs is one of the reasons why objects of layout type cannot be created which is further discussed in Section \ref{layout_guide}.
+First of all, \textit{the types of each field are restricted}. Fields may only have two types: integer (\ref{guide:integer_type}) and layout (\ref{guide:layout_type}). There may be varying kinds of integer (e.g. precisions, signed, unsigned, etc.), but the precision of each integer must also be \textit{byte-aligned}, that is, a multiple of 8. 
 
-An IPv4 header example can be seen in Figure \ref{fg:ipv4_layout_ex}. Note that the \texttt{options} field is skipped due to the lack of DSTs. Also note that Steve does not support non-byte aligned data types, and thus the precision of all integers are multiples of 8. Fields which are non-byte aligned must be merged to byte alignment and recovered using arithmetic operations (see Figure \ref{fg:assign_arith_ex} in Section \ref{decoder_tut} for an example). 
+Second, the most important distinction is that \textit{objects of layout type can never be created}. Layouts may not appear as the type of parameters, nor may they appear as return types. All of the following are considered illegal.
 
-\begin{figure}[ht]
+\begin{codepage}
+\begin{lstlisting}
+layout L1 { f1 : uint; f2 : uint(16); }
+var x : L1 = 0; // Invalid.
+// Invalid parameter type and return type.
+def foo(y : L1) -> L1 { ... }
+\end{lstlisting}
+\end{codepage} 
+
+Packets and their headers exist independent of a running Steve application. Layouts are purely used to guide decoding them. Additionally, there are a number of concerns related to constructing objects of layout type, thus such behavior is not allowed. For further details on layout limitations, refer to Section \ref{guide:layout} in the User's Guide.
+
+Another important note is that Steve does not currently support dynamically sized types (DST). A DST is a type whose size is predicated upon some value known only during runtime. These DST's are used to represent fields whose lengths are dynamic. Some examples of dynamic length fields are the \texttt{options} fields in IPv4, IPv6, and TCP headers \cite{ipv4_std, ipv6_std, tcp_std}.
+
+DST's are a language feature that will eventually be added, but are outside the current implementation. Because of this, fields whose lengths are dynamic cannot currently be declared, extracted, nor used. The existence and eventual support of DST's is one of the reasons why objects of layout type cannot be created which is further discussed in Section \ref{guide:layout}.
+
+In the following, we present a case where some of these limitations come into play -- the IPv4 layout. IPv4 is a Layer 3 protocol \cite{osi_model} and is used for routing. An IPv4 header appears in almost all Internet-bound packets and thus makes it a common layout to write. This layout will prove useful to us when defining the simple router program later on.
+
+\begin{codepage}
 \begin{lstlisting}
 layout ipv4
 {
-  version_ihl : uint(8);
-  dscp_ecn    : uint(8);
+  version_ihl : uint(8); // Non-byte aligned fields are merged.
+  dscp_ecn    : uint(8);  // This is merged, too.
   len         : uint(16);
   id          : uint(16);
-  fragment    : uint(16);
+  fragment    : uint(16); // Fragment usually has flags.
   ttl         : uint(8);
   protocol    : uint(8);
   checksum    : uint(16);
   src         : uint(32);
   dst         : uint(32);
+  // Note, the missing, unsupported options field.
 }
 \end{lstlisting}
-\caption{An example of how the IPv4 header is written in Steve. Note that the "options" field is not included because Steve does not currently support extraction or usage of dynamic length fields.}
-\label{fg:ipv4_layout_ex}
-\end{figure}
+\end{codepage}
 
-\section{Decoders} \label{decoder_tut}
+In this example, we can seen that \texttt{version} (a 4 bit field) has to be merged with \texttt{ihl} (internet header length) (also a 4 bit field) to achieve byte alignment. The same is true for \texttt{dscp} and \texttt{ecn}. The \texttt{fragment} field, typically composed of three 1 bit flags and a 13 bit fragment offset field, is merged into a single 16 bit field. To recover the values of these sub-fields, we have to use logical-and (\ref{guide:bitwise_expr}) to mask the un-needed bits. An example will come up later when we discuss an IPv4 decoder.
 
-\textit{Decoders} represent the decoding stages in the pipeline. In Steve these decoders are special purpose functions used to handle decoding and extracting the fields of a given header. By chaining multiple decoders together, a user can construct a set of functions used to parse an entire packet. \textit{Decoder declarations} are Steve's way of defining decoding stages. The grammar needed to write a complete decoder is given in Figure \ref{fg:decoder_syntax}. Decoder declarations provide users the ability to:
+\section{Decoders} \label{tut:decoder}
+
+Decoding stages, or \textit{decoders} for short, are special purpose functions used to handle decoding and extracting fields from a \textit{single} header. By chaining multiple decoders together, a user can construct a sequence of functions used to parse an entire packet. 
+
+When writing a decoder, it is good practice to keep the following in mind.
 
 \begin{itemize}
-\item Declare which header is being decoded and which fields to extract from it.
-\item Perform arithmetic and logical operations on fields.
-\item Perform actions on the header. See Section \ref{action_tut} for examples of action usage.
-\item Decide what processing stage comes next. Either the next header is determined and the packet is dispatched to that decoding stage, or the packet is dispatch to table matching.
+\item Which header am I decoding? What layout will I use to guide the decoder?
+
+\item What fields do I want from the header?
+
+\item How will I use the extracted fields? Will I need to perform arithmetic or make decisions with them?
+
+\item \textit{Actions} are used to manipulate packet fields, forward packets, and add/remove flow entries from tables. What actions do I want to take on the packet? Change a field value? Forward it? Drop it? 
+
+\item What do I want to do next with the packet? Do I want to decode the next header? Do I want to send it to table matching? 
 \end{itemize}
 
-\begin{figure}[ht]
-\begin{mdframed}
-\begin{grammar}
+As we write these decoders, we too will answer these questions.
 
-<decoder-decl> ::=
-\textbf{decoder} <decoder-name> [\textbf{start}] 
-\textbf{(} <layout-id> \textbf{)}
-<block-statement>
+\subsection{The Basic Form} \label{tut:basic_decoder}
 
-<extract-decl> ::=
-\textbf{extract} <field-name> \textbf{;}
+To write a decoder, we use a \textit{decoder declaration} (\ref{guide:decoder}). A decoder declaration has four important parts: 1) a name, 2) a \textit{layout rule}, 3) a keyword specifying whether this is the starting decoder, and 4) a body.
 
-<rebind-decl> ::=
-\textbf{extract} <field-name> \textbf{as} <field-name-expr> \textbf{;}
+\textit{What is a layout rule?} A layout rule is the layout which the decoder will use to guide its extractions. It provides all the information necessary for the decoder to determine which bits in a packet comprise which fields. Here we decide the answer to the questions, "Which header am I decoding? What layout will I use to guide the decoder?"
 
-<field-name> ::=
-<layout-id> \textbf{.} <field-id>
-\alt <field-name> \textbf{.} <field-id>
+For our applications (and for almost all applications) we will need to decode ethernet first. We assume that all packets coming to our device begin with the ethernet header (the most common first header). Our decoder will look something like this:
 
-<field-access-expr> ::=
-<layout-id> \textbf{.} <field-id>
-\alt <field-access-expr> \textbf{.} <field-id>
-
-\end{grammar}
-\end{mdframed}
-\caption{Decoder syntax for Steve in BNF.}
-\label{fg:decoder_syntax}
-\end{figure}
-
-\subsection{Extractions} \label{decoder_extract_tut}
-
-The primary goal of decoders is to extract fields from headers. Extracted fields may be shortened to simply \textit{extractions}. Assume we wanted to write a decoder to extract the \texttt{src} and \texttt{dst} fields from the ethernet header. Remember, Steve allows for the partial decoding of packets, so if we do not need a field, in this case \texttt{type}, its not necessary to extract it. 
-
-First, a layout for the ethernet header must be defined. Steve decoders use layouts to determine where fields are relative to the beginning of the header and how long those fields are. More details on this process can be found in Section \ref{decoder_guide}. Here we can use the layout defined in Figure \ref{fg:eth_layout_ex}. 
-
-After that, we can proceed to writing the decoder declaration. Figure \ref{fg:extract_ex} demonstrates how the decoder is written. We give this decoder declaration the name \texttt{eth\_decode}. The layout used to decode is given in the parenthesis following the name (in this case \texttt{ethernet}).
-
-\begin{figure}[ht]
+\begin{codepage}
 \begin{lstlisting}
-decoder start eth_decode(ethernet)
-{
-  extract ethernet.dst;
-  extract ethernet.src;
-  // More code to follow...
+// The empty ethernet decoder.
+decoder start eth_d(ethernet) { }
+\end{lstlisting}
+\end{codepage}
+
+In this example, our decoder is named \texttt{eth\_d}. The layout rule is \texttt{ethernet}. We also add the \texttt{start} keyword. This means this decoder will always be the first to execute. A program must have exactly one starting decoder. Our decoder has an empty body delimited by \texttt{\{\}}. As we go, we will fill in this body with instructions for the decoder.
+
+\subsection{Extractions} \label{tut:decoder_extract}
+
+The primary goal of decoders is to extract fields from headers. These extracted fields, or \textit{extractions} for short, are found using information gathered by the \textit{layout rule}.
+
+To extract a field, we write an \textit{extract declaration} in the decoder's body. We decide that we want all fields extracted from the ethernet header. Our decoder now looks like the following.
+
+\begin{codepage}
+\begin{lstlisting}
+// The ethernet decoder extracts all fields.
+decoder start eth_d(ethernet) {
+	extract ethernet.dst; 
+	extract ethernet.src;
+	extract ethernet.type; 
 }
 \end{lstlisting}
-\caption{An example of how to extract \texttt{src} and \texttt{dst} fields from the ethernet header using a decoder. Note we do not extract the \texttt{type} field here.}
-\label{fg:extract_ex}
-\end{figure}
+\end{codepage}
 
-A decoder can only extract fields from a header defined by this layout. If an attempt is made to extract a field from a different header a compiler error is emitted. The optional \texttt{start} keyword is attached to this decoder to denote that this decoder is the first stage in the pipeline. Ethernet is the most commonly used data link layer protocol, making it the most common header to start with. There can only be one starting decoder.
+Each extract declaration gives a \textit{field name} (\ref{guide:field_name}). The field name refers to a valid field in the \textit{layout rule}. It would obviously make no sense to extract a field not in the header. The decoder gathers information to find the location and length of the field, then saves it in our context (\ref{context_desc}). This process can be found in Section \ref{guide:extract}.
 
-To extract a field, the programmer writes an \textit{extract declaration} which requires that a field be specified using a \textit{field name}. A field name is used to refer to a field of a layout. For example \texttt{eth.dst} refers to the \texttt{dst} field of the \texttt{ethernet} layout.  Note that this is distinctly different from member access as the \texttt{ethernet} layout is not an object. 
+\subsection{How Decoder's Extract Fields} \label{tut:extract_how}
 
-The first extract declaration (\texttt{extract ethernet.dst}) says that the decoder extracts the \texttt{dst} field of the \texttt{ethernet} header. The second extract declaration (\texttt{extract ethernet.src}) says that the decoder extracts the \texttt{src} field of the \text{ethernet} header. 
-
-\subsection{Accessing Extracted Fields} \label{decoder_access_tut}
+\subsection{Accessing Extracted Fields} \label{tut:decoder_access}
 
 After extracting a field from a header, we generally want to use the \textit{value} of that extraction. To use the value of an extraction, we need the \textit{field access expression}. Field access expressions have the same grammar as field names, but they can be used wherever any expression is valid. The field access expression is a lexical place-holder which refers to some extraction of the same name in scope. A good analogy would be field access expressions are to extractions what variable identifiers are to variables.
 
@@ -466,7 +392,7 @@ decoder ipv4_decode(ipv4)
 
 First we assign \texttt{ipv4.len} field to a local variable named \texttt{pktlen}. We attempt to recover the \texttt{ihl} value by using bitwise-and to mask the first 4 bits (to deal with the limitation of supporting only byte aligned fields). After that we recover the version field by performing a right shift operation by 4 bits. In case we wanted to know the time-to-live value after the packet leaves this device, we perform subtraction on the \texttt{ipv4.ttl} field.
 
-Field access expressions do have a number of limitations. A field access expression can only be used \textit{after} an extract declaration is used for that field. After all, it is impossible to recover the value of a field which has not been extracted. They cannot be used in decoders which have not extracted that field. A decoder focuses on exactly one header and has no knowledge of previous headers or extractions. Field access expressions cannot be assigned to like a variable identifier. To modify the value of a field in a header, an action must be used (see Section \ref{action_tut}). Figure \ref{fg:bad_access_ex} shows incorrect usage of field access expressions.
+Field access expressions do have a number of limitations. A field access expression can only be used \textit{after} an extract declaration is used for that field. After all, it is impossible to recover the value of a field which has not been extracted. They cannot be used in decoders which have not extracted that field. A decoder focuses on exactly one header and has no knowledge of previous headers or extractions. Field access expressions cannot be assigned to like a variable identifier. To modify the value of a field in a header, an action must be used (see Section \ref{tut:action}). Figure \ref{fg:bad_access_ex} shows incorrect usage of field access expressions.
 
 \begin{figure}[ht]
 \begin{lstlisting}
@@ -497,7 +423,7 @@ decoder ipv4_decode(ipv4)
 \label{fg:bad_access_ex}
 \end{figure}
 
-\subsection{Moving to Other Stages} \label{decoder_next_tut}
+\subsection{Moving to Other Stages} \label{tut:decoder_next}
 
 As mentioned earlier, decoding and table matching stages can be chained together in a number of flexible ways. A decoder can transition a packet to another decoder, it can transition to a table matching stage, or it can forward/drop the packet. Its up to the programmer to decide which is appropriate. Every stage in the pipeline is \textbf{required} to do one of these three.
 
@@ -556,7 +482,7 @@ In this case, the \texttt{ipv4\_decode} decoder transitions to table \texttt{t1}
 
 Then from table \texttt{t1}, if the \texttt{ipv4.protocol} field is equal \texttt{0x11}, the packet is transitioned to a hypothetical UDP decoder.
 
-\section{Tables} \label{table_tut}
+\section{Tables} \label{tut:table}
 
 The next stage to explore is the table matching stage. Remember that a table specifies a \textit{key} and is comprised of a set of \textit{flow entries}. Each flow entry specifies a priority, values for its \textit{match fields}, and a set of \textit{actions} to perform against matching packets. All flow entries in the table must be uniquely identifiable from its match fields and priority.
 
@@ -683,7 +609,7 @@ Tables and their contained flow entries have access to every field that has been
 
 Lastly, flow entries can be added and removed from tables using the appropriate actions. This allows decision making on packets to change dynamically during runtime. It is obviously impossible to add new branches to if-else and match statements. The ability to add, or \textbf{learn}, new entries allows us to write applications which can learn, such as learning switches and routers.
 
-\section{Actions} \label{action_tut}
+\section{Actions} \label{tut:action}
 
 Actions change packets, action sets, and pipeline state. Steve supports eleven actions with more anticipated in the future. Actions can be used in both decoders and flows in Steve. The syntax for supported actions can be found in Figure \ref{fg:action_syntax}.
 
@@ -739,7 +665,7 @@ Actions change packets, action sets, and pipeline state. Steve supports eleven a
 \label{fg:action_syntax}
 \end{figure}
 
-\subsection{Decode Action} \label{decode_action_tut}
+\subsection{Decode Action} \label{tut:decode_action}
 
 The \texttt{decode} action is used to move a packet from the current stage to a decoding stage. Assume we want to move to an IPv4 decoder named \texttt{ipv4\_decode}, the action would be written as:
 
@@ -753,7 +679,7 @@ Remember that there is also an optional \texttt{advance} clause which can occur 
 decode udp_decode advance (ipv4.version_ihl & 0x0f) * 4
 \end{lstlisting}
 
-\subsection{Goto Action} \label{goto_action_tut}
+\subsection{Goto Action} \label{tut:goto_action}
 
 The \texttt{goto} action is used to move a packet from the current stage to a table matching stage. Assume we want to move to a table named \texttt{t1}, the action would be written as:
 
@@ -767,7 +693,7 @@ Similar to the \texttt{decode} action, the \texttt{goto} action also supports an
 goto t1 advance (ipv4.version_ihl & 0x0f) * 4
 \end{lstlisting}
 
-\subsection{Ports and the Output Action} \label{output_action_tut}
+\subsection{Ports and the Output Action} \label{tut:output_action}
 
 Ports are an important part of the system. Ports are where packets enter (ingress) and leave (egress) the system. Ports are all given a unique integer identifier by the system.
 
@@ -832,7 +758,7 @@ p1 = in_port;
 output p1;
 \end{lstlisting}
 
-\subsection{Drop Action} \label{drop_action_tut}
+\subsection{Drop Action} \label{tut:drop_action}
 
 A packet can be dropped by the Steve application using the \texttt{drop} action. No further processing can be done on a dropped packet.
 
@@ -840,7 +766,7 @@ A packet can be dropped by the Steve application using the \texttt{drop} action.
 drop;
 \end{lstlisting}
 
-\subsection{Flood Action} \label{flood_action_tut}
+\subsection{Flood Action} \label{tut:flood_action}
 
 A packet can be flooded to all ports except the packet's ingress port using the \texttt{flood} action.
 
@@ -848,7 +774,7 @@ A packet can be flooded to all ports except the packet's ingress port using the 
 flood;
 \end{lstlisting}
 
-\subsection{Set Action} \label{set_action_tut}
+\subsection{Set Action} \label{tut:set_action}
 
 A \texttt{set} action can be used to write to any extracted field within a packet. The \texttt{set} action is only valid if the field given by the field access expression is valid in that stage.
 
@@ -856,7 +782,7 @@ A \texttt{set} action can be used to write to any extracted field within a packe
 set ipv4.ttl = ipv4.ttl - 1;
 \end{lstlisting}
 
-\subsection{Insert Flow Action} \label{insert_flow_action_tut}
+\subsection{Insert Flow Action} \label{tut:insert_flow_action}
 
 Inserting flow entries into a table is a Steve action not explicitly supported by the OpenFlow standard \cite{openflow_spec} though it is supported in software switches like OVS \cite{ovs_man_page}. Flow entries can be inserted with constant key values and no properties. 
 
@@ -886,7 +812,7 @@ into ip_data_table;
 
 In this case, the flow entry uses the \texttt{ipv4.src} and \texttt{ipv4.dst} fields of current packet as values for the inserted flow entry's key. It also sets the timeout to 1000 and sets the \texttt{egress} property to the current packet's \texttt{in\_port}, making the \texttt{output egress} action valid.
 
-\subsection{Remove Flow Action} \label{remove_flow_action_tut}
+\subsection{Remove Flow Action} \label{tut:remove_flow_action}
 
 A flow entry can be removed from a table by providing match field values and the name of the table to remove the flow entry from. This can be done with constant values or dynamic field values of the current packet.
 
@@ -898,7 +824,7 @@ remove { 0x0, 0x01 } from ip_data_table;
 remove {ipv4.dst, ipv4.protocol } from ip_data_table;
 \end{lstlisting}
 
-\subsection{Write Action} \label{write_action_tut}
+\subsection{Write Action} \label{tut:write_action}
 
 The context data structure keeps an \textit{action set}. This action set is a set of actions which are written to the context using the \texttt{write} action. All actions in this section except the \texttt{raise}, \texttt{insert}, and \texttt{remove} action can be written to an action set. The execution of these written actions is deferred until egress processing.
 
@@ -912,7 +838,7 @@ write drop;
 // etc...
 \end{lstlisting}
 
-\subsection{Clear Action} \label{clear_action_tut}
+\subsection{Clear Action} \label{tut:clear_action}
 
 The clear action removes all actions from the context's action set.
 
@@ -920,7 +846,7 @@ The clear action removes all actions from the context's action set.
 clear;
 \end{lstlisting}
 
-\subsection{Raise Action} \label{raise_action_tut}
+\subsection{Raise Action} \label{tut:raise_action}
 
 A \texttt{raise} action is used to trigger an \textit{event}. Events are Steve's lightweight way of supporting asynchronous execution during pipeline processing. Section \ref{event_tut} demonstrates how to write events. To trigger an event, you use a \texttt{raise} action and give an event identifier as follows.
 
@@ -929,7 +855,7 @@ A \texttt{raise} action is used to trigger an \textit{event}. Events are Steve's
 raise learn;
 \end{lstlisting}
 
-\section{Events} \label{event_tut}
+\section{Events} \label{tut:event}
 
 Steve supports \textit{events} which are lightweight asynchronous pipeline processing stages. These stages are special because their processing occurs outside of the run-to-completion model that tables and decoders have. 
 
@@ -985,11 +911,11 @@ Another thing to note is that this usage of events to learn flow entries is dist
 
 The advantage here is that Steve events are written as part of the Steve application and are thus subject to the same semantic, logical, and safety guarantees applied to other pipeline stages. 
 
-\section{Examples} \label{examples_tut}
+\section{Examples} \label{tut:examples}
 
 As promised at the beginning of this tutorial, we would demonstrate how to write three basic network applications: a learning switch, a learning router, and a wire using language features taught during this tutorial.
 
-\subsection{The Learning Switch} \label{learning_switch}
+\subsection{The Learning Switch} \label{tut:learning_switch}
 
 Let's begin by writing the Layer 2 (ethernet) learning switch. The learning switch shall receive packets. With each packet, the switch will "learn" which MAC addresses are found on which ports by checking the \texttt{src} field of ethernet headers. The switch forwards packets by looking at the \texttt{dst} field and checking if it has learned that MAC address yet. If it has not learned the address, it floods the packet.
 
@@ -1069,7 +995,7 @@ event learn_mac
 \end{lstlisting}
 \end{minipage}
 
-\subsection{The Learning Router} \label{learning_router}
+\subsection{The Learning Router} \label{tut:learning_router}
 
 The learning router is not too different from the learning switch. Instead of learning and forwarding from MAC addresses, this application will learn and forward from IPv4 addresses.
 
@@ -1137,7 +1063,7 @@ event learn_ip
 }
 \end{lstlisting}
 
-\subsection{The Wire} \label{wire}
+\subsection{The Wire} \label{tut:wire}
 
 A wire is a network application which has two ports. It receives from one port and outputs out of the other port. The only caveat is that the application is not aware of the ports comprising the wire at first. It must learn that those ports exist.
 

@@ -19,18 +19,21 @@
 
 \usepackage[nounderscore]{syntax}
 \usepackage{listings}
-\usepackage{algorithm, algpseudocode}
-\usepackage[linewidth=1pt]{mdframed}
+\usepackage{textcomp}
 \usepackage{setspace}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{epsfig}
 \usepackage{graphicx}
-\usepackage{changebar}
+%\usepackage[colorlinks=false]{hyperref}
+\usepackage[chapter]{algorithm}
+\usepackage{algpseudocode}
+\usepackage[linewidth=1pt]{mdframed}
+%\usepackage{changebar}
 \usepackage{url}
-\usepackage{environ}
-\usepackage{textcomp}
+%\usepackage{environ}
 %\usepackage{inconsolata}
+
 
 \lstdefinelanguage{steve}
 {
@@ -77,6 +80,13 @@
   {\end{flushleft}\end{minipage}\vspace{\baselineskip}}
 
 \setlength{\grammarparsep}{1pt}
+
+\newenvironment{codepage}
+  {\noindent
+   \begin{minipage}{\textwidth}
+   \singlespace
+  }
+  {\end{minipage}\vspace{\baselineskip}}
 
 %\noindent\begin{minipage}{\linewidth}
 %\begin{grammar}
@@ -153,7 +163,7 @@
 %followed by n \input{filename} commands, similar to the \input{chapx}
 %commands above.
 % DO NOT USE SECTIONS OR SUBSECTIONS IN AN APPENDIX OR APPENDICES
-\appendix{1}
+\appendix{0}
 % \input{appendixa}
 % \input{appendixb}
 % \input{appendixc}
