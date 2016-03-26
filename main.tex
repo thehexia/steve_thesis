@@ -47,12 +47,12 @@
 		language=steve,
 		basicstyle=\ttfamily\singlespacing\small,
 	    emph={
-	    	layout, int, uint, decoder, extract, var, else, if, exact_table, event, match, case, while, miss, break, continue, Port, return, def, in\_port, in\_phys\_port, egress, reflow, controller, all, timeout
+	    	layout, int, uint, decoder, extract, var, else, if, exact_table, event, match, case, while, miss, break, continue, Port, return, def, in\_port, in\_phys\_port, egress, reflow, controller, all, timeout,  flood
 	    },
 	    emph=[2]{ start, as, requires, advance },
 	    emph=[3]
 	    { 
-	    	output, decode, goto, drop, flood, set, write, clear, raise, insert, into, remove, from, 
+	    	output, decode, goto, drop, set, write, clear, raise, insert, into, remove, from, 
 	    },
 	    emphstyle={\color{blue}\textbf},
 	    emphstyle=[2]{\color{green}\textbf},
@@ -77,7 +77,6 @@
 
 \graphicspath{ {./images/} }
 
-\newlength{\currentparskip}
 \newenvironment{minip}
   {\noindent
    \begin{minipage}{\textwidth}\begin{flushleft}

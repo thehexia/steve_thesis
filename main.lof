@@ -1,7 +1,4 @@
 \contentsline {figure}{\numberline {3.1}{\ignorespaces The binding environment inside a context used to store the length and offset of fields, or the offset of headers. On the left, fields one through sixteen represent the fields that can be extracted. Each field maintains a binding list (stack). Each element in the binding list is a binding which stores the offset and length where each instance of that field can be found in the packet. \relax }}{10}
 \contentsline {figure}{\numberline {3.2}{\ignorespaces A context environment in action during runtime.\relax }}{11}
 \contentsline {figure}{\numberline {5.1}{\ignorespaces A demonstration of the decoding processing in action.\relax }}{31}
-\contentsline {figure}{\numberline {5.2}{\ignorespaces Action syntax for Steve in BNF.\relax }}{44}
-\contentsline {figure}{\numberline {5.3}{\ignorespaces Event syntax for Steve in BNF.\relax }}{51}
-\contentsline {figure}{\numberline {5.4}{\ignorespaces An example of an event used to learn which ports are receiving packets from which MAC addresses.\relax }}{52}
-\contentsline {figure}{\numberline {6.1}{\ignorespaces Steve reserved keywords. Note that Steve reserves the right to make any identifiers keywords in future versions.\relax }}{63}
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Steve reserved keywords. Note that Steve reserves the right to make any identifiers keywords in future versions.\relax }}{69}
