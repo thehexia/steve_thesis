@@ -1131,6 +1131,7 @@ event learn_mac
 	// into the learn table so we don't keep
 	// trying to learn something we already have.
 	insert
+	[timeout = 60]
 	{ ethernet.src } -> { goto forward; }
 	into learn;
 	
@@ -1142,7 +1143,7 @@ event learn_mac
 	// to this packet's src is forwarded to this packet's
 	// ingress port.
 	insert
-	[egress = in_port]
+	[timeout = 60, egress = in_port]
 	{ ethernet.src } ->
 	{
 		// We set the egress property to the current
@@ -1273,6 +1274,7 @@ event learn_ip
 	// This first entry prevents the same address from causing
 	// this event twice. It sends the packet straight to routing.
 	insert
+	[timeout = 30]
 	{ ipv4.src } -> { goto routing; }
 	into learn;
 	
@@ -1281,7 +1283,7 @@ event learn_ip
 	// src address will be forwarded to the current packet's
 	// ingress port.
 	insert
-	[egress = in_port]
+	[timeout = 30, egress = in_port]
 	{ ipv4.src } -> 
 	{ 
 		set ipv4.ttl = ipv4.ttl - 1; // Decrement ttl.
