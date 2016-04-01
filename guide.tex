@@ -138,7 +138,7 @@ The body of a decoder declaration (see \ref{guide:decoder}) is its \grd{block}{s
 
 \subsection{Table Scope} \label{guide:table_scope}
 
-A table declaration (see \ref{guide:table}) has a body given by \grd{table}{initializer} which introduces a block scope. Declarations made inside this block are said to be in \textit{table scope}.
+A table declaration (see \ref{guide:tables}) has a body given by \grd{table}{initializer} which introduces a block scope. Declarations made inside this block are said to be in \textit{table scope}.
 
 All field names given by a \grd{key}{declaration} within \grdd{key}{declaration}{sequence}, or within the \grd{requires}{clause}, become valid within the scope of the table if and only if \textit{requirements satisfaction} (see \ref{guide:requirements}) determines that field is satisfied.
 
@@ -185,7 +185,7 @@ exact_table t1(ipv4.type, udp.dst_port)
 
 \subsection{Flow Entry Scope} \label{guide:flow_scope}
 
-A flow declaration (see \ref{guide:table}) has a body given by \grd{flow}{body} which introduces a block scope. Declarations made in this block are said to have \textit{flow entry scope}. If a flow declaration is part of a \grd{table}{initializer}, the flow declaration has table scope. The flow entry scope is nested inside table scope.
+A flow declaration (see \ref{guide:tables}) has a body given by \grd{flow}{body} which introduces a block scope. Declarations made in this block are said to have \textit{flow entry scope}. If a flow declaration is part of a \grd{table}{initializer}, the flow declaration has table scope. The flow entry scope is nested inside table scope.
 
 If a flow declaration is part of an \texttt{insert} action, the body is treated as if it were nested inside the scope of the table it is being inserted into.
 
@@ -223,7 +223,7 @@ The body of an event declaration (see \ref{guide:event}) is a \grd{block}{statem
 
 \subsection{Layout Scope} \label{guide:layout_scope}
 
-The body of a layout declaration (see \ref{layout}) introduces a layout block. Field declarations introduce names into this layout block and are said to have \textit{layout scope}. Names of a field declaration can only be used as follows:
+The body of a layout declaration (see \ref{guide:layout}) introduces a layout block. Field declarations introduce names into this layout block and are said to have \textit{layout scope}. Names of a field declaration can only be used as follows:
 
 \begin{itemize}
 \item Inside the scope of its layout.
@@ -535,7 +535,7 @@ var y : int = x + 10;
 \end{lstlisting}
 \end{minip}
 
-When a value of type \texttt{T} is needed rather than the reference (traditionally in expressions which appear on the left side of an assignment) a reference-to-value conversion (see \ref{guide:reftoval}) is applied. 
+When a value of type \texttt{T} is needed rather than the reference (traditionally in expressions which appear on the left side of an assignment) a reference-to-value conversion (see \ref{guide:reftoval_conv}) is applied. 
 
 Variables of reference type may be created. Assignment to that variable modifies the original object as well. For example:
 
@@ -987,7 +987,7 @@ Table declarations have the following form:
 \end{grammar}
 \end{minip}
 
-Table declarations may cause table objects to be created. After loading a Steve generated application, the runtime system (see \ref{flowpath}) shall receive a number of table allocation requests from the Steve program corresponding to each table declaration made in the program text. These requests are made as part of load-time configuration (see \ref{config_guide}). Each request shall provide:
+Table declarations may cause table objects to be created. After loading a Steve generated application, the runtime system (see \ref{ch:flowpath}) shall receive a number of table allocation requests from the Steve program corresponding to each table declaration made in the program text. These requests are made as part of load-time configuration (see \ref{config_guide}). Each request shall provide:
 
 \begin{itemize}
 \item A table name.
@@ -1105,7 +1105,7 @@ Port declarations are required to be in global scope.
 
 A port declaration may have an optional \grd{port}{initializer}. The \grd{port}{initializer} shall be \grd{integer}{literal}. If \grd{port}{initializer} is not given, \grd{port}{initializer} shall be implicit and the value of \grd{integer}{literal} shall be 0.
 
-Upon load-time configuration (see \ref{flowpath}), for each port declaration, a discovery request is made to the runtime system for a port whose system-assigned identifier is equal to the value given by \grd{integer}{literal}. Any requests for port's whose identifiers do not exist result in the Steve application failing to load.
+Upon load-time configuration (see \ref{ch:flowpath}), for each port declaration, a discovery request is made to the runtime system for a port whose system-assigned identifier is equal to the value given by \grd{integer}{literal}. Any requests for port's whose identifiers do not exist result in the Steve application failing to load.
 
 The port identifier zero (0) is reserved as the \textit{invalid port}. It exists, but forwarding to it results in packet drop.
 
@@ -1175,9 +1175,9 @@ Primary expressions are expressions which have no operators. Primary expressions
 \end{grammar}
 \end{minip}
 
-\section{Identifier Expressions} \label{id_expr_guide}
+\section{Identifier Expressions} \label{guide:id_expr}
 
-When an \gr{identifier} (see \ref{identifiers_guide}) is used where an \gr{expression} is expected, it is considered an identifier expression. Identifier expressions have the form:
+When an \gr{identifier} (see \ref{guide:identifiers}) is used where an \gr{expression} is expected, it is considered an identifier expression. Identifier expressions have the form:
 
 \begin{minip}
 \begin{grammar}
@@ -1185,7 +1185,7 @@ When an \gr{identifier} (see \ref{identifiers_guide}) is used where an \gr{expre
 \end{grammar}
 \end{minip}
 
-Identifier expressions most often refer to a specific declaration of that name. When used as an expression, an identifier returns the entity being referred to. If the identifier refers to an object (see \ref{object_guide}), the type of the object is \texttt{T}, and the identifier expression has \texttt{T\&} type. If the value of the object is required, then a reference-to-value conversion is applied (see \ref{reftoval_conv}).
+Identifier expressions most often refer to a specific declaration of that name. When used as an expression, an identifier returns the entity being referred to. If the identifier refers to an object (see \ref{guide:object}), the type of the object is \texttt{T}, and the identifier expression has \texttt{T\&} type. If the value of the object is required, then a reference-to-value conversion is applied (see \ref{guide:reftoval_conv}).
 
 The grammar shall refer to identifier expressions refering to specific kinds of declarations using \grd{kind}{id}, where \texttt{\textit{kind}} is the kind of declaration. For example, an identifier expression refering to a decoder shall be \grd{decoder}{id}.
 
@@ -1211,7 +1211,7 @@ A field access expression may only occur within the body of a decoder declaratio
 \item In an event declaration if and only if the event lists the same field name in its requires clause.
 \end{itemize}
 
-If the type of the extraction is \texttt{T}, then the type of a field access expression refering to that extraction shall be \texttt{T\&}. When the value of that field is required, then a reference-to-value conversion (see \ref{reftoval_conv}) is applied to recover the value.
+If the type of the extraction is \texttt{T}, then the type of a field access expression refering to that extraction shall be \texttt{T\&}. When the value of that field is required, then a reference-to-value conversion (see \ref{guide:reftoval_conv}) is applied to recover the value.
 
 \section{Port Expressions} \label{guide:port_expr}
 
@@ -1414,7 +1414,7 @@ Multiplicative expressions are multiplication, division, and modulo operators. T
 \end{grammar}
 \end{minip}
 
-Both operands must be of integer type. Integer conversion (see \ref{int_conv}) is applied to both operands so that they both have type \texttt{T}, where T is the smallest possible integer type capable of representing both operands. The type of result shall be \texttt{T}. 
+Both operands must be of integer type. Integer conversion (see \ref{guide:int_conv}) is applied to both operands so that they both have type \texttt{T}, where T is the smallest possible integer type capable of representing both operands. The type of result shall be \texttt{T}. 
 
 \subsection{Additive Expression} \label{guide:add_expr}
 
@@ -1430,7 +1430,7 @@ Additive expressions are addition and subtraction. They have the form:
 \end{grammar}
 \end{minip}
 
-Both operands must be of integer type. Integer conversion (see \ref{int_conv}) is applied to both operands so that they both have type \texttt{T}, where T is the smallest possible integer type capable of representing both operands. The type of result shall be \texttt{T}.
+Both operands must be of integer type. Integer conversion (see \ref{guide:int_conv}) is applied to both operands so that they both have type \texttt{T}, where T is the smallest possible integer type capable of representing both operands. The type of result shall be \texttt{T}.
 
 \subsection{Bit-shift Expression} \label{guide:bitshift_expr}
 
@@ -1722,7 +1722,7 @@ The goto action is a stage transition action, similar to the decode action. A go
 \end{grammar}
 \end{minip}
 
-A goto action transfers control of the context it is operating on to the table matching stage referred to by \grd{table}{id}. If a goto action appears within the body of a decoder (see \ref{guide:decoder}), then a view advance (see \ref{guide:decoder_view}) is applied before transfering to the table matching stage. After the advance, the context is dispatched the runtime (see \ref{flowpath}) which composes the query key from extracted fields. They query key is then matched against flow entry match fields. All matching flow entries are collected. The one with the highest priority is executed. Because Steve currently only supports exact match tables, there will only ever be one match. The body of the flow entry, which is a sequence of actions, is executed in order. This body may include another stage transitioning action.
+A goto action transfers control of the context it is operating on to the table matching stage referred to by \grd{table}{id}. If a goto action appears within the body of a decoder (see \ref{guide:decoder}), then a view advance (see \ref{guide:decoder_view}) is applied before transfering to the table matching stage. After the advance, the context is dispatched the runtime (see \ref{ch:flowpath}) which composes the query key from extracted fields. They query key is then matched against flow entry match fields. All matching flow entries are collected. The one with the highest priority is executed. Because Steve currently only supports exact match tables, there will only ever be one match. The body of the flow entry, which is a sequence of actions, is executed in order. This body may include another stage transitioning action.
 
 A goto action may optionally have an \grd{advance}{clause}, if and only if it occurs with the body of a decoder. In this case, \gr{expression} is first evaluated. The type of \gr{expression} must be unsigned integer or there must exist a conversion to unsigned integer. The advance clause results in the decoder view being shifted by \texttt{N} bytes where \texttt{N} is the result of evaluating \gr{expression}. The reason the shift is by bytes and not by bits is because, generally speaking, headers are word aligned, and thus also byte aligned.
 
@@ -1736,7 +1736,7 @@ An output action forwards a copy of the packet to the designated port. Output ac
 \end{grammar}
 \end{minip}
 
-When an output action is executed, control of the packet is returned to the runtime (see \ref{flowpath}) which creates a copy of the packet. The copy is forwarded by the runtime through the port given by \grd{port}{expression}. This may be a reserved port such as \texttt{all} or \texttt{reflow}, or it may be an identifier refering to a declared port (see \ref{guide:port}).
+When an output action is executed, control of the packet is returned to the runtime (see \ref{ch:flowpath}) which creates a copy of the packet. The copy is forwarded by the runtime through the port given by \grd{port}{expression}. This may be a reserved port such as \texttt{all} or \texttt{reflow}, or it may be an identifier refering to a declared port (see \ref{guide:port}).
 
 If destination is the \texttt{all} port, copies of the packet are sent on all known ports on the system. If the destination is the \texttt{reflow} port, then the runtime will send a copy of the packet back to the beginning of the pipeline. If the destination is a specific port, the copy is forwarded on that port. After this completes, pipeline processing continues on the original packet.
 
@@ -1752,7 +1752,7 @@ The flood action forwards a copy of the packet to all ports except its ingress p
 \end{grammar}
 \end{minip}
 
-When a flood action is executed, control of the packet is returned to the runtime (see \ref{flowpath}) which creates copies of the packet. The copies are forwarded by the runtime through every port on the system other than the packet's ingress port.
+When a flood action is executed, control of the packet is returned to the runtime (see \ref{ch:flowpath}) which creates copies of the packet. The copies are forwarded by the runtime through every port on the system other than the packet's ingress port.
 
 \section{Drop Action} \label{guide:drop}
 
@@ -1855,5 +1855,5 @@ A raise action is used to raise an event which gets executed on the controller p
 \end{grammar}
 \end{minip}
 
-When executed, the runtime (see \ref{flowpath}) will create a message containing the context and the event handler function. This message is sent to the controller port. On the controller port sits a separate process which waits to receive contexts and event handlers. That process shall execute the event handler, passing in the context as the argument. This action may be taken synchronously or asynchronously. The choice is runtime implementation specific.
+When executed, the runtime (see \ref{ch:flowpath}) will create a message containing the context and the event handler function. This message is sent to the controller port. On the controller port sits a separate process which waits to receive contexts and event handlers. That process shall execute the event handler, passing in the context as the argument. This action may be taken synchronously or asynchronously. The choice is runtime implementation specific.
 

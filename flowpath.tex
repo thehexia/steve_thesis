@@ -19,6 +19,6 @@ Steve applications are shared object libraries (.so files). They are not, by the
 
 \section{Egress Processing} \label{egress_process}
 
-Egress processing occurs right before a packet is forwarded. Egress processing begins when a pipeline processing stage (decoder, event, or table) has finished, but has not sent the context to another stage. At this time, actions written to the context's action set are executed. These actions may have special semantics when executed at this time (see \ref{write_guide}). Each action is executed in the order with which it was written. Once the action set is finished executing, the forwarding decision is made.
+Egress processing occurs right before a packet is forwarded. Egress processing begins when a pipeline processing stage (decoder, event, or table) has finished, but has not sent the context to another stage. At this time, actions written to the context's action set are executed. These actions may have special semantics when executed at this time (see \ref{guide:write}). Each action is executed in the order with which it was written. Once the action set is finished executing, the forwarding decision is made.
 
 The context's output port field indicates which port to forward the original packet on. If the output port field is not set, the packet will be dropped and deleted from memory. Once the packet has been forwarded, the context memory is deleted. 

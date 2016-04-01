@@ -467,7 +467,7 @@ Now that we have completed extracting fields, we must answer the question, "What
 
 A decoder can move a packet to another decoder, table, or it can forward/drop the packet. It is up to the programmer to decide which is appropriate.
 
-To move to another decoding stage, a decode action (\ref{guide:decode_action})) is used. In the following example, we bridge the ethernet and IPv4 decoders we declared in an earlier example. We use the match statement (\ref{guide:match_stmt}) to check if \texttt{ethernet.type} is equal to \texttt{0x800}. If it is, we decide to use the decode action to move the packet to the IPv4 decoder.
+To move to another decoding stage, a decode action (\ref{guide:decode_action})) is used. In the following example, we bridge the ethernet and IPv4 decoders we declared in an earlier example. We use the match statement (\ref{guide:condition_stmt}) to check if \texttt{ethernet.type} is equal to \texttt{0x800}. If it is, we decide to use the decode action to move the packet to the IPv4 decoder.
 
 \begin{codepage}
 \begin{lstlisting}
