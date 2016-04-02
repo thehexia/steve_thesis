@@ -1,66 +1,53 @@
 \chapter{THE PACKET PIPELINE PROCESSING MODEL} \label{ch:pipeline_model}
 
-Steve uses a \textit{pipeline processing model} to process packets. The pipeline processing model is a series of data processing stages. Each stage is connected to the next in such a way that the output of one stage becomes the input to another. These stages will decode the packet, modify the packet, and ultimately decide which port to forward the packet on. Steve allows for the definition of these pipeline processing stages.
+Steve uses a \textit{pipeline processing model} to process packets. The pipeline processing model is a series of \textit{data processing stages}. Each stage is connected to the next in such a way that the output of one stage becomes the input to the next. These stages will decode the packet, modify the packet, and ultimately decide which port to forward the packet on.
 
-There are four kinds of stages that a packet flows through during pipeline processing: 1) \textit{ingress processing}, 2) \textit{decoding}, 3) \textit{table matching}, and 4) \textit{egress processing}. Figure \ref{fg:pipeline_model} demonstrates the flow of packets through Steve's pipeline.
+A Steve pipeline can be described in terms of four phases: 1) \textit{ingress processing}, 2) \textit{decoding stages}, 3) \textit{table matching stages}, and 4) \textit{egress processing}. Of these four phases, decoding and table matching are our two kinds of data processing stages. Figure \ref{fg:pipeline_model} demonstrates the flow of packets through Steve's pipeline. This chapter will describe each of these phases.
 
 \begin{figure}
-\caption{The flow of a packet through the Steve pipeline. The first phase is ingress processing. Then a number of decoding and table matching stages may process the packet. Lastly, the packet goes through egress processing.}
+\caption{The flow of a packet through the Steve pipeline. The first phase is ingress processing, where a \textit{context} (described in Section \ref{context_desc}) is built around the packet. Then a number of decoding and table matching stages may decode, modify, and make forwarding decisions on the packet. Lastly, the packet goes through egress processing, where it is ultimately forwarded (or dropped).}
 \label{fg:pipeline_model}
 \end{figure}
 
-\subsection{Ingress Processing} \label{ingress_stage}
+The Steve programming language allows programmers to define what \textit{decoding} and \textit{table matching} stages do and how they are connected. Keep in mind that the pipeline processing model is essentially a state machine. Each processing stage is a state in the machine. Each state has a set of conditions which, when met, causes the packet to move to new stages, or new states. This can be represented as a graph where each processing stage is a node on the graph and each stage is connected to the next with an edge. This is a valuable property as it allows the Steve programming language to analyze these pipelines and enforce certain logical, safety, and correctness guarantees about a user-defined pipeline.
 
-A packet enters a network device on a port, known as its \textit{ingress port}. At this time, a data structure known as the \textit{context} is built around the packet. 
+Steve pipelines follow a run-to-complete model of execution. Once a packet enters the pipeline, each processing stage is consecutively applied to the packet. Once no more stages are applied through program logic, the packet exits the pipeline.
 
-This \textit{context} is what the pipeline uses to save data as the packet moves through the pipeline. 
+\subsection{Ingress Processing} \label{ingress_desc}
 
-A packet comes into a data plane via an ingress port. This packet must go through a series of processing stages where it is analysed, modified, and ultimately forwarded out through an egress port. These processing steps are what is known as a \textbf{pipeline}.
+A packet enters a network device on a port, known as its \textit{ingress port}. At this time, the data plane builds a data structure known as the \textit{context} is built around the packet. This context is what the pipeline uses to save data as the packet moves through the pipeline. Further explanation of the context can be found in Section \ref{context_desc}.
 
-The Steve programming language allows programmers to define their own pipeline applications. In the Steve processing model a pipeline is a composition of two types of processing stages: decoding stages and table matching stages. Each stage performs a set of operations on a packet, known as actions, and decides where to move the packet next based on certain conditions that the packet meets. A packet can be moved to another processing stage or it can be sent out of the pipeline.
+After ingress processing, the data plane dispatches the context (which includes the packet) to the first decoding stage.
 
-The pipeline is thus a state machine. Each processing stage denotes a state in the machine. Each state has a set of conditions which, when met, causes the packet to transition states. This can be represented as a graph where each processing stage is a node on the graph and each state transition is an edge connecting stages. This is a valuable property as it allows the Steve programming language to analyse these pipelines and enforce certain logical, safety, and correctness guarantees about a user-defined pipeline.
-
-Steve pipelines follow a run-to-complete model of execution. Once a packet enters the pipeline, each processing stage is consecutively applied to the packet until the programmer decides to forward or drop the packet.
-
-\section{Decoding Stage} \label{decoder_desc}
-
-When a packet is received on its ingress port, it is a chunk of raw, uninterpreted data. Before a packet can be processed and routed, its headers and fields must be decoded and extracted so that meaningful decisions can be made about what to do with the packet. The decoding stage is responsible for ensuring this happens.
-
-Steve allows for programmers to specify \textit{how} and \textit{which} fields are extracted from packet headers. In other paradigms, the \textit{entire} packet is decoded from start to finish; all headers and all fields are extracted, then all fields are saved. This is what is considered a \textbf{full decode}. After this full decode, the decision making process on the packet begins using those saved fields. However, this method is inherently inefficient. Only certain fields and headers within a packet are ever really needed during the forwarding process. To compound this, different devices may care about different subsets of fields within a given packet. Decoding all of these fields does not make sense when only a smaller subset is ever necessary.
-
-Full decodes waste valuable processing time. Efficiency is important when dealing with networking equipment which has to processes between 10Gbps to 40Gbps. Decoding fields which are not needed is equivalent to wasting clock cycles on the CPU which translates to slower performance.
-
-This inherent inefficiency is why Steve proposes the idea of a \textit{partial decode}. Unlike similar SDN-focused programming languages, Steve is designed to allow programmers to specify the extraction of only specific fields rather than an entire header. Though the specification may be verbose in some cases, it makes programmers think very carefully about which fields they need and which fields they do not.
-
-Additionally, Steve proposes that not all headers need to be decoded. For example, if a networking application only needs to forward using MAC addresses, there is no reason to waste time extracting fields from IPv4 or IPv6 headers, and so on.
+The ingress processing stage is not something that is written in a Steve application. It is implicit and handled by the Flowpath data plane discussed in Chapter \ref{ch:flowpath}. 
 
 \subsection{Packet Context} \label{context_desc}
 
-A stage often needs to use data created by prior stages. As a packet moves between stages, information such as the position and length of extracted fields and headers must be saved for recovery later in the pipeline. To save this information, Steve applications use a data structure called the packet \textbf{context}. Specifically, a Steve context saves the following data:
+Pipeline stages are connected in such a way that the output from one stage becomes the input to the next. The \textit{context} data structure is that output and input. It carries data between stages. A stage often needs to use data created by prior stages. As a packet moves between stages, information such as the position and length of extracted fields and headers must be saved for later recovery. To save this information, Steve applications use a data structure called the packet \textbf{context}. Specifically, a Steve context saves the following data:
 
 \begin{itemize}
-\item The logical and physical port the packet arrived on.
-\item The length of the packet frame.
+\item The packet itself. From now on, anytime mention of the context is made, it is implied that this also includes the packet itself.
+\item The packet's logical and physical ingress ports.
+\item The packet's length.
 \item A tunnel identifier.
-\item The offset and length of a field in the packet.
-\item The offset of a header in the packet.
-\item An action set that can be written to.
+\item The offset and length of decoded fields.
+\item The offset of decoded headers.
+\item An action set that may be written to and is executed during egress processing.
 \end{itemize}
 
-Extracted fields and headers get saved in \textbf{binding environments} contained within the context. The term \textbf{environment} refers to a function that maps names (in this case field and header names) to their storage location during runtime \cite{compilers1}. The mapping of those storage locations to the values held there is known as \textbf{state}. There is a binding environment for fields and headers respectively.
+Extracted fields and headers get saved in \textbf{binding environments} contained within the context. The term \textbf{environment} refers to a structure which maps names (in this case field and header names) to their storage location during runtime \cite{compilers1}. The mapping of those storage locations to the values held there is known as \textbf{state}. There is a binding environment for fields and headers respectively.
 
-Figure \ref{fg:ContextEnv} depicts the binding environment. The field binding environment is used to map fields to offset-length pairs where that field can be found in a packet. The packet header environment similarly maps headers to offsets where that header can be found in a packet. These mappings are known as \textit{bindings}.
-
-Since any given packet can contain one or more of any field or header with the same name, the environments maintain a stack for every field and header. These stacks are what are called \textit{binding stacks}. By extension, this means an environment is actually a mapping of fields to binding stacks. When the value of a field is needed, the topmost binding on the binding stack shall be used to recover the state of that field.
-
-The implementation of environments in Steve is a fixed-sized array where each element in the array is a fixed-sized binding stack. Each index in the array represents a unique field or header name extracted by the Steve application. The compiler is responsible for associating all unique fields extracted during the decoding stage to unique integer indices into the array. The same is done for all unique headers. This provides constant time lookup of field bindings without the overhead of hashing found in environments which use complex name mappings.
+Figure \ref{fg:ContextEnv} depicts the binding environment. The field binding environment is used to map fields to offset-length pairs where that field can be found. The header binding environment similarly maps headers to offsets where that header can be found. These mappings are known as \textit{bindings}.
 
 \begin{figure}
 \includegraphics[scale=0.75,natwidth=203,natheight=298]{context}
-\caption{The binding environment inside a context used to store the length and offset of fields, or the offset of headers. On the left, fields one through sixteen represent the fields that can be extracted. Each field maintains a binding list (stack). Each element in the binding list is a binding which stores the offset and length where each instance of that field can be found in the packet. }
+\caption{The binding environment inside a context used to store the length and offset of fields, or the offset of headers. On the left, indexes one through sixteen represent the fields that can be extracted. Each field maintains a binding stack. Each element in the binding stack is a binding which stores the offset and length where an instance of that field can be found. }
 \label{fg:ContextEnv}
 \end{figure}
+
+Since any given packet can contain one or more of any field or header with the same name, a binding environment maintains a stack for every field and header. These stacks are called \textit{binding stacks}. By extension, this means an environment is actually a mapping of field names to binding stacks. When the value of a field is needed, the topmost binding on the binding stack shall be used to recover the value of that field.
+
+The implementation of a binding environment in Flowpath is a fixed-sized array where each element in the array is a fixed-sized binding stack. Each valid index in the array represents a unique field or header name extracted by the Steve application. The compiler is responsible for associating all unique field names to unique integer indexes. The same is done for all unique headers. This provides constant time lookup of field bindings without the overhead of hashing complex names.
 
 Figure \ref{fg:ContextEnvWorking} demonstrates how data is stored in the context as it is being decoded. The example is a packet which contains an encapsulated IPv4 header commonly used in IP tunneling. In the ethernet decoding stage which extract the \texttt{src}, \texttt{dst}, and \texttt{type} field are extracted and stored in the context. Next we determine that IPv4 follows based on the \texttt{type} field. We extract IPv4 \texttt{dst} and \texttt{protocol}. The \texttt{protocol} field tells us we have another IPv4 header after the current one. We move to decode that and once again we extract IPv4 \texttt{dst} and \texttt{protocol}. Note how the new values of IPv4 are pushed on top of the binding stack. Any further usage of those fields will use the latest values extracted for those fields. Keep in mind that this means any usage of the first set of IPv4 \texttt{dst} and \texttt{protocol} must occur before the decoding of the second IPv4 header.\
 
@@ -70,11 +57,23 @@ TODO: Make an image for this.
 \label{fg:ContextEnvWorking}
 \end{figure}
 
-The \textbf{action set} is the other major data structure contained within the context. The action set is a set of actions which have been written to the context for deferred execution using a \texttt{write action} (see Section \ref{tut:action}). Upon reaching a designated egress port, the action set is executed right before the packet is output.
+The \textbf{action set} is the other major data structure contained within the context. Actions are written to the action set for \textit{deferred execution} through the course of a pipeline. These actions are executed once the pipeline is complete, during the egress processing phase.
+
+\section{Decoding Stage} \label{decoder_desc}
+
+When a packet is received on its ingress port, it is a chunk of raw, uninterpreted data. Before a packet can be processed and routed, its headers and fields must be decoded and extracted so that meaningful decisions can be made about based on those values. The decoding stage is responsible for this.
+
+Steve allows for programmers to specify \textit{how} and \textit{which} fields are extracted from headers. In other paradigms, the \textit{entire} packet is decoded from start to finish; all headers and all fields are extracted, then all fields are saved. This is what is considered a \textbf{full decode}. After this full decode, the decision making process on the packet begins using those saved fields. However, this method is inherently inefficient. Only certain fields and headers within a packet are ever really needed. To compound this, different devices may care about different subsets of fields within a given packet. Decoding all headers and fields from a packet is inherently wasteful.
+
+Full decodes waste valuable processing time. Efficiency is important when dealing with networking equipment which has to processes between 10Gbps to 40Gbps. This inherent inefficiency is why Steve proposes the idea of a \textit{partial decode}. Unlike similar SDN-focused programming languages, Steve is designed to allow programmers to specify the extraction of only specific fields rather than an entire header. Though the specification may be verbose in some cases, it makes programmers think very carefully about which fields they need and which fields they do not. 
+
+Additionally, Steve proposes that not all headers need to be decoded. For example, if a networking application only needs to forward using MAC addresses, there is no reason to waste time extracting fields from IPv4 or IPv6 headers, and so on.
+
+That being said, Steve also supports the full decode. It may be desirable to some programmers to do this in certain scenarios, thus the language does not favor one paradigm over another.
 
 \section{Table Stage} \label{table_desc}
 
-Table stages handle matching against extracted fields, i.e. classification, and perform a sequence of desired actions on like-classified packets. This is done through a mechanism known as a flow table \cite{openflow_spec}.
+Table stages handle matching against extracted fields, i.e. classification, and perform a sequence of desired actions on like-classified packets. This is done through a mechanism known as a flow table defined by the OpenFlow standard \cite{openflow_spec}.
 
 A \textbf{flow table} is composed of a set of \textbf{flow entries}. A flow entry is composed of \textbf{match fields}, a \textbf{priority}, a set of \textbf{actions}, and miscellaneous additional data. Each table specifies a set of key fields that together make up a \textbf{key} for that table. For each key field, each flow entry has a corresponding value, known as a \textbf{match field}, such that every flow entry in the table is uniquely identified by its match fields and its \textbf{priority}.
 

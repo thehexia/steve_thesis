@@ -1,3 +1,26 @@
 \chapter{RELATED WORKS} \label{ch:related}
 
-Some stuff about other peoples contributions...
+Software-defined networking (SDN) is a relatively new field of research. Steve, as an SDN programming language, explores largely uncharted territory. Though a number of other SDN languages exist, they are vastly different in design, direction, and scope, with few gaining any sort of widespread usage.
+
+\section{OpenFlow} \label{rel:openflow}
+
+It is impossible to mention SDN research without mentioning the OpenFlow Specification. The OpenFlow Specification defines an open standard for the components and basic functions of an SDN switch \cite{openflow_spec}.
+A basic OpenFlow switch has three major components: a packet processing pipeline, ports, and a channel to an external controller application. Flowpath, which is the programmable data plane and runtime that Steve targets, adopts a similar abstract model. Steve compiles into applications which dictate the logic of the packet processing pipeline component. In a sense, a Steve application \textit{is} a packet processing pipeline.
+
+Steve's packet processing pipeline differs from the traditional OpenFlow semantics in a number of key ways. An OpenFlow pipeline is defined as a sequence of one or more \textit{flow tables} and a \textit{group table} which handle packet lookups, decision making, and forwarding \cite{openflow_spec}. First, Steve provides language features for a user to create flow tables and define their flow entries, but does not yet support group tables. 
+
+Second, a Steve pipeline has more than \textit{just} flow tables. Steve pipelines will also have \textit{decoders} which may be interleaved between tables. Decoders are used decode (or parse) and extract fields from a packet headers. In most switches, decoding is handled by specialized hardware which handle well-known headers. OpenFlow also only supports these well-known headers. However, the Flowpath data plane is protocol oblivious, knowing nothing about the format any headers; therefore decoding must be an explicit user-defined stage of the pipeline.
+
+Third, Steve and Flowpath do not use or expect an external controller like OpenFlow, nor does it use OpenFlow messages to communicate with the controller. An OpenFlow controller is software normally used to control an OpenFlow switch. It may do things such as insert, remove, and update flow tables. A Flowpath controller is actually a light-weight shell/thread within the data plane which only executes special event handlers written in Steve. Flowpath tries to avoid the need for a heavy-weight controller and sluggish OpenFlow channels by keeping the majority of execution inside the data plane.
+
+The Steve application pipeline is referred to as the \textit{fast path}. Part of the reason the controller semantics have been modified is to keep the fast path as fast as possible.
+
+\section{P4} \label{rel:p4}
+
+\section{Protocol Oblivious Forwarding} \label{rel:pof}
+
+\section{NetKAT} \label{rel:netkat}
+
+\section{Pyretic} \label{rel:netkat}
+
+\section{Frenetic's Query Language} \label{rel:netkat}
