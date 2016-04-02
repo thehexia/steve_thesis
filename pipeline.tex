@@ -1,5 +1,20 @@
 \chapter{THE PACKET PIPELINE PROCESSING MODEL} \label{ch:pipeline_model}
 
+Steve uses a \textit{pipeline processing model} to process packets. The pipeline processing model is a series of data processing stages. Each stage is connected to the next in such a way that the output of one stage becomes the input to another. These stages will decode the packet, modify the packet, and ultimately decide which port to forward the packet on. Steve allows for the definition of these pipeline processing stages.
+
+There are four kinds of stages that a packet flows through during pipeline processing: 1) \textit{ingress processing}, 2) \textit{decoding}, 3) \textit{table matching}, and 4) \textit{egress processing}. Figure \ref{fg:pipeline_model} demonstrates the flow of packets through Steve's pipeline.
+
+\begin{figure}
+\caption{The flow of a packet through the Steve pipeline. The first phase is ingress processing. Then a number of decoding and table matching stages may process the packet. Lastly, the packet goes through egress processing.}
+\label{fg:pipeline_model}
+\end{figure}
+
+\subsection{Ingress Processing} \label{ingress_stage}
+
+A packet enters a network device on a port, known as its \textit{ingress port}. At this time, a data structure known as the \textit{context} is built around the packet. 
+
+This \textit{context} is what the pipeline uses to save data as the packet moves through the pipeline. 
+
 A packet comes into a data plane via an ingress port. This packet must go through a series of processing stages where it is analysed, modified, and ultimately forwarded out through an egress port. These processing steps are what is known as a \textbf{pipeline}.
 
 The Steve programming language allows programmers to define their own pipeline applications. In the Steve processing model a pipeline is a composition of two types of processing stages: decoding stages and table matching stages. Each stage performs a set of operations on a packet, known as actions, and decides where to move the packet next based on certain conditions that the packet meets. A packet can be moved to another processing stage or it can be sent out of the pipeline.
