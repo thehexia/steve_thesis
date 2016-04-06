@@ -1,9 +1,13 @@
-\chapter{Flowpath} \label{ch:flowpath}
+\chapter{Freeflow} \label{ch:flowpath}
 
-Some stuff about the runtime and interface...
+Freeflow is a reconfigurable, protocol oblivious, programmable data plane developed by Flowgrammable \footnote{https://github.com/flowgrammable/freeflow/}. Freeflow exposes an API to allow other programs to configure and program it through its \textit{Flowpath} runtime environment. Flowpath is designed to load dynamic link libraries known as \textit{Flowpath pipeline applications}. These pipeline applications expose their own API, which must conform to a certain Freeflow specification to be \textit{Freeflow loadable}. 
+They will use the Flowpath API to provide packet decoder's, configure the data plane's flow tables and flow entries, provide event handlers for exceptional events, and control the logic behind the packet processing pipeline.
 
+For now, Steve is specifically tailored toward compiling Freeflow pipeline applications. The current Steve compiler converts Steve programs into Freeflow loadable pipeline applications. 
 
-Some stuff about the fast path and why Steve targets flowpath...
+\subsection{Flowpath}
+
+The \textit{Flowpath} runtime environment is a ...
 
 \section{Runtime Configuration} \label{config_guide}
 
