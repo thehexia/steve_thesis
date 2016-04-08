@@ -43,13 +43,13 @@ manipulation and un-handled packets), can be written in Steve using special
 on a special internal Freeflow "controller" thread rather than relying on an
 external controller. 
 
-\section{SDN Languages} \label{rel:p4}
+\section{SDN Data Plane Configuration Languages} \label{rel:p4}
 
-Steve is a \textit{protocol oblivious} language, meaning it does not by default
+Steve is a language for modifying the packet processing and forwarding functionality of a data plane. Steve is \textit{protocol oblivious}, meaning it does not by default
 know of any well-known network protocols (IPv4, IPv6, TCP, etc). Instead, it
 provides language features for programmers to deal with any protocol, making the
 language more scalable for future protocols. Other SDN languages are pursuing
-this idea as well.
+these idea as well.
 
 The P4 language \cite{p4_spec, p4_spec2} is another high-level language for
 defining protocol oblivious packet processing pipelines. It is probably the
@@ -123,10 +123,12 @@ platforms than Steve, which currently only compiles into modules for Freeflow.
 POF also supports certain actions and table matching methods that Steve does not
 currently support.
 
+NetASM is an intermediate representation language for programmable data planes
+\cite{shahbaz2015netasm}. It aims to solve the same issues as POF, but also provides a language that is target/device independent. The goal is for higher level languages to compile into NetASM which can then be compiled into platform-specific code by device-specific compilers.
+
 \section{Other Languages} \label{rel:frenetic}
 
-Most other languages are protocol-dependent, only supporting a specific set of
-fields. The Frenetic project has produced a family of network programming
+Other languages are protocol-dependent and are designed to program the control plane. The Frenetic project has produced a family of network programming
 languages. The Frenetic language is a declarative language, embedded in Python,
 that uses SQL-like queries to classify packets and a library for describing
 packet forwarding policies over a collection of network switches
@@ -141,7 +143,3 @@ classifiers then get installed on switches. NetKAT is a language, inspired by
 NetCore, for expressing packet processing functions and reasoning about a
 network using Kleene Algebra \cite{kozen2014netkat, anderson2014netkat}. NetKAT
 attempts to prove the correctness of its network programs through mathematical theory.
-
-NetASM is an intermediate representation language for programmable data planes
-\cite{shahbaz2015netasm}. It aims to provide a language that is target/device
-independent for higher level languages to compile into.
