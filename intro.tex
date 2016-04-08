@@ -8,25 +8,31 @@ Steve is a domain-specific programming language tailored toward writing programs
 
 Making the control plane programmable is only the first step of SDN architectures. There are a number of projects focusing on making the data plane programmable as well. It allows the user to change the packet processing and forwarding functionality of a device \textit{without having to change the hardware}. What benefit does this have?
 
-\textbf{Protocol independence.} By being able to program the packet processing functions, the data plane \textit{does not have to know about any standard protocols} (ethernet, IPv4, TCP, etc). Support for protocols is strictly left up to the programmer. This allows users to defined their own protocols in addition to supporting well-known protocols. There is no need to update the device with new protocol specifications or to support every possible header. Instead, the device provides a generic instruction set that can process arbitrary protocols. This "future-proofs" the data plane.
+\textbf{Protocol oblivious processing.} By being able to program the packet processing functions, the data plane \textit{does not have to know about any standard protocols} (ethernet, IPv4, TCP, etc). Support for protocol headers is strictly left up to the programmer. This allows users to defined their own protocols in addition to supporting well-known protocols. There is no need to provide specific support for every possible header. Instead, the device provides a generic instruction set that can decode, extract, and process fields from arbitrary headers. This "future-proofs" the data plane.
 
 \textbf{User-defined forwarding rules.} The forwarding rules can be freely manipulated. Because protocol independence is also achieved, these rules can handle any arbitrary header fields. 
 
 \textbf{Arbitrary processing.} Operations performed on a packet do not have to be limited by actions defined by OpenFlow standard switches. They also do not have to be limited by well-known operations performed on well-known protocols. Programmable data plane instruction sets can generically manipulate bytes like a CISC or RISC.
 
-\textbf{Why Steve?} Steve is a language for specifying packet processing and forwarding functionality for a programmable data plane.
+\textbf{Why Steve?} Steve is a protocol oblivious language for specifying packet processing and forwarding functionality for a programmable data plane. It is high level and declarative, being not too different from C-like languages. This makes it familiar to almost all programmers.
+
+Most importantly, Steve abstracts much of the low-level code a programmer would have to write. One could write in C or device-specific assembly, but this process forces the programmer to engage in low-level details such as resource acquisition, port interfaces, device configuration, hardware limitations, etc. Even worse, the user has to worry about manually decoding headers by specifying which bits make up a field. This can be an error-prone nightmare. This type of low-level programming is subject to undefined behavior, logical errors, program crashes, memory leakage, etc. This is unacceptable on important network devices,
+
+Steve and its runtime system, Flowpath, abstract most of these details away from the programmer. Instead, the programmer only focuses on high level aspects such as which headers they are decoding, which fields they need, and what forwarding behavior they want. The language compiler takes care of the rest. It assuring certain safety and logical correctness guarantees through full-program analysis, type analysis, and semantic analysis of the Steve language.
 
 Specifically, Steve provides the following features.
 
 \begin{itemize}
-\item The ability to specify a packet processing pipeline which is composed of decoding stages and table matching stages.
+\item The ability to define the layout of any arbitrary header.
 
-\item Decoding stages allow programmers to specify which headers get decoded and which fields in those respective headers get decoded. They also provide the mechanics to reason about which packet header comes next in a packet based on conditions satisfied by the current packet header.
+\item The ability to specify a pipeline which handles packet processing and forwarding. This pipeline is composed of one or more decoders and flow tables.
 
-\item 
-Table matching stages allow programmers to \textbf{classify} packets and perform some set of \textbf{actions} on like-classified packets. This is done through a mechanism known as flow tables, which are not far off from the concept of relational tables.
+\item The ability to define decoding stages, or decoders. Decoders allow programmers to find and extract fields from desired headers. They also provide the mechanics to reason about which packet header comes next based on conditions satisfied by the current packet header.
+
+\item The ability to define flow tables. Flow tables provide a mechanism for making decisions about, or classifying, a packet based on decoded fields \cite{openflow_spec}. Flow tables contain rules known as flow entries which perform \textit{actions} on like-classified packets.
 
 \item
-Actions provide a way to modify fields within a packet or modify the state of a table. Actions can also be used to forward the packet through a port on the system.
+Actions provide a way to modify a packet's fields, modify the state of a table, forward a packet, or drop a packet. They may also be used to move from decoders to flow
 
 \end{itemize}
+
