@@ -1,26 +1,22 @@
 \chapter{RELATED WORKS} \label{ch:related}
 
-Software-defined networking (SDN) is a relatively new field of research. Steve,
-as an SDN programming language, explores largely uncharted territory. Though a
-number of other SDN languages exist, they are vastly different in design,
-direction, and scope, with few gaining any sort of widespread usage. 
-
 \section{Freeflow} \label{rel:freeflow}
 
 Freeflow is a highly programmable, protocol oblivious data plane being developed
 by Flowgrammable \footnote{https://github.com/flowgrammable/freeflow/}. Steve is
 designed to program the Freeflow data plane and generates code targeting its
-Flowpath runtime environment.
-Freeflow adopts a component model similar to OpenFlow. A basic OpenFlow switch
+Flowpath runtime environment. Freeflow adopts a component model similar to an OpenFlow switch. A basic OpenFlow switch
 has three major components: a packet processing pipeline, ports, and a channel
 to an external controller application \cite{openflow_spec}. A Freeflow data
 plane loads Steve applications which control the logic behind the packet
 processing pipeline.
 
-Steve's packet processing pipeline differs from the traditional OpenFlow
-semantics in a number of key ways. An OpenFlow pipeline is defined as a sequence
+\section{OpenFlow} \label{rel:openflow}
+
+An OpenFlow pipeline is defined as a sequence
 of one or more \textit{flow tables} and a \textit{group table} which handle
-packet lookups, decision making, and forwarding \cite{openflow_spec}. First,
+packet lookups, decision making, and forwarding \cite{openflow_spec}. Steve's packet processing pipeline differs from the traditional OpenFlow
+semantics in a number of ways. First,
 Steve provides language features for a user to create flow tables and define
 their flow entries, but does not yet support group tables. 
 
@@ -34,27 +30,18 @@ protocol oblivious, knowing nothing about any specific headers; therefore
 decoding must be an explicit user-defined stage of the pipeline. By extension,
 Steve does not, by default, support these OXM fields either.
 
-An OpenFlow controller is software normally used to control an OpenFlow switch
-\cite{openflow_spec}. It will handle "exceptional events" such as inserting,
+Third, the semantics for packet handling using an external controller are different. An OpenFlow controller is software used to control an OpenFlow switch \cite{openflow_spec}. It will handle "exceptional events" such as inserting,
 removing, and updating flow entries or processing packets which the pipeline
 could not. However, Steve and Freeflow do not use nor expect an external
 OpenFlow controller nor do they use OpenFlow messages to communicate with that
 controller. 
 
-Steve and Freeflow attempt to reduce the role of the controller. Even controller
+Steve and Freeflow attempt to reduce the role of the controller. Controller
 functions, which would typically handle exceptional cases (such as table
 manipulation and un-handled packets), can be written in Steve using special
 "event" handlers functions. These event handlers are executed by the data plane
 on a special internal Freeflow "controller" thread rather than relying on an
-external
-controller. 
-
-A Freeflow controller is actually a light-weight shell/thread within the data
-plane which only executes special event handlers written in Steve. All the logic
-of the controller is thus defined by a Steve program, rather than being a
-generic, separate program. Flowpath tries to avoid the need for a heavy-weight
-controller and sluggish OpenFlow channels by keeping the majority of execution
-inside the data plane or "fast path."
+external controller. 
 
 \section{SDN Languages} \label{rel:p4}
 
@@ -95,7 +82,8 @@ languages.
 
 The POF instruction set is difficult to write in and does not have the safety
 guarantees of a higher level language. The programmer is burdened with the
-error-prone task of parsing by manually specifying which bits comprise a fields. A high level language compiling into POF instructions would thus be ideal.
+error-prone task of parsing by manually specifying which bits comprise a fields. 
+A high level language compiling into POF instructions would thus be ideal.
 
 Steve tries to take the best of both worlds. Steve can define decoding functions
 similar to P4 parsers, with the added benefit of allowing the programmer to only
@@ -143,16 +131,16 @@ languages. The Frenetic language is a declarative language, embedded in Python,
 that uses SQL-like queries to classify packets and a library for describing
 packet forwarding policies over a collection of network switches
 \cite{foster2011frenetic, foster2013frenetic}. This language is designed to
-abstract away the difficulties of programming centralized SDN controller. Its
+abstract away the difficulties of programming a centralized SDN controller. Its
 sister project, Pyretic, does the same with some divergence in how forwarding
-policies are expressed \cite{modularpyretic}. 
+policies are expressed \cite{modularpyretic}. Both languages try to confirm the correctness of a program over an entire network.
 
 NetCore is a network programming language for expressing forwarding policies and
 generating classifiers from those policies \cite{monsanto2012netcore}. These
 classifiers then get installed on switches. NetKAT is a language, inspired by
 NetCore, for expressing packet processing functions and reasoning about a
 network using Kleene Algebra \cite{kozen2014netkat, anderson2014netkat}. NetKAT
-attempts to prove the correctness of its programs through mathematical theory.
+attempts to prove the correctness of its network programs through mathematical theory.
 
 NetASM is an intermediate representation language for programmable data planes
 \cite{shahbaz2015netasm}. It aims to provide a language that is target/device
