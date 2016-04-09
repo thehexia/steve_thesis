@@ -2,16 +2,13 @@
 
 \section{Freeflow} \label{rel:freeflow}
 
-Freeflow is a programmable, protocol oblivious, software data plane being developed
-by Flowgrammable \footnote{https://github.com/flowgrammable/freeflow/}. Steve is
-designed to program the Freeflow data plane and generates code targeting its
-Flowpath runtime environment. Freeflow adopts a component model similar to an OpenFlow switch. A basic OpenFlow switch
-has three major components: a packet processing pipeline, ports, and a channel
-to an external controller application \cite{openflow_spec}. A Freeflow data
-plane loads Steve applications which control the logic behind the packet
-processing pipeline.
+Freeflow is an SDN switch architecture developed
+by Flowgrammable \cite{freeflow_software}. Flowpath is the programmable, protocol oblivious, software data plane within the Freeflow system. Steve is
+designed to generate code targeting the Flowpath runtime environment. A Freeflow data plane loads Steve applications which control the logic behind its packet processing pipeline.
 
 \section{OpenFlow} \label{rel:openflow}
+
+The OpenFlow specification \cite{openflow_spec} attempts to define a common interface between control plane and data plane. It also defines the basic components of an SDN switch: ports, a packet processing pipeline, and an external controller.
 
 An OpenFlow pipeline is defined as a sequence
 of one or more \textit{flow tables} and a \textit{group table} which handle
@@ -32,15 +29,15 @@ Steve does not, by default, support these OXM fields either.
 
 Third, the semantics for packet handling using an external controller are different. An OpenFlow controller is software used to control an OpenFlow switch \cite{openflow_spec}. It will handle "exceptional events" such as inserting,
 removing, and updating flow entries or processing packets which the pipeline
-could not. However, Steve and Freeflow do not use nor expect an external
+could not. However, Steve and Flowpath do not use nor expect an external
 OpenFlow controller nor do they use OpenFlow messages to communicate with that
 controller. 
 
-Steve and Freeflow attempt to reduce the role of the controller. Controller
+Steve and Flowpath attempt to reduce the role of the controller. Controller
 functions, which would typically handle exceptional cases (such as table
 manipulation and un-handled packets), can be written in Steve using special
 "event" handlers functions. These event handlers are executed by the data plane
-on a special internal Freeflow "controller" thread rather than relying on an
+on a special internal Flowpath "controller" thread rather than relying on an
 external controller. 
 
 \section{Data Plane Programming Libraries} \label{rel:dp_lib}
@@ -131,6 +128,8 @@ currently support.
 
 NetASM is an intermediate representation language for programmable data planes
 \cite{shahbaz2015netasm}. It aims to solve the same issues as POF, but also provides a language that is target/device independent. The goal is for higher level languages to compile into NetASM which can then be compiled into platform-specific code by device-specific compilers.
+
+The Arbiter Framework is an SDN language designed for safer data path configuration by verifying that standard protocol definitions are not violated \cite{noproto1}.
 
 \section{Other Languages} \label{rel:frenetic}
 
