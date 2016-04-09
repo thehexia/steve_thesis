@@ -43,6 +43,12 @@ manipulation and un-handled packets), can be written in Steve using special
 on a special internal Freeflow "controller" thread rather than relying on an
 external controller. 
 
+\section{Data Plane Programming Libraries} \label{rel:dp_lib}
+
+Open Data Plane (ODP) is an open source API in C for developing data plane applications \cite{odp_webpage}. ODP provides application portability by providing a common set of APIs across multiple platforms and instruction set architectures such as ARM, MIPS, x86, and proprietary hardware.
+
+Data Plane Development Kit (DPDK) by Intel is a set of software libraries for improving packet processing speeds on Intel processors and NICs \cite{dpdk_webpage}. DPDK attempts to provide a single platform (Intel processors) for performing all packet processing tasks, thus eliminating the need for specialized hardware.
+
 \section{SDN Data Plane Configuration Languages} \label{rel:p4}
 
 Steve is a language for modifying the packet processing and forwarding functionality of a data plane. Steve is \textit{protocol oblivious}, meaning it does not by default
