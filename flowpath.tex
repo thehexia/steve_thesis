@@ -1,32 +1,148 @@
-\chapter{Flowpath} \label{ch:flowpath}
+\chapter{Flowpath and Steve Compilation} \label{ch:flowpath}
 
-Flowpath is a programmable, protocol oblivious, software data plane which is part of the Freeflow project \cite{freeflow_software}. Flowpath exposes an API to allow other programs to configure and program it through its runtime environment. Flowpath is designed to load dynamic link libraries known as \textit{Flowpath pipeline applications}. 
+Flowpath is a programmable, protocol oblivious, software data plane which is part of the Freeflow project \cite{freeflow_software}. 
+The Flowpath runtime environment abstracts the low-level hardware and software resources of a networking device. This includes port management, packet capture, memory management, flow table allocation, and table matching algorithms. Flowpath also supports multitenancy, that is, it provides the ability to construct multiple instances of software data planes on a single machine. Flowpath does \textit{not}, however, specify its own packet processing pipeline. Instead, Flowpath exposes an API which allows other programs to work with data plane resources. 
 
-Flowpath pipeline applications expose their own API, which must conform to a certain specification to be \textit{Flowpath loadable}. 
-They will use the Flowpath API to provide packet decoder's, configure the data plane's flow tables and flow entries, provide event handlers for exceptional events, and control the logic behind the packet processing pipeline.
+These other programs, known as \textit{pipeline applications}, contain all the packet processing logic. Packet decoders, flow table configuration details, flow entry definitions, and exceptional event handlers are contained inside these pipeline applications.
+Flowpath is designed to load these pipeline applications which are dynamic link libraries confirming to a certain Flowpath specification. Encapsulating all this functionality into these applications makes the data plane incredibly modular. The entire behavior of the data plane can instantly change by removing one application and loading another without having to stop and recompile the data plane's software. For example, in seconds, a Flowpath data plane instance can go from being an L2 switch to and L3 switch just by changing applications. 
 
-For now, Steve is specifically tailored toward compiling Flowpath pipeline applications. This chapter will focus on Flowpath, its interactions with Steve, and how Steve applications leverage the Flowpath API to create packet processing pipelines.
+For now, the Steve compiler is specifically tailored toward compiling Flowpath pipeline applications. This chapter will focus on Flowpath, its interactions with Steve, and how Steve applications use the Flowpath API in its packet processing pipeline. 
 
-\section{Flowpath}
+\section{Flowpath API} \label{fp:dp_interface}
 
-The Flowpath runtime environment abstracts the low-level hardware and software resources. This includes port management, packet reading, memory management, flow table allocation, and table matching algorithms. Flowpath does \textit{not}, however, specify its own packet processing pipeline. Packet decoders, flow table configuration details, flow entry definitions, and exceptional event handling is left up to the pipeline application which Flowpath loads.
+The Flowpath API provides functions for forwarding packets, dropping packets, flow table acquisition, table matching, flow entry insertion and deletion, and event handling. A Steve application, which handles all of the packet processing logic, uses this API to assist it. Table \ref{tbl:flowpath_api} summarizes the API provided by the Flowpath interface.
 
-Flowpath also supports multitenancy, that is, it provides the ability to construct multiple instances of software data planes on a single machine.
+\begin{table}
+\begin{center}
+\begin{tabular}{| p{0.3\linewidth} | p{0.7\linewidth} |}
+\hline
+Interface Functions & Description \\
 
-\section{Runtime Configuration} \label{config_guide}
+% % % % % % % % % % % % % % %
+\hline
+\texttt{fp\_output\_port} & 
 
-Steve applications are shared object libraries (.so files). They are not, by themselves, executable. They must be loaded by an instance of the Flowpath runtime. In order to do this, a C++ driver must be written for the Flowpath runtime which will load the Steve application. Flowpath will expect that Steve supports three interface functions. These functions get executed in a specific order once the Steve application is loaded.
+Creates a copy of the packet contained by context, \texttt{c}, and forwards it on the port with identifier \texttt{id}. \\
+\hline 
+% % % % % % % % % % % % % % % 
+
+\texttt{fp\_goto\_table} & 
+Sends a context to be matched against a given table. The application is responsible for telling the data plane which fields must be extracted from the context and turned into a query key. \\
+
+\hline
+% % % % % % % % % % % % % % %
+
+\texttt{fp\_create\_table} &
+Instructs the data plane to construct a flow table and return a handle to that flow table. \\
+\hline
+
+% % % % % % % % % % % % % % %
+
+\texttt{fp\_add\_init\_flow}
+
+\texttt{fp\_add\_new\_flow} 
+
+\texttt{fp\_add\_miss}
+
+&
+
+Allows for adding initial flow entries, new flow entries, and miss case flow entries to a given table. \\
+\hline
+% % % % % % % % % % % % % % % 
+
+\texttt{fp\_del\_flow}
+
+\texttt{fp\_del\_miss} &
+
+Allows for deleting flow entries with certain match fields, or for removing the miss case. \\
+
+\hline
+
+% % % % % % % % % % % % % % % 
+
+\texttt{fp\_raise\_event} &
+
+Sends a context and an event handler to Flowpath. Flowpath will queue up the event handler and context on its controller port. The controller will call the event handler, passing the context in as an argument, when it is ready. \\
+\hline
+
+% % % % % % % % % % % % % % %
+
+\texttt{fp\_get\_all\_port}
+
+\texttt{fp\_get\_flood\_port}
+
+\texttt{fp\_get\_reflow\_port} &
+
+These functions return the port identifiers for the reserved ports: all, flood, and reflow. \\
+
+\hline
+
+% % % % % % % % % % % % % % % 
+
+\texttt{fp\_get\_flow\_egress} & Returns the port identifier stored in a specific flow entry's port egress property. \\
+
+\hline
+
+% % % % % % % % % % % % % % %
+
+\texttt{fp\_port\_id\_is\_up}
+
+\texttt{fp\_port\_id\_is\_down} &
+
+Returns true or false depending on whether a port is up or down. \\
+
+\hline
+
+\end{tabular}
+\end{center}
+\caption{The Flowpath API that may be used by Flowpath pipeline applications. The API and its function implementations are subject to change, so specific parameters and return types are not given.}
+\label{tbl:flowpath_api}
+\end{table}
+
+\section{Steve Applications} \label{fp:app_interface}
+
+For Flowpath to use a pipeline application, it must be a dynamic link library (or shared object library) which exposes a specific interface. Flowpath uses this interface to configure the data plane instance. This typically involves setting up flow tables and initial flow entries. Flowpath then creates and sends contexts through this interface for pipeline processing. Table \ref{tbl:steve_api} summarizes the application interface.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{| p{0.3\linewidth} | p{0.7\linewidth} |}
+\hline
+Interface Functions & Functionality \\
+
+\hline
+
+\texttt{config} & This function is used for configuration when an application gets loaded. Flowpath passes a data plane handle to this function. This function then calls the Flowpath API to set up flow tables and flow entries. \\
+
+\hline
+
+\texttt{process} & Flowpath sends contexts through this function for pipeline processing. The application's logic will dictate which decoders and tables are used. Once the application finishes execution, Flowpath executes egress processing described in Section \ref{egress_desc}. \\
+
+\hline
+
+\end{tabular}
+\end{center}
+\caption{The application interface. All Flowpath loadable applications must provide this interface.}
+\label{tbl:steve_api}
+\end{table}
+
+Its important to note that the context data structure described in Section \ref{context_desc} is allocated by the data plane, but is only manipulated by the Steve application. The Flowpath runtime will only need to read values from the context (during table matching and egress processing). As a consequence, both the Flowpath runtime environment and the pipeline application must know about the same data structure.
+
+\section{Application Loading and Runtime Configuration} \label{config_guide}
+
+To load a pipeline application, one must write a Flowpath driver which finds and dynamically links against the pipeline application binary. This driver is implemented in C++ (the same language Flowpath is implemented in) and uses the Flowpath runtime library (a header library).
+
+The driver is responsible for the following operations using the Flowpath runtime library:
 
 \begin{enumerate}
-\item \textit{Configuration}. The first thing Flowpath will do is call the Steve application's configuration function. This function allows Steve to make requests for tables and initial flow entries. The Steve application will ask for a table with a certain ID number, size, and key width. Flowpath will allocate such a table and return a handle to the table back to the Steve application. Once the handle is received, the Steve application will request that all initial flow entries are inserted into the table. Next, all ports declared with an initial port initializer are requested. If they exist, then their identifiers are return, otherwise the identifier to the invalid port (i.e. zero) is returned.
+\item \textit{Port discovery.} The driver will discover all necessary ports on the system and manage receiving and forwarding through them.
 
-\item \textit{Port Changed Notifications}. If a port has changed, then a notification is sent to the Steve application about that change. A port change notification may state whether a port has gone up or down. If a port has gone up, then an uninitialized prot declared by the Steve application is set to that port. If a port has gone down, then any declared port with that value is set to the invalid port (i.e. zero).
+\item \textit{Application loading.} The driver will fetch and link in the pipeline application which dictates the packet processing logic. Without the pipeline application, the Flowpath data plane is incapable of making sophisticated forwarding decisions.
 
-\item \textit{Process}. Flowpath will begin sending contexts to the Steve application for pipeline processing through this interface.
+\item \textit{Configuration}. After loading, the driver will call the Steve application's \texttt{config} function described in Table \ref{tbl:steve_api}. Steve will make requests for tables and initial flow entries using the Flowpath API. The Steve application will ask for a table with a certain ID number, maximum flow entry size, and key width. Flowpath will allocate such a table and return a handle to the table back to the Steve application. Once the handle is received, the Steve application will provide initial flow entries to be inserted into the table.
+
+\item \textit{Ingress processing}. Drivers must perform the ingress processing phase described in Section \ref{ingress_desc}. The driver will handle receiving packets on ports and allocating the context data structures for them.
+
+\item \textit{Pipeline processing.} Flowpath will begin sending contexts to the Steve application for pipeline processing through the \texttt{process} function described in Table \ref{tbl:steve_api}.
+
+\item \textit{Egress processing.} Once the \texttt{process} function completes, the driver will handle the egress processing phase described in Section \ref{egress_desc}.
 \end{enumerate}
-
-\section{Egress Processing} \label{egress_process}
-
-Egress processing occurs right before a packet is forwarded. Egress processing begins when a pipeline processing stage (decoder, event, or table) has finished, but has not sent the context to another stage. At this time, actions written to the context's action set are executed. These actions may have special semantics when executed at this time (see \ref{guide:write}). Each action is executed in the order with which it was written. Once the action set is finished executing, the forwarding decision is made.
-
-The context's output port field indicates which port to forward the original packet on. If the output port field is not set, the packet will be dropped and deleted from memory. Once the packet has been forwarded, the context memory is deleted. 

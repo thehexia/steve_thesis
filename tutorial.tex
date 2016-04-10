@@ -591,6 +591,8 @@ decoder start eth_d(ethernet)
 \end{lstlisting}
 \end{codepage}
 
+Flow entries declared within a flow table, like in \texttt{ethtype}, are known as \textit{initial flow entries}. They get installed before a Steve application processes its first packet. Flow entries may also be added to a flow table. An example of adding flows can be found in Section \ref{tut:insert_flow_action}.
+
 \subsection{A More Complex Table} \label{tut:complex_table}
 
 So far we have only presented the most basic of flow tables. Flow tables can get far more complicated.

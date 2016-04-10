@@ -175,8 +175,8 @@ A flow entry is equivalent to a rule in a decision table. Each flow entry is com
 For each key field,
 each flow entry has a corresponding value, known as a \textit{match field}, such
 that every flow entry in the table is uniquely identified by its match fields
-and its priority. When a packet is being matched against a table, the fields comprising the table's
-key are extracted from the context; then each match field is compared against the corresponding packet field. If all fields match, then the flow entry's actions are executed on the packet. Actions may modify the packet, context, or flow tables. Priority is used to unambiguously execute exactly one flow entry if multiple flow entry matches are found. The highest priority flow entry is always executed.
+and its priority. When a packet is being matched against a table, the fields given by the table's
+key are extracted from the context. These extracted fields, together, are called the \textit{query key}. Each match field is then compared against the corresponding packet field. If all fields match, then the flow entry's actions are executed on the packet. Actions may modify the packet, context, or flow tables. Priority is used to unambiguously execute exactly one flow entry if multiple flow entry matches are found. The highest priority flow entry is always executed.
 
 If no flow entry matches the packet's field values, the
 \textit{miss case} flow entry is applied to the packet instead. By default, a 
