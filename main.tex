@@ -51,8 +51,8 @@
 	    },
 	    emph=[2]{ start, as, requires, advance },
 	    emph=[3]
-	    { 
-	    	output, decode, goto, drop, set, write, clear, raise, insert, into, remove, from, 
+	    {
+	    	output, decode, goto, drop, set, write, clear, raise, insert, into, remove, from,
 	    },
 	    emphstyle={\color{blue}\textbf},
 	    emphstyle=[2]{\color{green}\textbf},
@@ -135,18 +135,21 @@
 \chair{Timothy O'Neil}
 \collegedean{John Green}
 \gradschdean{Chand Midha}
-%
+
 %For a PhD dissertation, specify a coadvisor and three committee
 %members, or four committee members only.  For an MS thesis use either
 %one coadvisor or one faculty reader, not both.
 %
 %Typical commands for a PhD dissertation (uncomment only 4).
-%\coadvisor{Name of Coadvisor}
+
+% FIXME: This isn't right. I think we require a committee of 3 in the
+% department.
+
 \committee{Name of 1st Comm Member}
 \committee{Name of 2nd Comm Member}
 \committee{Name of 3rd Comm Member}
 \committee{Name of 4th Comm Member}
-%
+
 %Typical commands for an MS thesis (uncomment only 1).
 %\coadvisor{Andrew Sutton}
 \facreader{NAME 1}
