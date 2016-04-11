@@ -1,12 +1,14 @@
-\chapter{RELATED WORKS} \label{ch:related}
+\chapter{BACKGROUND RELATED WORK}
+\label{ch:related}
 
-\section{Freeflow} \label{rel:freeflow}
+\section{Background}
+\label{rel:openflow}
 
-Freeflow is an SDN switch architecture developed
-by Flowgrammable \cite{freeflow_software}. Flowpath is the programmable, protocol oblivious, software data plane within the Freeflow system. Steve is
-designed to generate code targeting the Flowpath runtime environment. A Freeflow data plane loads Steve applications which control the logic behind its packet processing pipeline.
-
-\section{OpenFlow} \label{rel:openflow}
+% FIXME: Something like this.
+%
+% NOTE: You only really need one citation per section -- or whenever the
+% context becomes unclear.
+Much of the work on the development of technologies and programming languages for SDN is targeted at OpenFlow: a specification describing the general architecture of SDN switches and the protocol that allows them to be remotely observed and controlled.
 
 The OpenFlow specification \cite{openflow_spec} attempts to define a common interface between control plane and data plane. It also defines the basic components of an SDN switch: ports, a packet processing pipeline, and an external controller.
 
@@ -15,7 +17,7 @@ of one or more \textit{flow tables} and a \textit{group table} which handle
 packet lookups, decision making, and forwarding \cite{openflow_spec}. Steve's packet processing pipeline differs from the traditional OpenFlow
 semantics in a number of ways. First,
 Steve provides language features for a user to create flow tables and define
-their flow entries, but does not yet support group tables. 
+their flow entries, but does not yet support group tables.
 
 Second, a Steve pipeline has more than \textit{just} flow tables. Steve
 pipelines will also have \textit{decoders} which may be interleaved between
@@ -27,18 +29,18 @@ protocol oblivious, knowing nothing about any specific headers; therefore
 decoding must be an explicit user-defined stage of the pipeline. By extension,
 Steve does not, by default, support these OXM fields either.
 
-Third, the semantics for packet handling using an external controller are different. An OpenFlow controller is software used to control an OpenFlow switch \cite{openflow_spec}. It will handle "exceptional events" such as inserting,
+Third, the semantics for packet handling using an external controller are different. An OpenFlow controller is software used to control an OpenFlow switch. It will handle ``exceptional events'' such as inserting,
 removing, and updating flow entries or processing packets which the pipeline
 could not. However, Steve and Flowpath do not use nor expect an external
 OpenFlow controller nor do they use OpenFlow messages to communicate with that
-controller. 
+controller.
 
 Steve and Flowpath attempt to reduce the role of the controller. Controller
 functions, which would typically handle exceptional cases (such as table
 manipulation and un-handled packets), can be written in Steve using special
-"event" handlers functions. These event handlers are executed by the data plane
-on a special internal Flowpath "controller" thread rather than relying on an
-external controller. 
+event handler functions. These event handlers are executed by the data plane
+on a special internal Flowpath ``controller'' thread rather than relying on an
+external controller.
 
 \section{Data Plane Programming Libraries} \label{rel:dp_lib}
 
@@ -62,7 +64,7 @@ match+action tables (which are equivalent to OpenFlow flow tables). Parsers are
 used to extract entire headers and store them in a "parsed representation"
 before entering pipeline processing. When the packet enters the pipeline,
 match+action tables match against fields in the parsed representation and
-perform actions on matched packets. 
+perform actions on matched packets.
 
 Protocol-Oblivious Forwarding (POF) \cite{pof_fis, pof, pof_impl} is another
 project also tackling the problem of protocol oblivious pipeline processing. POF
@@ -85,7 +87,7 @@ languages.
 
 The POF instruction set is difficult to write in and does not have the safety
 guarantees of a higher level language. The programmer is burdened with the
-error-prone task of parsing by manually specifying which bits comprise a fields. 
+error-prone task of parsing by manually specifying which bits comprise a fields.
 A high level language compiling into POF instructions would thus be ideal.
 
 Steve tries to take the best of both worlds. Steve can define decoding functions
@@ -98,9 +100,9 @@ the risk for error. Steve decoders may also be interleaved between tables,
 meaning fields can be extracted, as needed, right before table matching like
 POF. Like P4,
 Steve decoding can also happen all at once "up-front," before any table
-matching. 
+matching.
 It is up to the programmer to decide which is better. This makes Steve
-decoders a little more robust than either P4 or POF. 
+decoders a little more robust than either P4 or POF.
 
 Steve supports high-level definition of flow tables (or match+action tables in
 P4). Additionally, Steve also allows the programmer to define flow entries. This
@@ -148,3 +150,26 @@ classifiers then get installed on switches. NetKAT is a language, inspired by
 NetCore, for expressing packet processing functions and reasoning about a
 network using Kleene Algebra \cite{kozen2014netkat, anderson2014netkat}. NetKAT
 attempts to prove the correctness of its network programs through mathematical theory.
+
+% FIXME: It might be worthwhile to talk about tcpdump... It's called BPF:
+% Berkely Packet Filter.
+
+
+\section{Open VSwtitch}
+\label{rel:vswitch}
+
+% FIXME: You want something brief here.
+
+\section{Open Data Plane}
+\label{rel:freeflow}
+
+% FIXME: Maybe this too.
+
+% FIXME: I moved this down so that the related work would focus on language
+% related featuers.
+\section{Freeflow}
+\label{rel:freeflow}
+
+Freeflow is an SDN switch architecture developed
+by Flowgrammable \cite{freeflow_software}. Flowpath is the programmable, protocol oblivious, software data plane within the Freeflow system. Steve is
+designed to generate code targeting the Flowpath runtime environment. A Freeflow data plane loads Steve applications which control the logic behind its packet processing pipeline.

@@ -71,7 +71,7 @@ The Steve-to-Flowpath compiler is responsible for converting Steve programs into
 % FIXME: Skip the beaker references here. That's an implementation detail.
 % Also, I think you need to introduce Steve as a concept before you start
 % talking about its features.
-Steve is a statically typed language \sout{and thus supports static type checking}. This functionality is derived from the Beaker programming language \footnote{https://github.com/asutton/beaker/} which the Steve compiler is an extension of. In regards to packet processing, Steve allows the programmer to give static types to header fields. The Steve compiler makes sure those fields can only be used in operations valid for its given type.
+Steve is a statically typed language and thus supports static type checking. This functionality is derived from the Beaker programming language \footnote{https://github.com/asutton/beaker/} which the Steve compiler is an extension of. In regards to packet processing, Steve allows the programmer to give static types to header fields. The Steve compiler makes sure those fields can only be used in operations valid for its given type.
 
 The Steve compiler also ensures certain safety properties over the entire packet processing pipeline.
 
