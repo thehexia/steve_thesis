@@ -1,0 +1,39 @@
+\chapter{Experiments} \label{ch:experiments}
+
+This chapter summarizes performance experiments performed on Steve compiled pipelines. These experiments were performed using \textit{Fakeflow}, a Flowpath data plane emulator. Fakeflow is largely equivalent to a single-threaded implementation of Flowpath with the exception of ports. Fakeflow removes the overhead of sending and receiving from ports. Instead, Fakeflow reads packets from pcap files to emulate receiving from ports and forwarded packets do not get sent anywhere (equivalent to simply dropping the packet).
+
+\section{Use Cases} \label{exp:use_cases}
+
+This section provides the performance for the three applications presented in Section \ref{tut:examples}: the MAC learning switch, the IPv4 learning router, and the basic wire. The timeout property for flow entries in MAC learning and IPv4 learning have been were removed so flow entries last indefinitely. Tests were performed using three pcap files described in Table \ref{tbl:pcap}.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{| p{0.3\linewidth} | p{0.7\linewidth} |}
+\hline
+smallFlows & \\
+\hline
+\end{tabular}
+\end{center}
+\caption{The three pcap test cases used for experiments.}
+\label{tbl:pcap}
+\end{table}
+
+The Flowpath emulator was configured to have five ports. The ingress port for each packet was randomly assigned.
+
+Table \ref{tbl:use_stats} summarizes the results of running each 
+
+\begin{table}
+\begin{center}
+\begin{tabular}{| p{0.3\linewidth} | p{0.7\linewidth} |}
+
+\end{tabular}
+\end{center}
+\caption{Performance metrics for three Steve applications presented in Section \ref{ch:tutorial}: the MAC learning switch, the IPv4 learning router, and the basic wire.}
+\label{tbl:use_stats}
+\end{table}
+
+\section{Partial vs. Full Decodes} \label{exp:decode_comparison}
+
+Steve proposed that partial decodes were, in fact, faster than full decodes of packets.
+
+\section{Performance of Actions} \label{exp:action_performance}
