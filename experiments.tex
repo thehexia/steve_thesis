@@ -2,38 +2,174 @@
 
 This chapter summarizes performance experiments performed on Steve compiled pipelines. These experiments were performed using \textit{Fakeflow}, a Flowpath data plane emulator. Fakeflow is largely equivalent to a single-threaded implementation of Flowpath with the exception of ports. Fakeflow removes the overhead of sending and receiving from ports. Instead, Fakeflow reads packets from pcap files to emulate receiving from ports and forwarded packets do not get sent anywhere (equivalent to simply dropping the packet).
 
-\section{Use Cases} \label{exp:use_cases}
+\section{Data Sets} \label{exp:use_cases}
 
-This section provides the performance for the three applications presented in Section \ref{tut:examples}: the MAC learning switch, the IPv4 learning router, and the basic wire. The timeout property for flow entries in MAC learning and IPv4 learning have been were removed so flow entries last indefinitely. Tests were performed using three pcap files described in Table \ref{tbl:pcap}.
+Tests were performed using three pcap samples described in Table \ref{tbl:pcap}. Samples 1 and 2 were taken from Tcpreplay's sample captures \footnote{http://tcpreplay.appneta.com/wiki/captures.html} used for testing NetFlow. Sample 3 was taken from Netresec \footnote{http://www.netresec.com/?page=PCAP4SICS} which contains real industrial network traffic.
 
 \begin{table}
+\caption{The three pcap test cases used for experiments.}
 \begin{center}
-\begin{tabular}{| p{0.3\linewidth} | p{0.7\linewidth} |}
+\begin{tabular}{| p{0.05\linewidth} || p{0.15\linewidth} | p{0.15\linewidth} | p{0.15\linewidth} | p{0.50\linewidth} |}
 \hline
-smallFlows & \\
+\# & Pcap sample & Packet Count & Average Packet Size & Summary \\
+\hline
+1 & smallFlows & 14,261 & 646 bytes & A synthetic capture using various different protocols. \\
+\hline
+2 & bigFlows & 791,615 & 449 bytes & Real network traffic from a busy private network's Internet access point. \\
+\hline
+3 & 4ISCS & 2,274,747 & 76 bytes & Real industrial network traffic from ICS labs. \\
 \hline
 \end{tabular}
 \end{center}
-\caption{The three pcap test cases used for experiments.}
 \label{tbl:pcap}
 \end{table}
 
-The Flowpath emulator was configured to have five ports. The ingress port for each packet was randomly assigned.
+\section{Use Cases}
 
-Table \ref{tbl:use_stats} summarizes the results of running each 
+This section provides experimental performance results for four applications from Appendix \ref{ap:steve_programs}: the MAC learning switch, the IPv4 learning router, the basic wire, and a basic packet filter/stateless firewall. The timeout property for flow entries all examples were removed so flow entries last indefinitely.
 
+The Flowpath emulator was configured to have a fixed number of ports. The ingress port for each packet was randomly assigned amongst these ports. Table \ref{tbl:pcap1_stats} through Table \ref{tbl:pcap3_stats} summarize the results of running the same pcap sample a certain number of iterations through each application. Packets are sent through the pipeline at maximum rate rather than at their original rate. Each experiment is repeated five times an the resulting average is given.
+
+% % % % % % % % % %
+% smallFlows
+% % % % % % % % % %
 \begin{table}
+\caption{Performance metrics after sending 1000 iterations of the smallFlows pcap sample through each application.}
 \begin{center}
-\begin{tabular}{| p{0.3\linewidth} | p{0.7\linewidth} |}
-
+\begin{tabular}{| c || c | c | c | }
+\hline
+% header row
+Application & Gbps & Throughput (Gbps) & Mpps  \\
+\hline
+MAC Learning & 10.10 & 10.10 & 1.95  \\
+\hline
+IPv4 Learning & 9.25 & 9.25 & 1.79  \\
+\hline 
+Wire* & 16.36 & 18.36 & 3.17 \\
+\hline
+Firewall & 9.97 & 1.10 & 1.93 \\
+\hline
+\multicolumn{4}{p{\linewidth}}{* Two dummy packets are sent from both ports on the wire to ensure the application learns those ports before processing packets.}
 \end{tabular}
 \end{center}
-\caption{Performance metrics for three Steve applications presented in Section \ref{ch:tutorial}: the MAC learning switch, the IPv4 learning router, and the basic wire.}
-\label{tbl:use_stats}
+\label{tbl:pcap1_stats}
+\end{table}
+
+
+% % % % % % % % % %
+% Big flows
+% % % % % % % % % %
+\begin{table}
+\caption{Performance metrics after sending 20 iterations of the bigFlows pcap sample through each application.}
+\begin{center}
+\begin{tabular}{| c || c | c | c | }
+\hline
+Application & Gbps & Throughput (Gbps) & Mpps  \\
+\hline
+MAC Learning & 6.89 & 6.89 & 1.91  \\
+\hline
+IPv4 Learning & 6.43 & 6.43 & 1.79  \\
+\hline 
+Wire* & 11.42 & 11.42 & 3.18 \\
+\hline
+Firewall & 7.14 & 1.53 & 1.99 \\
+\hline
+\multicolumn{4}{p{\linewidth}}{* Two dummy packets are sent from both ports on the wire to ensure the application learns those ports before processing packets.}
+\end{tabular}
+\end{center}
+\label{tbl:pcap2_stats}
+\end{table}
+
+% % % % % % % % % %
+% 4PICS flows
+% % % % % % % % % %
+\begin{table}
+\caption{Performance metrics after sending 20 iterations of the 4PICS pcap sample through each application.}
+\begin{center}
+\begin{tabular}{| c || c | c | c | }
+\hline
+Application & Gbps & Throughput (Gbps) & Mpps  \\
+\hline
+MAC Learning & 1.28 & 1.28 & 2.11  \\
+\hline
+IPv4 Learning & 1.20 & 1.19 & 1.97  \\
+\hline 
+Wire* & 2.29 & 2.29 & 3.77 \\
+\hline
+Firewall & 1.52 & 0.04 & 2.51 \\
+\hline
+\multicolumn{4}{p{\linewidth}}{* Two dummy packets are sent from both ports on the wire to ensure the application learns those ports before processing packets.}
+\end{tabular}
+\end{center}
+\label{tbl:pcap3_stats}
 \end{table}
 
 \section{Partial vs. Full Decodes} \label{exp:decode_comparison}
 
 Steve proposed that partial decodes were, in fact, faster than full decodes of packets.
 
+\begin{table}
+\caption{Comparing IPv4 router performance (in Mpps) with partial header decodes versus full header decodes. The full decoding application decodes eight more fields than the partial decode.}
+\begin{center}
+\begin{tabular}{| c || c | c | c |}
+\hline
+Sample & Partial (Mpps) & Full (Mpps) & \% Difference \\
+\hline
+1 & 1.79 & 1.73 & 3.41\% \\
+\hline
+2 & 1.79 & 1.72 & 3.99\% \\
+\hline
+3 & 1.97 & 1.89 & 4.15\% \\ 
+\hline
+\end{tabular}
+\end{center}
+\label{tbl:router_cmp}
+\end{table}
+
+\begin{table}
+\caption{Comparing firewall performance (in Mpps) with partial header decodes versus full header decodes.}
+\begin{center}
+\begin{tabular}{| c || c | c | c |}
+\hline
+Sample & Partial (Mpps) & Full (Mpps) & \% Difference \\
+\hline
+1 & 1.93 & 1.82 & 5.86\% \\
+\hline
+2 & 1.99 & 1.87 & 6.22\% \\
+\hline
+3 & 2.51 & 2.29 & 9.17\% \\ 
+\hline
+\end{tabular}
+\end{center}
+\label{tbl:router_cmp}
+\end{table}
+
+
 \section{Performance of Actions} \label{exp:action_performance}
+
+
+\begin{table}
+\caption{Average wall clock time for executing certain operations. Output action has been excluded as it varies with the threading model implementation of Flowpath.}
+\begin{center}
+\begin{tabular}{| p{0.4\linewidth} || p{0.2\linewidth} | }
+\hline
+Operation & Time (ns)  \\
+\hline
+Goto action + Table matching & 110.49 \\
+\hline
+Insert flow entry action & 418.66 \\
+\hline
+Remove flow entry action & 273.53 \\
+\hline
+Field access / read & 27.00 \\
+\hline
+Field write / set action & 33.84 \\
+\hline
+Write set action &  149.55 \\
+\hline
+Write output action & 124.00 \\
+\hline
+\end{tabular}
+\end{center}
+\label{tbl:action_stats}
+\end{table}

@@ -13,6 +13,7 @@ For now, the Steve compiler is specifically tailored toward compiling Flowpath p
 The Flowpath API provides functions for forwarding packets, dropping packets, flow table acquisition, table matching, flow entry insertion and deletion, and event handling. A Steve application, which handles all of the packet processing logic, uses this API to assist it. Table \ref{tbl:flowpath_api} summarizes the API provided by the Flowpath interface.
 
 \begin{table}
+\caption{The Flowpath API that may be used by Flowpath pipeline applications. The API and its function implementations are subject to change, so specific parameters and return types are not given.}
 \begin{center}
 \begin{tabular}{| p{0.3\linewidth} | p{0.7\linewidth} |}
 \hline
@@ -95,7 +96,6 @@ Returns true or false depending on whether a port is up or down. \\
 
 \end{tabular}
 \end{center}
-\caption{The Flowpath API that may be used by Flowpath pipeline applications. The API and its function implementations are subject to change, so specific parameters and return types are not given.}
 \label{tbl:flowpath_api}
 \end{table}
 
@@ -104,6 +104,7 @@ Returns true or false depending on whether a port is up or down. \\
 For Flowpath to use a pipeline application, it must be a dynamic link library (or shared object library) which exposes a specific interface. Flowpath uses this interface to configure the data plane instance. This typically involves setting up flow tables and initial flow entries. Flowpath then creates and sends contexts through this interface for pipeline processing. Table \ref{tbl:steve_api} summarizes the application interface.
 
 \begin{table}
+\caption{The application interface. All Flowpath loadable applications must provide this interface.}
 \begin{center}
 \begin{tabular}{| p{0.3\linewidth} | p{0.7\linewidth} |}
 \hline
@@ -121,7 +122,6 @@ Interface Functions & Functionality \\
 
 \end{tabular}
 \end{center}
-\caption{The application interface. All Flowpath loadable applications must provide this interface.}
 \label{tbl:steve_api}
 \end{table}
 
