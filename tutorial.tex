@@ -434,7 +434,7 @@ A \textit{layout rule} is the layout which the decoder
 will use to guide its extractions. It provides all the information necessary for
 the decoder to determine which bits in a packet comprise which fields.
 
-For our applications (and for almost all applications) ethernet will need to be decoded first. An assumption is made that all packets coming to the device begin with the
+For almost all applications, ethernet will need to be decoded first. An assumption is made that all packets coming to the device begin with the
 ethernet header (the most common first header). The skeleton of the ethernet decoder would look like the following example.
 
 \begin{codepage}
@@ -814,7 +814,7 @@ Match
 fields appear as a comma-separated list of expressions in the brace-enclosed
 block before the \texttt{->}. In the first flow entry, there is a single match field,
 \texttt{0x800}, corresponding to the key field, \texttt{ethernet.type}.
-All packet's whose \texttt{ethernet.type} field is \texttt{0x800} will match
+All packets whose \texttt{ethernet.type} field is \texttt{0x800} will match
 this flow entry. 
 
 The second flow entry is a special entry known as the \textit{miss case}. The miss case uses the keyword \texttt{miss} rather than providing match fields. If no other flow entry in a table can match a packet, the miss case is used. A table may only have one flow entry. If one is not given, an implicit one exists which is the equivalent to the second flow entry in the example. That is, by default miss cases drop a packet.
@@ -1529,8 +1529,8 @@ tables will start out with nothing but a miss case. After all, before an
 application runs, it has not learned anything yet. The first few packets will
 certainly match against these miss cases.
 
-The learning table is responsible for learning MAC addresses. This table will
-cause new flow entries to be inserted into both of our tables. The learning
+The learning table is responsible for learning MAC addresses. This table will raise an event which will
+cause new flow entries to be inserted into both tables. The learning
 table matches on \texttt{ethernet.src}. A flow entry will be installed into this
 table to prevent the same \texttt{ethernet.src} from being learned multiple
 times.
@@ -1573,7 +1573,7 @@ exact_table forward(ethernet.dst)
 
 The \texttt{learn\_mac} event is where the actual
 "learning" happens, and is thus the most important snippet of code in this
-application. The one extraction our event will need is \texttt{ethernet.src}.
+application. The one extraction this event will need is \texttt{ethernet.src}.
 This is the MAC address the tables will be learning.
 
 \begin{codepage}
