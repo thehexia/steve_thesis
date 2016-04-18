@@ -2,4 +2,4 @@
 \contentsline {figure}{\numberline {3.2}{\ignorespaces The binding environment inside a context used to store the length and offset of fields, or the offset of headers. On the left, indexes one through sixteen represent the fields that can be extracted. Each field maintains a binding stack. Each element in the binding stack is a binding which stores the offset and length where an instance of that field can be found. \relax }}{17}
 \contentsline {figure}{\numberline {3.3}{\ignorespaces A context environment in action during runtime.\relax }}{18}
 \contentsline {figure}{\numberline {4.1}{\ignorespaces A demonstration of the decoding process in action.\relax }}{41}
-\contentsline {figure}{\numberline {7.1}{\ignorespaces Steve reserved keywords. Note that Steve reserves the right to make any identifiers keywords in future versions.\relax }}{93}
+\contentsline {figure}{\numberline {7.1}{\ignorespaces Steve reserved keywords. Note that Steve reserves the right to make any identifiers keywords in future versions.\relax }}{94}
