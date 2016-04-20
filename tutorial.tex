@@ -1,8 +1,5 @@
 \chapter{The Steve Tutorial} \label{ch:tutorial}
 
-% FIXME: The wording here is too familiar for a thesis. Text can be
-% instructive but probably not 2nd person.
-
 % It might be worthwhile to divide this into three major sections:
 %
 % 1. General purpose computing
@@ -248,7 +245,7 @@ network. The header \textit{exists} whereas a layout helps the Steve application
 \textit{understand} it.
 
 The simplest example to begin with is the
-ethernet header \cite{eth_std}. Ethernet is a Layer 2 \cite{osi_model} protocol
+ethernet header \cite{eth_std}. Ethernet is a Layer 2 protocol
 and the most common in use. The first header most programs decode will be
 ethernet.
 
@@ -366,7 +363,7 @@ of DST's is one of the reasons why objects of layout type cannot be created.
 This is further discussed in Section \ref{guide:layout}.
 
 The following example presents a case where some of these limitations come into
-play -- the IPv4 layout. IPv4 is a Layer 3 protocol \cite{osi_model} and is used
+play -- the IPv4 layout. IPv4 is a Layer 3 protocol and is used
 for routing. An IPv4 header appears in almost all Internet-bound packets and
 thus makes it a common layout to write. This layout will prove useful when
 defining the simple router program later on.
@@ -449,7 +446,7 @@ In this example, the decoder is named \texttt{eth\_d}. The layout rule is
 decoder will always be the first to execute. A program must have exactly one
 starting decoder. 
 
-The decoder has a body, delimited by \texttt{\{\}}, which executes. This body will be filled with operations for the decoder to perform.
+The decoder has a body, delimited by $\lbrace\rbrace$, which executes. This body will be filled with operations for the decoder to perform.
 
 \subsection{Extractions} \label{tut:decoder_extract}
 
@@ -899,7 +896,7 @@ exact_table ip_proto(ipv4.fragment, ipv4.protocol)
 \end{codepage}
 
 This flow table tries to classify packets to determine which transport layer
-protocol \cite{osi_model} they use, and dispatches to the appropriate decoder.
+protocol they use, and dispatches to the appropriate decoder.
 Each flow entry restricts itself to only non-fragmented packets.
 
 Flow entries may also have \textit{properties}. Properties are additionally

@@ -13,23 +13,43 @@
 % FIXME: Use \emph to emphasize terms, not boldface.
 
 % FIXME: Use this sentence in your abstract.
-Steve is a domain-specific programming language tailored toward writing \emph{packet processing pipeline} applications for \emph{software-defined networking (SDN) devices}.
 
-\textbf{What is a packet?} A network packet is a formatted chunk of data used to send information across computer networks. Packets are comprised of headers and a payload. Headers contain fields which are information regarding where a packet must go next, much like an address on an envelope. When a network device (e.g. routers, switches, etc) receives a packet, it must decode these headers, retrieve these fields, and determine where a packet must go next.
 
-\textbf{What is a packet processing pipeline?} A packet processing pipeline is a kind of algorithm for handling packets coming into a networking device. The pipeline is made up of small stages which decode packet headers and make forwarding decisions based on field values in those headers. In essence, the pipeline defines the behavior of the networking device. One pipeline may define a MAC forwarding switch, another might define an IP router.
+Packet-switched networks have gone through an explosive evolution over the last half century. In the late 1960's, there was ARPANET which connected a sparse few computers across the global using the early TCP/IP protocols. By the late 1980's, networks were becoming more and more accessible with the first Internet service providers starting up. As the 1990's began ARPANET was retired, but the new, modern Internet had arisen to take its place. Through the 1990's and early 2000's new application protocols were produced which allowed for emails, instant messaging, voice communication, videos, and so forth to be sent over networks. 
 
-\textbf{What is SDN?} Software defined networking aims to make network devices more programmable. A typical networking device has two components: the data plane (sometimes called the forwarding plane) and the control plane. The data plane handles processing packets and forwarding them. The control plane manages and configures the data plane. The Open Network Foundation (ONF) defines SDN as ``the physical separation of the network control plane from the forwarding plane, and where a control plane controls several devices,'' thus making the control plane more programmable \cite{onf_sdn_def}. The underlying hardware is abstracted making it easier to write software for. To standardize SDN programming, ONF released the OpenFlow specification which defines an interface for control planes to manage data planes \cite{openflow_spec}.
+The Internet, which is nowadays ubiquitous with everyday life, connecting millions of computers across the globe, continues to drive networking technology forward. The network hardware used to connect computers has evolved. Primitive wires and repeater hubs evolved into more intelligent devices. 
 
-Making the control plane programmable is only the first step of SDN research. There are a number of projects focusing on making the data plane programmable as well. It allows the user to change the packet processing and forwarding functionality of a device \textit{without having to change the hardware}. What benefit does this have?
+These intelligent devices such as MAC switches and IP routers relied on the expanded firmware which gave them their functionality. These devices implemented two fundamental components, the control plane and the data plane, within their firmware.
 
-\textbf{Protocol oblivious processing.} By being able to program the packet processing functions, the data plane \textit{does not have to know about any standard protocols} (ethernet, IPv4, TCP, etc). Support for protocol headers is strictly left up to the programmer. This allows users to defined their own protocols in addition to supporting well-known protocols. There is no need to provide specific support for every possible header. Instead, the device provides a generic instruction set that can decode, extract, and process fields from arbitrary headers. This ``future-proofs'' the data plane.
+The control plane is the device's ``brain.'' It decides where packets should be sent and is capable of learning new forwarding behaviors over time. The control plane commands the data plane. The data plane is the device's ``brawn.'' It actually moves the packets from port to port. Almost all modern networking devices continue to operate using this conventional model.  
 
-\textbf{User-defined forwarding rules.} The user can define \textit{their own} custom packet processing pipeline. The forwarding rules can be freely manipulated. Because protocol independence is also achieved, these rules can handle arbitrary headers. It opens the way to networking applications which can be tailor made for custom protocols \textit{without needing new hardware} to handle them.
+The firmware for these devices, are rarely ever updated. On some devices, changes may not even be possible. Even if a device is updated, its overall behavior rarely changes. These devices are dedicated to one singular task for the duration of their lifetime. This type of networking device is known as \emph{hardware defined networking}.
 
-\textbf{Arbitrary processing.} Operations performed on a packet do not have to be limited by actions defined by OpenFlow standard switches. They also do not have to be limited by well-known operations performed on well-known protocols. Programmable data plane instruction sets can generically manipulate bytes like a CISC or RISC.
+Over time this conventional type of networking is complex, rigid, and proprietary. These devices are built to handle an absurd amount of protocols. These protocols, however, can rarely evolve because devices cannot handle unexpected new protocols. Their behavior cannot be easily customized or changed. Developers of these devices do not expose interfaces to the internals of the system. These all impede businesses who rely on these devices to offer services of the Internet.
 
-\section{Why Steve?}
+Due to these issues, a new paradigm for networking appeared. This new paradigm is called \textit{software-defined networking} (SDN). The Open Network Foundation (ONF) defines SDN as ``the physical separation of the network control plane from the forwarding plane, and where a control plane controls several devices \cite{onf_sdn_def}. In essence, the control plane is removed from the firmware. Instead, it is implemented in software. This software control plane is capable of controlling several devices over a single network using messages. The most commonly used standard for this SDN architecture is OpenFlow \cite{openflow_spec}.
+
+With open-source SDN, any programmer can write regular software on typical operating systems to customize the behavior of their networking device. No special training for proprietary devices is required.
+
+However, the programmable control plane is only the \emph{first step}. The next step is the \emph{programmable data plane}. This type of SDN architecture attempts to make the data plane arbitrarily programmable as well. What benefits does this have?
+
+The ability to program the packet processing functionality is one advantage. Rather than relying on specialized hardware or firmware tailored towards decoding a massive suite of well-known protocol headers, the data plane would provide a set of generic instructions that could decode and process \emph{any} header and field.
+
+From there it is possible to achieve \textit{protocol oblivious processing}. By being able to program the packet processing functions, the data plane \textit{does not have to know about any standard protocols} (ethernet, IPv4, TCP, etc). Support for protocol headers is strictly left up to the programmer. This allows users to defined their own protocols in addition to supporting well-known protocols. This makes the data plane scalable, that is, there is no need to provide specific support for every possible protocol header.
+
+The user can then define \textit{their own} customized \textit{packet processing pipeline}. A packet processing pipeline is a kind of algorithm for handling packets coming into a networking device. The pipeline is made up of small stages. Some stages decode packet headers, others make forwarding decisions based on forwarding rules installed in decision tables. In essence, the pipeline defines the behavior of the networking device. One pipeline may define a MAC forwarding switch, another might define an IP router.
+
+The forwarding rules can be freely manipulated. Because protocol independence is also achieved, these rules can handle arbitrary headers. It opens the way to networking applications which can be tailor made for custom protocols \textit{without needing new hardware} to handle them.
+
+By changing the program which drives the packet processing pipeline, the user can \textit{change the devices behavior without changing the device's hardware}.
+
+The data plane can support arbitrary operations. Operations performed on a packet do not have to be limited by actions which are exclusive to specific protocols. Programmable data plane instruction sets can generically manipulate bites and perform operations like a CISC or RISC processor.
+
+As one might see, there is a lot of value and flexibility to a programmable data plane. 
+
+\section{What is Steve?}
+
+That brings up the question, "What is Steve?" Steve is a high-level, protocol oblivious programming language for defining these packet processing pipelines on programmable data planes.
 
 This paper proposes Steve a high level, protocol oblivious, programming language for defining a packet processing pipeline for a programmable data plane. Steve is a declarative language, not too different from C, making it rather familiar to all programmers.
 
