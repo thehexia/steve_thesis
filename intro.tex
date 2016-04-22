@@ -21,7 +21,7 @@ The Internet, which is nowadays ubiquitous with everyday life, connecting millio
 
 These intelligent devices such as MAC switches and IP routers relied on the expanded firmware which gave them their functionality. These devices implemented two fundamental components, the control plane and the data plane, within their firmware.
 
-The control plane is the device's ``brain.'' It decides where packets should be sent and is capable of learning new forwarding behaviors over time. The control plane commands the data plane. The data plane is the device's ``brawn.'' It actually moves the packets from port to port. Almost all modern networking devices continue to operate using this conventional model.  
+The control plane decides where packets should be sent and is capable of learning new forwarding behaviors over time. The control plane commands the data plane. The data plane actually moves the packets from port to port. Almost all modern networking devices continue to operate using this conventional model.  
 
 The firmware for these devices, are rarely ever updated. On some devices, changes may not even be possible. Even if a device is updated, its overall behavior rarely changes. These devices are dedicated to one singular task for the duration of their lifetime. This type of networking device is known as \emph{hardware defined networking}.
 
@@ -49,7 +49,7 @@ As one might see, there is a lot of value and flexibility to a programmable data
 
 \section{What is Steve?}
 
-That brings up the question, "What is Steve?" Steve is a high-level, protocol oblivious programming language for defining these packet processing pipelines on programmable data planes.
+That brings up the question, "What is Steve?" Steve is a high-level, protocol-oblivious programming language for defining these packet processing pipelines on programmable data planes.
 
 This paper proposes Steve a high level, protocol oblivious, programming language for defining a packet processing pipeline for a programmable data plane. Steve is a declarative language, not too different from C, making it rather familiar to all programmers.
 

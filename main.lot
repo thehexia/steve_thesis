@@ -1,9 +1,9 @@
-\contentsline {table}{\numberline {5.1}{\ignorespaces The Flowpath API that may be used by Flowpath pipeline applications. The API and its function implementations are subject to change, so specific parameters and return types are not given.\relax }}{82}
-\contentsline {table}{\numberline {5.2}{\ignorespaces The application interface. All Flowpath loadable applications must provide this interface.\relax }}{83}
-\contentsline {table}{\numberline {6.1}{\ignorespaces The three pcap test cases used for experiments.\relax }}{86}
-\contentsline {table}{\numberline {6.2}{\ignorespaces Performance metrics after sending 1000 iterations of the smallFlows pcap sample through each application.\relax }}{87}
-\contentsline {table}{\numberline {6.3}{\ignorespaces Performance metrics after sending 20 iterations of the bigFlows pcap sample through each application.\relax }}{88}
-\contentsline {table}{\numberline {6.4}{\ignorespaces Performance metrics after sending 20 iterations of the 4PICS pcap sample through each application.\relax }}{89}
-\contentsline {table}{\numberline {6.5}{\ignorespaces Comparing IPv4 router performance (in Mpps) with partial header decodes versus full header decodes. The full decoding application decodes eight more fields than the partial decode.\relax }}{90}
-\contentsline {table}{\numberline {6.6}{\ignorespaces Comparing firewall performance (in Mpps) with partial header decodes versus full header decodes.\relax }}{91}
-\contentsline {table}{\numberline {6.7}{\ignorespaces Average wall clock time for executing certain operations. Output action has been excluded as it varies with the threading model implementation of Flowpath.\relax }}{92}
+\contentsline {table}{\numberline {5.1}{\ignorespaces The Flowpath API that may be used by Flowpath pipeline applications. The API and its function implementations are subject to change, so specific parameters and return types are not given.\relax }}{86}
+\contentsline {table}{\numberline {5.2}{\ignorespaces The application interface. All Flowpath loadable applications must provide this interface.\relax }}{87}
+\contentsline {table}{\numberline {6.1}{\ignorespaces The three pcap test cases used for experiments.\relax }}{90}
+\contentsline {table}{\numberline {6.2}{\ignorespaces Performance metrics after sending 1000 iterations of the smallFlows pcap sample through each application.\relax }}{91}
+\contentsline {table}{\numberline {6.3}{\ignorespaces Performance metrics after sending 20 iterations of the bigFlows pcap sample through each application.\relax }}{92}
+\contentsline {table}{\numberline {6.4}{\ignorespaces Performance metrics after sending 20 iterations of the 4PICS pcap sample through each application.\relax }}{93}
+\contentsline {table}{\numberline {6.5}{\ignorespaces Comparing IPv4 router performance (in Mpps) with partial header decodes versus full header decodes. The full decoding application decodes eight more fields than the partial decode.\relax }}{94}
+\contentsline {table}{\numberline {6.6}{\ignorespaces Comparing firewall performance (in Mpps) with partial header decodes versus full header decodes.\relax }}{95}
+\contentsline {table}{\numberline {6.7}{\ignorespaces Average wall clock time for executing certain operations. Output action has been excluded as it varies with the threading model implementation of Flowpath.\relax }}{96}
