@@ -44,7 +44,7 @@ provides language features for programmers to deal with any protocol, making the
 language more scalable for future protocols. Other SDN languages are pursuing
 these idea as well.
 
-The P4 language \cite{p4_spec, p4_spec2} is another high-level language for
+The P4 language \cite{p4_spec, p4_spec2, p42014} is another high-level language for
 defining protocol oblivious packet processing pipelines. It is probably the
 most widely adopted SDN language. P4 allows users to define packet headers,
 packet parsers and
@@ -61,13 +61,13 @@ set gives the programmer very fine-grained control of which fields get parsed.
 The POF programming model uses metadata as a "scratch pad" for parsing fields,
 requiring that the
 programmer represent fields as generic \{offset, length\} pairs, known as
-"search keys" \cite{pof}. When performing table matching, a programmer specifies
-an array of these search keys to match against the flow table \cite{pof_impl}.
+"search keys". When performing table matching, a programmer specifies
+an array of these search keys to match against the flow table.
 Essentially, fields only get extracted as they are needed, right before matching
 against a given table.
 
 POF also supports additional actions that allow the data plane to manipulate
-flow tables \cite{pof}. This includes adding, removing, and updating flow
+flow tables. This includes adding, removing, and updating flow
 entries. Though these actions are traditionally left up to the controller, they
 are useful because they reduce the load on the controller and provide
 flexibility to the data plane. This feature is notably absent from other SDN
@@ -138,6 +138,12 @@ classifiers then get installed on switches. NetKAT is a language, inspired by
 NetCore, for expressing packet processing functions and reasoning about a
 network using Kleene Algebra \cite{kozen2014netkat, anderson2014netkat}. NetKAT
 attempts to prove the correctness of its network programs through mathematical theory.
+
+\section{Packet Parsers}
+
+Gibb, et al. described the design principles of different kinds of packet parsers \cite{parser2013gibb}. Steve adopts a similar abstract parser model to the one described in this paper. Steve decoders fit into the non-streaming programmable parsers described in this paper. 
+
+The Kangaroo packet parser design tries to solve the problem of designing high performance and flexible packet parsers \cite{kangaroo}. Kangaroo can "compile" parser instructions from parse graphs. Kangaroo can analyze these graphs and generate "lookahead" parsers which can parse several headers at once.
 
 The BSD packet filter (BPF) supports a low-level instruction set for parsing packets and defining packet filtering rules \cite{bpf1993mccanne}. It is most commonly used for network monitoring tools.
 

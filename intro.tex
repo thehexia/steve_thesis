@@ -58,29 +58,60 @@ Steve and its runtime, Flowpath, attempt to remedy most of these problems. The o
 
 \section{Contributions: A Language for Safe Packet Processing Pipelines}
 
-Steve is a high-level SDN language for defining protocol oblivious packet processing pipelines for programmable data planes. Steve's packet processing pipelines are programs which provide packet decoding, manipulation, and forwarding functionalities. The language is easy to write and comprehend for new users. Most importantly it ensures efficiency, resource safety, type safety, and certain logical guarantees on all user-written pipelines.
+Steve is a high-level SDN language for defining protocol oblivious packet processing pipelines for programmable data planes. Steve's packet processing pipelines are programs which provide packet decoding, manipulation, and forwarding functionalities. The language is easy to write and comprehend for new users. Most importantly it ensures type safety, efficiency, resource safety, and certain logical guarantees on all user-written pipelines.
 
 \subsection{Language Features}
 
-Steve language features provide all the necessary abstractions for processing packet headers.
+Steve language features allow a programmer to express the high level abstractions needed for writing packet processing pipelines.
 
 \emph{Header layouts}. The Steve language provides a way for users to define the layout of headers. The user can define the fields contained within a header. The user provides types for those fields which: 1) provide the length of the field and 2) allow Steve type-checking to limit operations on those fields to only those safe for that type. Steve is protocol oblivious, and thus does not inherently support well-known headers. It is left up to the user to determine what fields they expect to work with.
 
-\emph{An abstract pipeline model}. Steve adopts an abstract packet processing pipeline model which is a generalized version of that defined by OpenFlow \cite{openflow_spec}. The Steve pipeline is composed of two stages: decoders and flow tables. Decoders find and extract fields. Flow tables make decisions, perform actions, and forward packets. A packet entering the pipeline must first be decoded by at least one decoder. From there, stages may be flexibly interleaved. A series of decoders may be followed by a series of flow table matches which may lead into more decoders.
+\emph{An abstract pipeline model}. Steve adopts an abstract packet processing pipeline model which is a generalized version of that defined by OpenFlow \cite{openflow_spec}. The Steve pipeline is composed of two stages: decoders and flow tables. Decoders \textit{decode} (find the location of) and \textit{extract} (recover the value of) fields. Flow tables make decisions, perform actions, and forward packets. A packet entering the pipeline must first be decoded by at least one decoder. From there, stages may be flexibly interleaved. A series of decoders may be followed by a series of flow table matches which may lead into more decoders.
 
-\emph{Decoders}. Decoders allow the user to decode and extract fields from a header. Decoders allow the user to specify which fields they need. Decoders do not require that a user extract all fields if they do not need those fields. The user is not required to manually extract the bytes associated with a field. Instead, the user gives a field name from the header layout they defined, and the language generates the code for them.
+\emph{Decoders}. Steve allows the user to program special functions decoders which are used for decoding and extract fields from a header. Decoders allow the user to specify which fields they need. Decoders do not require that a user extract all fields if they do not need those fields. The user is not required to manually extract the bytes associated with a field. Instead, the user gives a field name from the header layout they defined, and the language generates the code for them.
 
-\emph{Flow tables}. A flow table, which is an OpenFlow abstraction, is a dynamic decision structure which classifies packets into flows. Each flow has a set of actions associated with it. Packets which are part of the same flow have those actions applied to them.
+\emph{Flow tables}. A flow table, which is an OpenFlow abstraction, is a dynamic decision structure which classifies packets into flows. Each flow has a set of actions associated with it. Packets which are part of the same flow have those actions applied to them. Steve allows the user to express flow tables \textit{and} flows.
 
 \emph{Actions}. Actions provide a way to modify a packet's fields, add/remove flows from tables, and forward/drop packets. Steve actions are a generalization of OpenFlow instructions and actions.
 
-\subsection{Type Safety}
 
+\subsection{Pipeline Guarantees}
 
-The Steve compiler also ensures certain safety properties over the entire packet processing pipeline.
+The Steve compiler ensures certain guarantees about the correctness of a Steve pipeline. Steve pipelines may be represented as directed acyclic graphs. The Steve compiler performs analysis on this graph to enforce the following constraints.
 
 \begin{enumerate}
-\item Fields that have not been extracted cannot be used. It is perfectly possible for a programmer to define a pipeline which uses a field, yet forgot to decode that field.
+\item Fields that have not been extracted by a decoder cannot be used. It is possible for a programmer to have forgotten to decode a field before using its value later in the pipeline. Each stage explicitly states which fields it needs. The Steve compiler traverses all possible paths through a pipeline to confirm that a used field has been decoded at least once in the current or prior stage.
 
-\item The pipeline is always a linear progression. The packet must always move from exactly one stage in the pipeline to exactly one other stage. It also prevents a packet from infinitely looping between stages in a pipeline.
+\item The traversal of a packet through a pipeline is always a linear progression. The packet must always move from exactly one stage in the pipeline to exactly one other stage. That packet may \textit{not} return to a stage it has already visited. This property ensures that a packet can never infinitely loop through stages in a pipeline.
 \end{enumerate}
+
+
+\subsection{Type Safety}
+
+Steve is a statically-typed language. Steve prevents the user from using header fields in ways that would result in obvious bugs or crashes. Specifically the Steve type system provides:
+
+\begin{enumerate}
+\item Steve supports integers with arbitrarily large precision (as long as they are multiples of 8). This allows the user to avoid using arrays of bytes to represent fields which do not fit into C standard types.
+
+\item Steve supports logical and arithmetic expressions which are type checked to ensure no undefined behavior happens (e.g. shifting by negative values, adding to a boolean, etc). 
+
+\item Implicit conversions can be applied where necessary (e.g. integer size promotion, unsigned to signed conversions, etc).
+
+\item Writing a new value into a header field \textit{never} causes accidental buffer overflows. The Steve compiler uses implicit conversions to guarantee that the size of the new value fits exactly into the byte width of a field. If the new value is represented in less bytes than the size of field, it gets extended to fit. Values that are too large get truncated.
+\end{enumerate}
+
+\subsection{Resource Safety}
+
+Steve is resource safe, that is, the user is \emph{never} required to allocate or de-allocate their own memory. The lifetime and storage duration of all memory is \textit{automatic}. That is, memory is allocated and maintained by the Flowpath runtime environment. It is almost impossible to produce a memory leak in Steve.
+
+Steve does not support pointer types so the user is never concerned with null pointers. Steve does support reference types, which must always refer to valid memory. This prevents the user from ever using invalid memory.
+
+The Flowpath runtime environment manages all ports. The user does not concern themselves with the details of how packets are received, copied, or sent. They only concern themselves with describing how those packets are processed and where those packets get forwarded.
+
+\subsection{Efficiency}
+
+Steve's programmable decoders provide the user the chance at certain optimizations. Steve allows the user to specify exactly which fields from a header they want extracted rather than forcing them to extract the entire thing. 
+
+The Steve compiler generates LLVM intermediate representation (IR) code \cite{llvm_webpage}, which is the same IR used by the Clang compiler \cite{clang_webpage}. The IR is then compiled into assembly code using the LLVM compiler. This allows Steve programs to gain the benefits of an optimizing compiler. This includes function inlining, peephole optimizations, etc.
+
+
