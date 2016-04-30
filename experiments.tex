@@ -10,7 +10,7 @@ The samples are relatively diverse, having varying packet sizes, packet count, a
 \begin{table}
 \caption{The three pcap test cases used for experiments.}
 \begin{center}
-\begin{tabular}{| p{0.05\linewidth} || p{0.15\linewidth} | p{0.15\linewidth} | p{0.15\linewidth} | p{0.50\linewidth} |}
+\begin{tabularx}{\textwidth}{| c || c | c | c | X |}
 \hline
 \# & Pcap sample & Packet Count & Average Packet Size & Summary \\
 \hline
@@ -18,9 +18,9 @@ The samples are relatively diverse, having varying packet sizes, packet count, a
 \hline
 2 & bigFlows & 791,615 & 449 bytes & Real network traffic from a busy private network's Internet access point. \\
 \hline
-3 & 4ISCS & 2,274,747 & 76 bytes & Real industrial network traffic from ICS labs. \\
+3 & 4SICS & 2,274,747 & 76 bytes & Real industrial network traffic from ICS labs. \\
 \hline
-\end{tabular}
+\end{tabularx}
 \end{center}
 \label{tbl:pcap}
 \end{table}
@@ -28,10 +28,9 @@ The samples are relatively diverse, having varying packet sizes, packet count, a
 
 \section{Use Cases}
 
-This section provides experimental performance results for four applications from Appendix \ref{ap:steve_programs}: the MAC learning switch, the IPv4 learning router, the basic wire, and a basic packet filter/stateless firewall. The switch, router, and wire are presented in the tutorial in Chapter \ref{ch:tutorial}.
-The firewall application extends the IPv4 router with a packet filter which blocks all non-HTTP packets. It thus performs both routing and packet filtering. The timeout property for flow entries in all examples were removed so flow entries last indefinitely.
+This section provides experimental performance results for four applications from Appendix \ref{ap:steve_programs}: the MAC learning switch, the IPv4 learning router, the basic wire, and the basic packet filter/stateless firewall. The switch, router, and wire are presented in the tutorial in Chapter \ref{ch:tutorial}. The timeout property for flow entries in all examples were removed so flow entries last indefinitely.
 
-The Flowpath emulator was configured to have a fixed number of ports. The ingress port for each packet was randomly assigned amongst these ports. For all but the wire (which naturally has two ports), there were five ports configured. Table \ref{tbl:pcap1_stats} through Table \ref{tbl:pcap3_stats} summarize the results of running the same pcap sample a certain number of iterations through each application. Packets are sent through the pipeline at maximum rate rather than at their original rate. Each experiment is repeated five times and the resulting average is given.
+The Flowpath emulator was configured to have a fixed number of ports. The ingress port for each packet was randomly assigned amongst these ports. There were five ports configured (except for the wire which naturally has two ports). Table \ref{tbl:pcap1_stats} through Table \ref{tbl:pcap3_stats} summarize the results of running the same pcap sample a certain number of iterations through each application. Packets are sent through the pipeline at maximum rate rather than at their original rate. Each experiment is repeated five times and the resulting average is given.
 
 Three measures of performance are used. First, the amount of data processed per second, known as \textit{data speed}, is given as gigabits per second (Gbps). Second, the amount of data forwarded per second, known as \textit{throughput}, is given as Gbps. Throughput is always less than or equal to processing speed. Lastly, the amount of packets processed per second (ignoring the size of data in those packets), called \textit{packet processing speed}, is given in millions-of-packets-per-second (Mpps).
 
@@ -41,21 +40,21 @@ Three measures of performance are used. First, the amount of data processed per 
 \begin{table}
 \caption{Performance metrics after sending 1000 iterations of the smallFlows pcap sample through each application.}
 \begin{center}
-\begin{tabular}{| c || c | c | c | }
+\begin{tabularx}{\textwidth}{| c || c | c | c | }
 \hline
 % header row
 Application & Data Speed (Gbps) & Throughput (Gbps) & Processing Speed (Mpps)  \\
 \hline
 MAC Learning & 10.10 & 10.10 & 1.95  \\
 \hline
-IPv4 Learning & 9.25 & 9.25 & 1.79  \\
+IPv4 Learning & 7.99 & 7.99 & 1.55  \\
 \hline 
 Wire* & 16.36 & 18.36 & 3.17 \\
 \hline
-Firewall & 9.97 & 1.10 & 1.93 \\
+Firewall & 8.82 & 0.97 & 1.71 \\
 \hline
 \multicolumn{4}{p{\linewidth}}{* Two dummy packets are sent from both ports on the wire to ensure the application learns those ports before processing packets.}
-\end{tabular}
+\end{tabularx}
 \end{center}
 \label{tbl:pcap1_stats}
 \end{table}
@@ -71,20 +70,20 @@ The most interesting thing to note from Table \ref{tbl:pcap1_stats} is that the 
 \begin{table}
 \caption{Performance metrics after sending 20 iterations of the bigFlows pcap sample through each application.}
 \begin{center}
-\begin{tabular}{| c || c | c | c | }
+\begin{tabularx}{\textwidth}{| c || c | c | c | }
 \hline
 Application & Data Speed (Gbps) & Throughput (Gbps) & Processing Speed (Mpps)  \\
 \hline
 MAC Learning & 6.89 & 6.89 & 1.91  \\
 \hline
-IPv4 Learning & 6.43 & 6.43 & 1.79  \\
+IPv4 Learning & 5.44 & 5.44 & 1.51  \\
 \hline 
 Wire* & 11.42 & 11.42 & 3.18 \\
 \hline
-Firewall & 7.14 & 1.53 & 1.99 \\
+Firewall & 6.27 & 1.35 & 1.75 \\
 \hline
 \multicolumn{4}{p{\linewidth}}{* Two dummy packets are sent from both ports on the wire to ensure the application learns those ports before processing packets.}
-\end{tabular}
+\end{tabularx}
 \end{center}
 \label{tbl:pcap2_stats}
 \end{table}
@@ -96,25 +95,25 @@ Larger payloads can produce a linear increase to data speeds without severely af
 That is not to say that the size of the packet has no affect. The amount of time it takes to allocate the buffer used to store a packet has a cost. Table \ref{tbl:pcap3_stats} uses Sample 3, which has a significantly smaller average packet size. Packet processing speeds for all applications improved here due to the smaller packet size. However, data speeds and throughput severely suffered.
 
 % % % % % % % % % %
-% 4PICS flows
+% 4SICS flows
 % % % % % % % % % %
 \begin{table}[ht]
-\caption{Performance metrics after sending 20 iterations of the 4PICS pcap sample through each application.}
+\caption{Performance metrics after sending 20 iterations of the 4SICS pcap sample through each application.}
 \begin{center}
-\begin{tabular}{| c || c | c | c | }
+\begin{tabularx}{\textwidth}{| c || c | c | c | }
 \hline
 Application & Data Speed (Gbps) & Throughput (Gbps) & Processing Speed (Mpps) \\
 \hline
 MAC Learning & 1.28 & 1.28 & 2.11  \\
 \hline
-IPv4 Learning & 1.20 & 1.19 & 1.97  \\
+IPv4 Learning & 1.02 & 1.01 & 1.67  \\
 \hline 
 Wire* & 2.29 & 2.29 & 3.77 \\
 \hline
-Firewall & 1.52 & 0.04 & 2.51 \\
+Firewall & 1.29 & 0.04 & 2.12 \\
 \hline
 \multicolumn{4}{p{\linewidth}}{* Two dummy packets are sent from both ports on the wire to ensure the application learns those ports before processing packets.}
-\end{tabular}
+\end{tabularx}
 \end{center}
 \label{tbl:pcap3_stats}
 \end{table}
@@ -131,7 +130,7 @@ Table \ref{tbl:router_cmp} summarizes the difference between partial and full de
 \begin{table}[ht]
 \caption{Comparing IPv4 router performance (in Mpps) with partial header decodes versus full header decodes. The full decoding application decodes eight more fields than the partial decode.}
 \begin{center}
-\begin{tabular}{| c || c | c | c | c |}
+\begin{tabularx}{\textwidth}{| c || c | c | X | X |}
 \hline
 Sample & Partial (Mpps) & Full (Mpps) & Approx. Difference (\# packets) & \% Difference \\
 \hline
@@ -141,7 +140,7 @@ Sample & Partial (Mpps) & Full (Mpps) & Approx. Difference (\# packets) & \% Dif
 \hline
 3 & 1.97 & 1.89 & 80,000 & 4.15\% \\ 
 \hline
-\end{tabular}
+\end{tabularx}
 \end{center}
 \label{tbl:router_cmp}
 \end{table}
@@ -151,7 +150,7 @@ Table \ref{tbl:firewall_cmp} summarizes the difference between partial and full 
 \begin{table}
 \caption{Comparing firewall performance (in Mpps) with partial header decodes versus full header decodes.}
 \begin{center}
-\begin{tabular}{| c || c | c | c | c | p{0.15\linewidth} | c |}
+\begin{tabularx}{\linewidth}{| c || c | c | c | c | X | c |}
 \hline
 Sample & Partial (Mpps) & Full (Mpps) & \% TCP & \% UDP & Approx. Difference (\# packets) & \% Difference \\
 \hline
@@ -161,7 +160,7 @@ Sample & Partial (Mpps) & Full (Mpps) & \% TCP & \% UDP & Approx. Difference (\#
 \hline
 3 & 2.51 & 2.29 & 95.25\% & 3.68\% & 220,000 & 9.17\% \\ 
 \hline
-\end{tabular}
+\end{tabularx}
 \end{center}
 \label{tbl:firewall_cmp}
 \end{table}
