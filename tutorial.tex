@@ -15,8 +15,8 @@ components. Specifically, this chapter will discuss how headers are represented,
 write decoders, how to write tables, and how to apply actions to packets.
 
 By the end of this chapter, a user should be able to write many basic network
-applications using Steve. Three such applications will be presented in Section \ref{tut:examples}: a simple
-learning switch, a simple learning router and a wire. Many of the examples
+applications using Steve. Four such applications will be presented in Section \ref{tut:examples}: a simple MAC
+learning switch, an IPv4 learning switch, a stateless TCP/UDP firewall, and a wire. Many of the examples
 presented throughout this chapter are just smaller parts of these applications
 presented in isolation. This tutorial will slowly build
 up these little components and explain what they do before finally presenting
@@ -361,8 +361,7 @@ This is further discussed in Section \ref{guide:layout}.
 
 The following example presents a case where some of these limitations become relevant -- the IPv4 layout. IPv4 is a Layer 3 protocol and is used
 for routing. An IPv4 header appears in almost all Internet-bound packets and
-thus makes it a common layout to write. This layout will prove useful when
-defining the simple router program later on.
+thus makes it a common layout to write.
 
 \begin{codepage}
 \begin{lstlisting}
@@ -1512,10 +1511,10 @@ guarantees applied to other pipeline stages. Additionally, it strips the latency
 
 \section{Examples} \label{tut:examples}
 
-This section provides three basic network applications: a learning switch, a learning router, and a
+This section provides three basic network applications: a MAC learning switch, an IPv4 learning switch, a stateless TCP/UDP firewall, and a
 wire using language features taught during this tutorial.
 
-\subsection{The Learning Switch} \label{tut:learning_switch}
+\subsection{The MAC Learning Switch} \label{tut:learning_switch}
 
 The MAC (ethernet) learning switch forwards packets based on their MAC addresses. Learning switches exploit the likelihood that a
 path towards a device with that source MAC address exists through
@@ -1649,7 +1648,7 @@ the learning table. This entry prevents the same MAC address from raising the
 \texttt{learn\_mac} event more than once. Instead, the new flow entry sends the
 packet directly to the forwarding table.
 
-The second flow entry being inserted is where the application actually "learns" the new MAC
+The second inserted flow entry is where the application actually learns the new MAC
 address. It is here where the application establishes a set of MAC address to port mappings.
 
 One must first note that \texttt{forward} matches on \texttt{ethernet.dst}. Here, the application inserts a
@@ -1664,9 +1663,9 @@ To summarize, the second flow entry ensures that all future packets whose
 \texttt{ethernet.dst} field match the current packet's \texttt{ethernet.src}
 field will be forwarded to the current packet's ingress port.
 
-\subsection{The Learning Router} \label{tut:learning_router}
+\subsection{The IPv4 Learning Switch} \label{tut:learning_router}
 
-The learning router is not too different from the learning switch. Instead of
+The IPv4 learning switch is not too different from the MAC learning switch. Instead of
 learning and forwarding from MAC addresses, this application will use IPv4
 addresses.
 
@@ -1891,9 +1890,9 @@ through if their destination matches certain port numbers. A possible use
 case is a firewall set up before a web server. This firewall will block all 
 non-HTTP/HTTPS requests.
 
-It is possible to define this kind of transport layer firewall in Steve. This firewall will be an extension to the learning router from Section \ref{tut:learning_router}.
+It is possible to define this kind of transport layer firewall in Steve. This firewall will be an extension to the IPv4 switch from Section \ref{tut:learning_router}.
 
-The \texttt{ethernet} and \texttt{ipv4} layouts from the learning router will remain the same. In addition to these, two transport layer layouts must also be defined: the UDP and the TCP layouts.
+The \texttt{ethernet} and \texttt{ipv4} layouts from the Ipv4 switch will remain the same. In addition to these, two transport layer layouts must also be defined: the UDP and the TCP layouts.
 
 The UDP header \cite{udp_std} contains four fields: source port, destination port, header length, and checksum. The UDP layout is defined as follows.
 

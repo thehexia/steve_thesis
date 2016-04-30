@@ -28,7 +28,7 @@ The samples are relatively diverse, having varying packet sizes, packet count, a
 
 \section{Use Cases}
 
-This section provides experimental performance results for four applications from Appendix \ref{ap:steve_programs}: the MAC learning switch, the IPv4 learning router, the basic wire, and the basic packet filter/stateless firewall. The switch, router, and wire are presented in the tutorial in Chapter \ref{ch:tutorial}. The timeout property for flow entries in all examples were removed so flow entries last indefinitely.
+This section provides experimental performance results for four applications from Appendix \ref{ap:steve_programs}: the MAC learning switch, the IPv4 learning switch, the basic wire, and the basic packet filter/stateless firewall. The timeout property for flow entries in all examples were removed so flow entries last indefinitely.
 
 The Flowpath emulator was configured to have a fixed number of ports. The ingress port for each packet was randomly assigned amongst these ports. There were five ports configured (except for the wire which naturally has two ports). Table \ref{tbl:pcap1_stats} through Table \ref{tbl:pcap3_stats} summarize the results of running the same pcap sample a certain number of iterations through each application. Packets are sent through the pipeline at maximum rate rather than at their original rate. Each experiment is repeated five times and the resulting average is given.
 
@@ -60,9 +60,9 @@ Firewall & 8.82 & 0.97 & 1.71 \\
 \end{table}
 
 
-In Table \ref{tbl:pcap1_stats}, we show the performance of each application using Sample 1. Sample 1 has the largest average packet size. Results here are largely predictable. The wire application is fastest in terms of data speed, having no headers or fields to process. The MAC learning switch performs the next fastest, having to only process the ethernet header. The IPv4 learning application is naturally slower as it must process the ethernet and IPv4 headers.
+Table \ref{tbl:pcap1_stats} shows the performance of each application using Sample 1. Sample 1 has the largest average packet size. Results here are largely predictable. The wire application is fastest in terms of data speed, having no headers or fields to process. The MAC learning switch performs the next fastest, having to only process the ethernet header. The IPv4 learning application is naturally slower as it must process the ethernet and IPv4 headers.
 
-The most interesting thing to note from Table \ref{tbl:pcap1_stats} is that the firewall application, which is both an IPv4 router and a packet filter, processes packets \textit{faster} than the IPv4 router. However, the firewall's throughput is significantly lower. This is because packet's which do not match the filtering rules get prematurely dropped. This reduces the overall time the application spends learning (i.e. inserting flow entries) and forwarding. Learning is of course, the most expensive operation a pipeline can perform.
+The most interesting thing to note from Table \ref{tbl:pcap1_stats} is that the firewall application, which is both an IPv4 switch and a packet filter, processes packets \textit{faster} than the IPv4 switch. However, the firewall's throughput is significantly lower. This is because packet's which do not match the filtering rules get prematurely dropped. This reduces the overall time the application spends learning (i.e. inserting flow entries) and forwarding. Learning is of course, the most expensive operation a pipeline can perform.
 
 % % % % % % % % % %
 % Big flows
@@ -88,9 +88,9 @@ Firewall & 6.27 & 1.35 & 1.75 \\
 \label{tbl:pcap2_stats}
 \end{table}
 
-Table \ref{tbl:pcap2_stats}, which uses Sample 2, largely shows the same patterns. One thing to note is the amount of \textit{data} processed per second is \textit{lower}, yet the amount of \textit{packets} processed per second stays relatively similar to Table \ref{tbl:pcap1_stats}. This is to be expected. Packet sizes in Sample 2 are on average 197 bytes smaller than Sample 1, a difference of about 35.98\%. The time it takes to process a packet is bound by the number of headers processed and actions taken on a given packet. Payloads, which typically make up most of a packet's size, are disregarded. Thus, the length of the packet does not severely affect how many packets can get processed per second. 
+Table \ref{tbl:pcap2_stats}, which uses Sample 2, largely shows the same patterns. One thing to note is the amount of \textit{data} processed per second is \textit{lower}, yet the difference in \textit{packets} processed per second negligible when compared to Table \ref{tbl:pcap1_stats}. This is to be expected. Packet sizes in Sample 2 are on average 197 bytes smaller than Sample 1, a difference of about 35.98\%. The time it takes to process a packet is bound by the number of headers processed and actions taken on a given packet. Payloads, which typically make up most of a packet's size, are disregarded. Thus, the length of the packet does not severely affect how many packets can get processed per second. 
 
-Larger payloads can produce a linear increase to data speeds without severely affecting packet processing speeds. The average difference in data speed between applications in Table \ref{tbl:pcap1_stats} and Table \ref{tbl:pcap2_stats} is about 35.6\%. This corresponds to the difference in packet sizes.
+Larger payloads can produce a linear increase to data speeds without severely affecting packet processing speeds. The average difference in data speed between applications in Table \ref{tbl:pcap1_stats} and Table \ref{tbl:pcap2_stats} is about 36.28\%. This roughly corresponds to the difference in packet sizes.
 
 That is not to say that the size of the packet has no affect. The amount of time it takes to allocate the buffer used to store a packet has a cost. Table \ref{tbl:pcap3_stats} uses Sample 3, which has a significantly smaller average packet size. Packet processing speeds for all applications improved here due to the smaller packet size. However, data speeds and throughput severely suffered.
 
@@ -121,31 +121,11 @@ Firewall & 1.29 & 0.04 & 2.12 \\
 
 \section{Partial vs. Full Decodes} \label{exp:decode_comparison}
 
-Steve proposed that partial decodes produced measurable gains over full decodes. To demonstrate this, two applications will be used: the IPv4 learning router and the firewall. Two different versions of each application were written. The first is the same as the corresponding example in Appendix \ref{ap:steve_programs} which are used for experiments in Tables \ref{tbl:pcap1_stats} through \ref{tbl:pcap3_stats}. The second is that example with all fields from a layout rule being decoded in all decoders.
+Steve proposed that partial decodes produced measurable gains over full decodes. To demonstrate this, an experiment was run using the stateless firewall application. The original version had partial decodes of ethernet, TCP, and UDP headers. A duplicate was written with full decodes of all headers.
 
-Each sample from Table \ref{tbl:pcap} is run through the full decoding application the same number of iterations as described in Tables \ref{tbl:pcap1_stats} through \ref{tbl:pcap3_stats}. These experiments are run five times each. Results are compared against the partial decoding applications.
+Each sample from Table \ref{tbl:pcap} is run through the full decoding application the same number of iterations as described in Tables \ref{tbl:pcap1_stats} through \ref{tbl:pcap3_stats}. These experiments are run five times each and an average is recorded. Results are compared against the partial decoding applications.
 
-Table \ref{tbl:router_cmp} summarizes the difference between partial and full decodes for the IPv4 router. The full decoding application extracts a constant eight additional fields. As one can see, the partial decode is slightly faster in all three cases. However, the difference is less pronounced due to the small number of extractions actually being done.
-
-\begin{table}[ht]
-\caption{Comparing IPv4 router performance (in Mpps) with partial header decodes versus full header decodes. The full decoding application decodes eight more fields than the partial decode.}
-\begin{center}
-\begin{tabularx}{\textwidth}{| c || c | c | X | X |}
-\hline
-Sample & Partial (Mpps) & Full (Mpps) & Approx. Difference (\# packets) & \% Difference \\
-\hline
-1 & 1.79 & 1.73 & 60,000 & 3.41\% \\
-\hline
-2 & 1.79 & 1.72 & 70,000 & 3.99\% \\
-\hline
-3 & 1.97 & 1.89 & 80,000 & 4.15\% \\ 
-\hline
-\end{tabularx}
-\end{center}
-\label{tbl:router_cmp}
-\end{table}
-
-Table \ref{tbl:firewall_cmp} summarizes the difference between partial and full decodes for the firewall application. The table also includes the percentage of TCP and UDP packets. The full decoding application extracts ten additional fields on UDP packets and fourteen fields on TCP packets. 
+Table \ref{tbl:firewall_cmp} summarizes the difference between partial and full decodes for the firewall application. The table also includes the percentage of TCP and UDP packets. The full decoding application extracts four additional fields on UDP packets and nine additional fields on TCP packets. 
 
 \begin{table}
 \caption{Comparing firewall performance (in Mpps) with partial header decodes versus full header decodes.}
@@ -154,18 +134,19 @@ Table \ref{tbl:firewall_cmp} summarizes the difference between partial and full 
 \hline
 Sample & Partial (Mpps) & Full (Mpps) & \% TCP & \% UDP & Approx. Difference (\# packets) & \% Difference \\
 \hline
-1 & 1.93 & 1.82 & 96.12\% & 3.67\% & 110,000 & 5.86\% \\
+1 & 1.71 & 1.56 & 96.12\% & 3.67\% & 150,000 & 9.17\% \\
 \hline
-2 & 1.99 & 1.87 & 80.22\% & 19.45\% & 120,000 & 6.22\% \\
+2 & 1.75 & 1.60 & 80.22\% & 19.45\% & 150,000 & 8.96\% \\
 \hline
-3 & 2.51 & 2.29 & 95.25\% & 3.68\% & 220,000 & 9.17\% \\ 
+3 & 2.12 & 1.90 & 95.25\% & 3.68\% & 220,000 & 10.95\% \\ 
 \hline
 \end{tabularx}
 \end{center}
 \label{tbl:firewall_cmp}
 \end{table}
 
-As shown in Table \ref{tbl:firewall_cmp}, the difference in packets processed per second grows as more extractions are added. These test cases are for trivially simple header structures. For more complex header structures, gains from partial decodes would become more and more substantial.
+
+Table \ref{tbl:firewall_cmp} shows that partial decode produces a non-negligible difference in performance with the average improvement between the three samples being about 9.7\%. This is only for a simple three header packet. For more complex header structures, gains from partial decodes would become more and more substantial.
 
 
 \section{Performance of Operations} \label{exp:action_performance}
@@ -175,7 +156,7 @@ This section presents the typical performance of certain common operations perfo
 \begin{table}
 \caption{Average wall clock time for executing certain operations. Output action has been excluded as it varies with the threading model implementation of Flowpath.}
 \begin{center}
-\begin{tabular}{| p{0.4\linewidth} || p{0.2\linewidth} | }
+\begin{tabularx}{\linewidth}{| X || c | }
 \hline
 Operation & Time (nanoseconds)  \\
 \hline
@@ -185,18 +166,22 @@ Insert flow entry action & 418.66 \\
 \hline
 Remove flow entry action & 273.53 \\
 \hline
-Field access / read & 27.00 \\
+Field decode & 27.00 \\
 \hline
-Field write / set action & 33.84 \\
+Field access / read & 33.84 \\
+\hline
+Field write / set action & 31.17 \\
 \hline
 Write set action &  149.55 \\
 \hline
 Write output action & 124.00 \\
 \hline
-\end{tabular}
+\end{tabularx}
 \end{center}
 \label{tbl:action_stats}
 \end{table}
+
+To reiterate the conclusion of Section \ref{exp:decode_comparison}, the average time it takes to decode a field is about 27 nanoseconds (ns). This translates to approximately 0.27 seconds of processing time per extra field extracted every 10 million packets.
 
 As mentioned in earlier sections, inserting and removing flow entries are the most expensive operations a pipeline can perform. It is also worth noting that writing actions to an action set is more expensive than one might anticipate (being slightly slower than even table matching).
 
