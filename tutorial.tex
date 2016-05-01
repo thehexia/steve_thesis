@@ -1993,7 +1993,7 @@ Each filtering table will only allow packets whose destination ports are \texttt
 
 \subsection{The Wire} \label{tut:wire}
 
-A wire is a network application which has two ports. It receives from one port
+A full-duplex wire is a network application which has two ports. It receives from one port
 and outputs out of the other port. The only caveat is that the application is
 not aware of the ports comprising the wire at first. It must learn that those
 ports exist.
@@ -2049,3 +2049,4 @@ ports are "remembered," forwarding decisions can be made. If a packet comes from
 vice-versa. Before both ports are saved, since no other actions are applied, the
 packet finishes pipeline processing and gets dropped.
 
+For a full-duplex wire, it is always advised that one testing packet is sent to both interfaces before any packets are handled, to ensure the application is immediately aware of both ports.

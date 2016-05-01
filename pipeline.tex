@@ -16,10 +16,19 @@ Steve \textit{event handlers} are part of the control plane. Part of the respons
 
 \section{The Steve Pipeline} \label{pipeline_desc}
 
-Steve uses an abstract model known as \textit{pipeline processing} to process packets. Steve pipeline processing model can be described in terms of four phases: 1)
+Steve uses an abstract model known as a \textit{pipeline} to process packets. This is the algorithm which handles packet processing and forwarding logic. A pipeline is a composition of smaller stages, known as \textit{pipeline stages} which perform subsections of the overall algorithm. Each stage is connected to the next in such a way that the output of
+one stage becomes the input to the next. Pipeline stages may be connected in a number of flexible ways. This the the topic of Section \ref{pipeline_comp_desc}. 
+
+The pipeline processing model is essentially a
+state machine. Each pipeline stage is a state in the machine. Each state has a
+set of conditions which, when met, causes the packet to move to new stages, or
+new states. This can naturally be represented as a graph. The graph representation allows the Steve programming language to analyze these
+pipelines using graph algorithms to confirm certain safety guarantees.
+
+The Steve pipeline processing model can be described in terms of four phases: 1)
 \textit{ingress processing}, 2) \textit{decoding stages}, 3) \textit{table
 matching stages}, and 4) \textit{egress processing}. Figure
-\ref{fg:pipeline_model} depicts this pipeline processing model.
+\ref{fg:pipeline_model} depicts this pipeline processing model. One must understand this model to be able to write a Steve pipeline application.
 
 \begin{figure} [ht] \includegraphics[width=\textwidth]{pipeline}
 
@@ -31,27 +40,18 @@ place on special circumstances Egress processing decides where a packet is
 forwarded (or dropped).} \label{fg:pipeline_model} 
 \end{figure}
 
-Describing these phases will be the topic if this chapter. One must understand this model to be able to write a Steve pipeline application.
 
-The Steve \textit{pipeline} is a subset of the processing model depicted in Figure \ref{fg:pipeline_model}. A pipeline is a composition of decoding stages and table matching stages. These stages are known as \textit{pipeline stages}. Each stage is connected to the next in such a way that the output of
-one stage becomes the input to the next. Pipeline stages may be connected in a number of flexible ways. This the the topic of Section \ref{pipeline_comp_desc}. 
-
-The pipeline processing model is essentially a
-state machine. Each pipeline stage is a state in the machine. Each state has a
-set of conditions which, when met, causes the packet to move to new stages, or
-new states. This can be represented as a graph where each pipeline stage is a
-node on the graph and each stage is connected to the next with an edge. The graph representation allows the Steve programming language to analyze these
-pipelines using graph algorithms to confirm certain safety guarantees.
-
-The Steve programming language allows programmers to express
-\textit{decoding} and \textit{table matching} stages.
+The Steve pipeline is defined as a composition of decoding and table matching stages. The language allows programmers to express
+pipeline stages and how they connect.
 Steve pipeline programs follow a run-to-complete model of execution. Once a
 packet enters the pipeline, each stage is consecutively applied to
 the packet. Once no more stages are applied, the packet exits the pipeline and
 the next packet enters.
 
+
 \section{Ingress Processing} \label{ingress_desc}
 
+Ingress processing will always be the first phase of pipeline processing.
 A packet enters a network device on a port, known as its \textit{ingress port}.
 At this time, the data plane builds a data structure known as the
 \textit{context} around the packet. This context is what the pipeline uses to
@@ -157,7 +157,7 @@ packet completes pipeline processing, during the egress processing phase.
 \section{Decoding Stage} \label{decoder_desc}
 
 When a packet is received on its ingress port, it is a chunk of raw,
-uninterpreted data. Before a packet can be processed and routed, its
+uninterpreted data. Before a packet can be processed and forwarded, its
 fields must be decoded (found) and extracted (have their value recovered) so that meaningful decisions can be made
 based on those values. Decoding stage, or \textit{decoders} for short, are
 responsible for this.
@@ -319,7 +319,7 @@ action set. Only set and output actions may be written.
 
 \section{The Flowpath Controller and Event Handling} \label{events_desc}
 
-Once pipeline processing is completed by the Steve application, the packet is forwarded on a port. Occasionally, the Steve pipeline will choose to forward to a special port called the \textit{controller port}. The controller port is connected to a Flowpath thread of execution known as a \textit{controller}. A controller executes functions, known as \textit{event handlers}, which deal with exceptional events. The controller queues these packets and executes Steve event handlers on them. This mechanic is known as the \textit{event stage}.
+Once pipeline processing is completed by the Steve application, the packet is forwarded on a port. Occasionally, the Steve pipeline will choose to forward to a special port called the \textit{controller port}. The controller port is connected to a Flowpath thread of execution known as a \textit{controller}. A controller executes functions, known as \textit{event handlers}, which deal with exceptional events. The controller queues these packets and executes Steve event handlers on them. This mechanic is known as an \textit{event stage}.
 
 An event stage is not part of the typical pipeline processing model.
 Event stages execute when the Steve programmer decides that special

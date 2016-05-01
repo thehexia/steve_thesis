@@ -151,9 +151,9 @@ Table \ref{tbl:firewall_cmp} shows that partial decode produces a non-negligible
 
 \section{Performance of Operations} \label{exp:action_performance}
 
-This section presents the typical performance of certain common operations performed by a Steve pipeline. Each operation is executed approximately nine million times and the timing is an average of that. Table \ref{tbl:action_stats} summarizes the time performance of each action. The output action is intentionally excluded as the results vary based on a number of factors including Flowpath implementation, driver threading models, and specialized forwarding hardware.
+This section presents the typical performance of certain common operations performed by a Steve pipeline. Each operation is executed approximately 10 million times. This experiment is repeated ten times and the timings are given as an average. Table \ref{tbl:action_stats} summarizes the time performance of each action. The output action is intentionally excluded as the results vary based on a number of factors including Flowpath implementation, driver threading models, and specialized forwarding hardware.
 
-\begin{table}
+\begin{table}[ht]
 \caption{Average wall clock time for executing certain operations. Output action has been excluded as it varies with the threading model implementation of Flowpath.}
 \begin{center}
 \begin{tabularx}{\linewidth}{| X || c | }
@@ -166,22 +166,22 @@ Insert flow entry action & 418.66 \\
 \hline
 Remove flow entry action & 273.53 \\
 \hline
-Field decode & 27.00 \\
+Field decode & 23.22 \\
 \hline
-Field access / read & 33.84 \\
+Field access / read & 35.02 \\
 \hline
-Field write / set action & 31.17 \\
+Field write / set action & 29.34 \\
 \hline
-Write set action &  149.55 \\
+Write set action &  140.76 \\
 \hline
-Write output action & 124.00 \\
+Write output action & 108.92 \\
 \hline
 \end{tabularx}
 \end{center}
 \label{tbl:action_stats}
 \end{table}
 
-To reiterate the conclusion of Section \ref{exp:decode_comparison}, the average time it takes to decode a field is about 27 nanoseconds (ns). This translates to approximately 0.27 seconds of processing time per extra field extracted every 10 million packets.
+To reiterate the conclusion of Section \ref{exp:decode_comparison}, the average time it takes to decode a field is about 23 nanoseconds (ns). This translates to approximately 0.23 seconds of processing time per extra field extracted every 10 million packets.
 
 As mentioned in earlier sections, inserting and removing flow entries are the most expensive operations a pipeline can perform. It is also worth noting that writing actions to an action set is more expensive than one might anticipate (being slightly slower than even table matching).
 

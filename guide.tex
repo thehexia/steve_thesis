@@ -1,10 +1,90 @@
-\chapter{The Steve User's Guide} \label{ch:users_guide}
+\chapter{The Steve Reference Guide} \label{ch:users_guide}
 
-This chapter will explore the "anatomy" of Steve. It will dissect the semantics and limitations for each language feature. It will also provide a grammar for the language. There is an expectation that the user has read the Tutorial and has a basic understanding of Steve.
+This chapter serves as a reference manual for Steve programmers. It provides detailed descriptions of Steve language semantics: how features work, type checking, grammar, conventional and illegal uses, etc. It also describes how pipeline safety guarantees are enforced, what constitutes a legal pipeline, and potential pitfalls a programmer might fall into when writing a pipeline.
 
-This section elaborates on the conventional and illegal uses of the language. In many cases, the syntax used by the programmer has been abstracted away from much grittier details via "compiler magic". This chapter shall also elaborate on these inner mechanics.
+There is an expectation that the user has read the Tutorial and has a basic understanding of Steve.
 
-Steve makes guarantees about the logical correctness and safety of pipeline stage composition. This section will detail how the Steve language enforces those guarantees and prove that these guarantees can be correctly enforced.
+\section{Pipeline Guarantees} \label{guide:pipeline_checking}
+
+Steve makes guarantees about the logical correctness and safety of pipeline stage composition. These guarantees are enforced by ensuring each Steve pipeline has two important properties: \textit{progress} and \textit{requirement satisfaction}. Any pipeline which does not have these properties shall produce a compiler error. Pipelines that cannot ensure these properties risk crashes or undefined behavior during runtime.
+
+\subsection{Pipeline to Pipeline Graph Conversion} \label{guide:pipeline_graph}
+
+These properties are checked by first converting a Steve program pipeline into a graph. Each property thus becomes a graph evaluation algorithm on the pipeline graph. To derive a pipeline graph from a Steve program, first all stages (decoders, tables, and events) are pulled from the Steve program. Each stage becomes a \textbf{node} on the pipeline graph. Table stages, specifically, become a node with edges to all of its contained flow entries which become independent nodes themselves. All inserted flow entries are also added with edges from the table they would be inserted into. Added flows cannot violate pipeline properties either, regardless of when they get added.
+
+Every \texttt{decode}, \texttt{goto}, and \texttt{raise} action found in a stage (or flow entry within a table) causes an \textbf{edge} to be added between the stage and the destination specified by the action. This edge is added even if the action is encapsulated by a conditional statement (such as if-else or match) because its impossible to determine during compile time whether or not that edge is reachable during runtime.
+
+Every pipeline graph must have exactly one source node (the starting decoder), but can have multiple sinks.
+
+\subsection{Progress} \label{guide:progress}
+
+The \textbf{progress} property says that a packet always moves to a later stage in a pipeline and can never move, or risk moving, to a previously visited stage. Progress is the fundamental nature of the pipeline abstraction. This prevents packets from infinitely looping between the same stages more than once.
+
+The pipeline graph shall be a directed acyclic graph (DAG). A DAG, by definition, has no cycles and cannot infinitely recur between stages.
+
+%First of all, table nodes are assigned a hidden, unique, incremented integer identifier in the order with which they are declared. For example, the first table declared in a Steve program is given the integer identifier 0, the second table declare is given the identifier 1, and so on. Conventionally, tables are expected to be declared in the order with which they are expected to occur in a pipeline.
+%
+%The \textbf{table identifiers} rule says that at no point in the pipeline can a packet reach a target table if it has already visited a table stage whose integer identifier is higher than or equal to that of the target table. In other words, a packet can only go forward through tables, never backwards. This is compliant with the OpenFlow specification for tables \cite{openflow_spec}. Because of this table identifiers rule, it is impossible for any number of table stages to form a cycle with each other.
+%
+%\textit{Proof.} A cycle can only be formed if the next table has either been visited, or is contained within a path to a table that has been visited. This can only happen if the next table has an identifier less than or equal to that of the current largest identifier visited. This property is enforced by the way tables are numbered. Since the table identifiers rule prevents a packet from being sent to these tables, it is thus impossible to form a cycle.
+
+\subsection{Requirements Satisfaction} \label{guide:requirements}
+
+\textbf{Requirement Satisfaction} ensures that field access can only be done on extracted fields.
+
+Every node in a pipeline graph has a set of \textbf{productions} and \textbf{requirements}.
+
+A \textbf{production} is a field that has been extracted or created by the node's respective stage. Currently only decoding stages are capable of have productions because they are the only ones which can extract fields. If a field were pushed (i.e. created) onto the packet, that would also constitute a production (Steve does not currently support this action).
+
+Given any path \textit{P}, comprised of a set of nodes and edges needed to reach a node representing a stage \textit{V}, a \textbf{requirement} of \textit{V} is a field that must be a production of at least one node in the path \textit{P}. A path \textbf{satisfies} a requirement of \textit{V} if and only if this definition holds true.
+
+In Steve, only tables, flow entries, and events can have requirements. Tables implicitly require all of their key fields. Both stages can explicitly state their requirements using the \texttt{\color{blue}requires} clause. A flow entry's requirements are implicitly that of its possessing table.
+
+The requirements satisfaction property says that given any node \textit{V}, all requirements of \textit{V} must be satisfied by all paths leading to \textit{V}. If this property does not hold true, the result is a compiler error.
+
+Remember that the objective is to prevent field access on fields that have not been extracted. Also remember that field access can only be done in certain cases. Firstly by a decoder if that field has been extracted by that decoder. Secondly by a table only if that field is part of the table's key or given by the table's \texttt{\color{blue}requires} clause. Thirdly by a table's flow entry whose requirements are implicitly the same. Fourthly by an event if that field is given by the event's \texttt{\color{blue}requires} clause.
+
+\textit{Proof.} Field access can only be done in certain cases, all of which are cases where the requirements allow it. By the definition of the requirements satisfaction property all nodes in a pipeline graph must have their requirements satisfied, i.e. those fields must have been extracted along the path to that node, otherwise the result is a compiler error. Therefore, it is evident that it is impossible to compile a pipeline where field access is done on non-extracted fields.
+
+\subsection{Depth First Search Graph Checking} \label{guide:dfs_desc}
+
+In order to produce the most complete error messages, the Steve compiler uses depth-first traversal with backtracking to evaluate all possible paths in a pipeline graph, see Algorithm \ref{alg:dfs}. The time complexity of finding all paths from source to a sink in a DAG is O($V^2$). Assuming we have \textit{S} number of sinks, and \textit{S} is at worst \textit{V}, the time complexity of finding all paths in a DAG is O($V^3$).
+
+As the algorithm traverses a path in the graph, it accumulates a set of productions at each node. At each node, the node's requirements are checked against the accumulating set of productions to confirm the \textbf{requirement satisfaction} property holds true. Any node which fails immediately produces a compiler error and further traversal along that path stops.
+
+At any point in a given path, if a node's edge is directed toward a previously visited node in the path, e.g. a cycle is found, traversal past that node immediately stops and a compiler error is generated warning about the error. This ensures that the \textbf{progress} property is met. The \textbf{termination} property is actually implicit as long as the progress property is met.
+
+\begin{algorithm}
+ \caption{Depth-first traversal with backtracking used to check pipeline properties.}
+ \label{alg:dfs}
+ \begin{algorithmic}
+ \State
+ \State \textbf{Input}: Let \textit{G} be the pipeline graph. Let \textit{v} be a node in \textit{G}. Let \textit{p} be a set of productions.
+ \State \textbf{Output}: Whether or not the current stage violates the progress, termination, or requirements satisfaction property. If any property fails, output a compiler error.
+ \State
+
+ \Function{DFS}{$G, v, p$}
+ 	\State v.visited = true
+ 	\State p.push(v.productions)
+ 	\If{meetsRequirements(v, p)}
+ 		\For{\textbf{all} i \textbf{in} G.adjacentNodes(v)}
+ 			\If{(i.visited == false) $\land$ canProgress(v, i)}
+ 				\State \Call{DFS}{G, i, p}
+ 			\Else
+ 				\State \Return compiler error
+ 			\EndIf
+ 		\EndFor
+	\Else
+ 		\State \Return compiler error
+ 	\EndIf
+
+ 	\State v.visited = false \Comment{As we backtrack, we reset the visited property so we can come down this node again in different path.}
+
+ 	\State p.pop(v.productions) \Comment{As we backtrack, we remove the productions of the node from the set of productions.}
+ \EndFunction
+ \end{algorithmic}
+
+\end{algorithm}
 
 \section{Identifiers} \label{guide:identifiers}
 
@@ -358,88 +438,6 @@ A user is never given direct access to a context. Context objects are implicit, 
 
 \item All actions (see \ref{guide:action}) will affect the context in some way.
 \end{itemize}
-
-\section{Pipeline Guarantees} \label{guide:pipeline_checking}
-
-Logical correctness and safety guarantees are enforced by ensuring each Steve pipeline has three important properties: \textbf{progress}, \textbf{termination}, and \textbf{requirement satisfaction}. Any pipeline which does not have all three properties shall produce a compiler error. Pipelines that cannot ensure these three properties risk catastrophic crashes or undefined behavior during runtime. This cannot happen on important networking devices.
-
-\subsection{Pipeline to Pipeline Graph Conversion} \label{guide:pipeline_graph}
-
-These properties are checked by first converting a Steve program pipeline into a graph. Each property thus becomes a graph evaluation algorithm on the pipeline graph. To derive a pipeline graph from a Steve program, first all stages (decoders, tables, and events) are pulled from the Steve program. Each stage becomes a \textbf{node} on the pipeline graph. Table stages, specifically, become a node with edges to all of its contained flow entries which become independent nodes themselves. All inserted flow entries are also added with edges from the table they would be inserted into. Added flows cannot violate pipeline properties either, regardless of when they get added.
-
-Every \texttt{decode}, \texttt{goto}, and \texttt{raise} action found in a stage (or flow entry within a table) causes an \textbf{edge} to be added between the stage and the destination specified by the action. This edge is added even if the action is encapsulated by a conditional statement (such as if-else or match) because its impossible to determine during compile time whether or not that edge is reachable during runtime.
-
-Every pipeline graph must have exactly one source node (the starting decoder), but can have multiple sinks.
-
-\subsection{Progress} \label{guide:progress}
-
-The \textbf{progress} property says that a packet always moves to a later stage in a pipeline and can never move, or risk moving, to a previously visited stage. Progress is the fundamental nature of the pipeline abstraction. This prevents packets from infinitely looping between the same stages more than once.
-
-The pipeline graph shall be a directed acyclic graph (DAG). A DAG, by definition, has no cycles and cannot infinitely recur between stages.
-
-%First of all, table nodes are assigned a hidden, unique, incremented integer identifier in the order with which they are declared. For example, the first table declared in a Steve program is given the integer identifier 0, the second table declare is given the identifier 1, and so on. Conventionally, tables are expected to be declared in the order with which they are expected to occur in a pipeline.
-%
-%The \textbf{table identifiers} rule says that at no point in the pipeline can a packet reach a target table if it has already visited a table stage whose integer identifier is higher than or equal to that of the target table. In other words, a packet can only go forward through tables, never backwards. This is compliant with the OpenFlow specification for tables \cite{openflow_spec}. Because of this table identifiers rule, it is impossible for any number of table stages to form a cycle with each other.
-%
-%\textit{Proof.} A cycle can only be formed if the next table has either been visited, or is contained within a path to a table that has been visited. This can only happen if the next table has an identifier less than or equal to that of the current largest identifier visited. This property is enforced by the way tables are numbered. Since the table identifiers rule prevents a packet from being sent to these tables, it is thus impossible to form a cycle.
-
-\subsection{Requirements Satisfaction} \label{guide:requirements}
-
-\textbf{Requirement Satisfaction} ensures that field access can only be done on extracted fields.
-
-Every node in a pipeline graph has a set of \textbf{productions} and \textbf{requirements}.
-
-A \textbf{production} is a field that has been extracted or created by the node's respective stage. Currently only decoding stages are capable of have productions because they are the only ones which can extract fields. If a field were pushed (i.e. created) onto the packet, that would also constitute a production (Steve does not currently support this action).
-
-Given any path \textit{P}, comprised of a set of nodes and edges needed to reach a node representing a stage \textit{V}, a \textbf{requirement} of \textit{V} is a field that must be a production of at least one node in the path \textit{P}. A path \textbf{satisfies} a requirement of \textit{V} if and only if this definition holds true.
-
-In Steve, only tables, flow entries, and events can have requirements. Tables implicitly require all of their key fields. Both stages can explicitly state their requirements using the \texttt{\color{blue}requires} clause. A flow entry's requirements are implicitly that of its possessing table.
-
-The requirements satisfaction property says that given any node \textit{V}, all requirements of \textit{V} must be satisfied by all paths leading to \textit{V}. If this property does not hold true, the result is a compiler error.
-
-Remember that the objective is to prevent field access on fields that have not been extracted. Also remember that field access can only be done in certain cases. Firstly by a decoder if that field has been extracted by that decoder. Secondly by a table only if that field is part of the table's key or given by the table's \texttt{\color{blue}requires} clause. Thirdly by a table's flow entry whose requirements are implicitly the same. Fourthly by an event if that field is given by the event's \texttt{\color{blue}requires} clause.
-
-\textit{Proof.} Field access can only be done in certain cases, all of which are cases where the requirements allow it. By the definition of the requirements satisfaction property all nodes in a pipeline graph must have their requirements satisfied, i.e. those fields must have been extracted along the path to that node, otherwise the result is a compiler error. Therefore, it is evident that it is impossible to compile a pipeline where field access is done on non-extracted fields.
-
-\subsection{Depth First Search Graph Checking} \label{guide:dfs_desc}
-
-In order to produce the most complete error messages, the Steve compiler uses depth-first traversal with backtracking to evaluate all possible paths in a pipeline graph, see Algorithm \ref{alg:dfs}. The time complexity of finding all paths from source to a sink in a DAG is O($V^2$). Assuming we have \textit{S} number of sinks, and \textit{S} is at worst \textit{V}, the time complexity of finding all paths in a DAG is O($V^3$).
-
-As the algorithm traverses a path in the graph, it accumulates a set of productions at each node. At each node, the node's requirements are checked against the accumulating set of productions to confirm the \textbf{requirement satisfaction} property holds true. Any node which fails immediately produces a compiler error and further traversal along that path stops.
-
-At any point in a given path, if a node's edge is directed toward a previously visited node in the path, e.g. a cycle is found, traversal past that node immediately stops and a compiler error is generated warning about the error. This ensures that the \textbf{progress} property is met. The \textbf{termination} property is actually implicit as long as the progress property is met.
-
-\begin{algorithm}
- \caption{Depth-first traversal with backtracking used to check pipeline properties.}
- \label{alg:dfs}
- \begin{algorithmic}
- \State
- \State \textbf{Input}: Let \textit{G} be the pipeline graph. Let \textit{v} be a node in \textit{G}. Let \textit{p} be a set of productions.
- \State \textbf{Output}: Whether or not the current stage violates the progress, termination, or requirements satisfaction property. If any property fails, output a compiler error.
- \State
-
- \Function{DFS}{$G, v, p$}
- 	\State v.visited = true
- 	\State p.push(v.productions)
- 	\If{meetsRequirements(v, p)}
- 		\For{\textbf{all} i \textbf{in} G.adjacentNodes(v)}
- 			\If{(i.visited == false) $\land$ canProgress(v, i)}
- 				\State \Call{DFS}{G, i, p}
- 			\Else
- 				\State \Return compiler error
- 			\EndIf
- 		\EndFor
-	\Else
- 		\State \Return compiler error
- 	\EndIf
-
- 	\State v.visited = false \Comment{As we backtrack, we reset the visited property so we can come down this node again in different path.}
-
- 	\State p.pop(v.productions) \Comment{As we backtrack, we remove the productions of the node from the set of productions.}
- \EndFunction
- \end{algorithmic}
-
-\end{algorithm}
 
 \section{Type} \label{guide:type}
 
