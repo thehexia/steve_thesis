@@ -8,66 +8,69 @@ There is an expectation that the user has read the Tutorial and has a basic unde
 
 Steve makes guarantees about the logical correctness and safety of pipeline stage composition. These guarantees are enforced by ensuring each Steve pipeline has two important properties: \textit{progress} and \textit{requirement satisfaction}. Any pipeline which does not have these properties shall produce a compiler error. Pipelines that cannot ensure these properties risk crashes or undefined behavior during runtime.
 
-\subsection{Pipeline to Pipeline Graph Conversion} \label{guide:pipeline_graph}
+\subsection{Pipeline to Graph Conversion} \label{guide:pipeline_graph}
 
-These properties are checked by first converting a Steve program pipeline into a graph. Each property thus becomes a graph evaluation algorithm on the pipeline graph. To derive a pipeline graph from a Steve program, first all stages (decoders, tables, and events) are pulled from the Steve program. Each stage becomes a \textbf{node} on the pipeline graph. Table stages, specifically, become a node with edges to all of its contained flow entries which become independent nodes themselves. All inserted flow entries are also added with edges from the table they would be inserted into. Added flows cannot violate pipeline properties either, regardless of when they get added.
+These properties are checked by first converting a Steve pipeline into a directed graph. Each property thus becomes a graph evaluation algorithm on the pipeline graph. Each stage (decoders, tables, and events) becomes a \textit{node} on the pipeline graph. Flow entries are treated as independent nodes. An edge is drawn from the containing table to the flow entry. All inserted flow entries are also independent nodes with edges from the table they would be inserted into. Added flows cannot violate pipeline properties either, regardless of when they get added.
 
-Every \texttt{decode}, \texttt{goto}, and \texttt{raise} action found in a stage (or flow entry within a table) causes an \textbf{edge} to be added between the stage and the destination specified by the action. This edge is added even if the action is encapsulated by a conditional statement (such as if-else or match) because its impossible to determine during compile time whether or not that edge is reachable during runtime.
+Every \texttt{decode}, \texttt{goto}, and \texttt{raise} action found in a stage (or flow entry within a table) causes an \textit{edge} to be added between the stage and the destination specified by the action. This edge is added even if the action is encapsulated by a conditional statement because its impossible to determine during compile time whether or not that edge is reachable during runtime.
 
 Every pipeline graph must have exactly one source node (the starting decoder), but can have multiple sinks.
 
 \subsection{Progress} \label{guide:progress}
 
-The \textbf{progress} property says that a packet always moves to a later stage in a pipeline and can never move, or risk moving, to a previously visited stage. Progress is the fundamental nature of the pipeline abstraction. This prevents packets from infinitely looping between the same stages more than once.
+The \textit{progress} property says that a packet always moves to a later stage in a pipeline and can never move, or risk moving, to a previously visited stage. Progress is the fundamental nature of the pipeline abstraction. This prevents packets from infinitely looping between the same stages more than once.
 
-The pipeline graph shall be a directed acyclic graph (DAG). A DAG, by definition, has no cycles and cannot infinitely recur between stages.
+To enforce this property, a Steve program may only compile if and only if the graph representation of the pipeline is a directed acyclic graph (DAG). This property can be easily confirmed using topological sorting.
+
+\textit{Proof.} A DAG, by definition, has no cycles. If there are no cycles, there is no way to visit the same stage more than once. Because there are a finite number of stages, a packet is always guaranteed to leave the pipeline after a finite number of steps.
 
 %First of all, table nodes are assigned a hidden, unique, incremented integer identifier in the order with which they are declared. For example, the first table declared in a Steve program is given the integer identifier 0, the second table declare is given the identifier 1, and so on. Conventionally, tables are expected to be declared in the order with which they are expected to occur in a pipeline.
 %
-%The \textbf{table identifiers} rule says that at no point in the pipeline can a packet reach a target table if it has already visited a table stage whose integer identifier is higher than or equal to that of the target table. In other words, a packet can only go forward through tables, never backwards. This is compliant with the OpenFlow specification for tables \cite{openflow_spec}. Because of this table identifiers rule, it is impossible for any number of table stages to form a cycle with each other.
+%The \textit{table identifiers} rule says that at no point in the pipeline can a packet reach a target table if it has already visited a table stage whose integer identifier is higher than or equal to that of the target table. In other words, a packet can only go forward through tables, never backwards. This is compliant with the OpenFlow specification for tables \cite{openflow_spec}. Because of this table identifiers rule, it is impossible for any number of table stages to form a cycle with each other.
 %
 %\textit{Proof.} A cycle can only be formed if the next table has either been visited, or is contained within a path to a table that has been visited. This can only happen if the next table has an identifier less than or equal to that of the current largest identifier visited. This property is enforced by the way tables are numbered. Since the table identifiers rule prevents a packet from being sent to these tables, it is thus impossible to form a cycle.
 
 \subsection{Requirements Satisfaction} \label{guide:requirements}
 
-\textbf{Requirement Satisfaction} ensures that field access can only be done on extracted fields.
+\textit{Requirement Satisfaction} ensures that field access can only be done on fields that have been decoded by a decoder. This prevents accidental access of fields that have not been discovered or that do not exist.
 
-Every node in a pipeline graph has a set of \textbf{productions} and \textbf{requirements}.
+Every node in a pipeline graph has a set of \textit{productions} and \textit{requirements}.
 
-A \textbf{production} is a field that has been extracted or created by the node's respective stage. Currently only decoding stages are capable of have productions because they are the only ones which can extract fields. If a field were pushed (i.e. created) onto the packet, that would also constitute a production (Steve does not currently support this action).
+A \textit{production} is a field that has been extracted or created by the node's respective stage. Currently only decoding stages are capable of have productions because they are the only ones which can extract fields. If a field were pushed (i.e. created) onto the packet, that would also constitute a production (Steve does not currently support this action).
 
-Given any path \textit{P}, comprised of a set of nodes and edges needed to reach a node representing a stage \textit{V}, a \textbf{requirement} of \textit{V} is a field that must be a production of at least one node in the path \textit{P}. A path \textbf{satisfies} a requirement of \textit{V} if and only if this definition holds true.
+Given any path \textit{P}, comprised of a set of nodes and edges needed to reach a node representing a stage, \textit{V}, a \textit{requirement} of \textit{V} is a field that must be a production of at least one node in the path \textit{P}. A path \textit{satisfies} a requirement of \textit{V} if and only if this definition holds true.
 
-In Steve, only tables, flow entries, and events can have requirements. Tables implicitly require all of their key fields. Both stages can explicitly state their requirements using the \texttt{\color{blue}requires} clause. A flow entry's requirements are implicitly that of its possessing table.
+In Steve, only tables, flow entries, and events can have requirements. Tables implicitly require all of their key fields. Both stages can explicitly state their requirements using the \texttt{requires} clause. A flow entry's requirements are implicitly that of its possessing table.
 
-The requirements satisfaction property says that given any node \textit{V}, all requirements of \textit{V} must be satisfied by all paths leading to \textit{V}. If this property does not hold true, the result is a compiler error.
+The requirements satisfaction property says that given any node \textit{V}, all requirements of \textit{V} must be satisfied by all paths leading to \textit{V}. If this property does not hold true, a compiler error must be produced.
 
-Remember that the objective is to prevent field access on fields that have not been extracted. Also remember that field access can only be done in certain cases. Firstly by a decoder if that field has been extracted by that decoder. Secondly by a table only if that field is part of the table's key or given by the table's \texttt{\color{blue}requires} clause. Thirdly by a table's flow entry whose requirements are implicitly the same. Fourthly by an event if that field is given by the event's \texttt{\color{blue}requires} clause.
+\textit{Proof.} 
+The objective is to prevent field access on fields that have not been extracted. Field access can only be done in four cases. In Case 1, a decoder can access a field if that field has been extracted by that decoder. In Case 2, a table can access a field only if that field is part of the table's key or given by the table's \texttt{requires} clause. In Case 3, a table's flow entry can access fields which are part of the table's requirements. In Case 4, an event can access a field if that field is given by the event's \texttt{requires} clause.
 
-\textit{Proof.} Field access can only be done in certain cases, all of which are cases where the requirements allow it. By the definition of the requirements satisfaction property all nodes in a pipeline graph must have their requirements satisfied, i.e. those fields must have been extracted along the path to that node, otherwise the result is a compiler error. Therefore, it is evident that it is impossible to compile a pipeline where field access is done on non-extracted fields.
+By the definition of the requirements satisfaction property all nodes in a pipeline graph must have their requirements satisfied, i.e. those fields must have been extracted along the path to that node, otherwise the result is a compiler error. Therefore, it is evident that it is impossible to compile a pipeline where field access is done on non-extracted fields.
 
 \subsection{Depth First Search Graph Checking} \label{guide:dfs_desc}
 
-In order to produce the most complete error messages, the Steve compiler uses depth-first traversal with backtracking to evaluate all possible paths in a pipeline graph, see Algorithm \ref{alg:dfs}. The time complexity of finding all paths from source to a sink in a DAG is O($V^2$). Assuming we have \textit{S} number of sinks, and \textit{S} is at worst \textit{V}, the time complexity of finding all paths in a DAG is O($V^3$).
+In order to produce the most complete error messages, the Steve compiler uses depth-first traversal with backtracking to evaluate all possible paths in a pipeline graph, see Algorithm \ref{alg:dfs}. 
 
-As the algorithm traverses a path in the graph, it accumulates a set of productions at each node. At each node, the node's requirements are checked against the accumulating set of productions to confirm the \textbf{requirement satisfaction} property holds true. Any node which fails immediately produces a compiler error and further traversal along that path stops.
+As the algorithm traverses a path in the graph, it accumulates a set of productions at each node. At each node, the node's requirements are checked against the accumulating set of productions to confirm the \textit{requirement satisfaction} property holds true. Any node which fails immediately produces a compiler error and further traversal along that path stops.
 
-At any point in a given path, if a node's edge is directed toward a previously visited node in the path, e.g. a cycle is found, traversal past that node immediately stops and a compiler error is generated warning about the error. This ensures that the \textbf{progress} property is met. The \textbf{termination} property is actually implicit as long as the progress property is met.
+At any point in a given path, if a node's edge is directed toward a previously visited node in the path, e.g. a cycle is found, traversal past that node immediately stops and a compiler error is generated warning about the error. This ensures that the \textit{progress} property is met.
 
-\begin{algorithm}
+\begin{algorithm}[ht]
  \caption{Depth-first traversal with backtracking used to check pipeline properties.}
  \label{alg:dfs}
  \begin{algorithmic}
  \State
- \State \textbf{Input}: Let \textit{G} be the pipeline graph. Let \textit{v} be a node in \textit{G}. Let \textit{p} be a set of productions.
- \State \textbf{Output}: Whether or not the current stage violates the progress, termination, or requirements satisfaction property. If any property fails, output a compiler error.
+ \State \textit{Input}: Let \textit{G} be the pipeline graph. Let \textit{v} be a node in \textit{G}. Let \textit{p} be a set of productions.
+ \State \textit{Output}: Whether or not the current stage violates the progress or requirements satisfaction property. If any property fails, output a compiler error.
  \State
 
  \Function{DFS}{$G, v, p$}
  	\State v.visited = true
- 	\State p.push(v.productions)
+ 	\State p  += v.productions
  	\If{meetsRequirements(v, p)}
- 		\For{\textbf{all} i \textbf{in} G.adjacentNodes(v)}
+ 		\For{\textit{all} i \textit{in} G.adjacentNodes(v)}
  			\If{(i.visited == false) $\land$ canProgress(v, i)}
  				\State \Call{DFS}{G, i, p}
  			\Else
@@ -80,11 +83,17 @@ At any point in a given path, if a node's edge is directed toward a previously v
 
  	\State v.visited = false \Comment{As we backtrack, we reset the visited property so we can come down this node again in different path.}
 
- 	\State p.pop(v.productions) \Comment{As we backtrack, we remove the productions of the node from the set of productions.}
+ 	\State p -= v.productions \Comment{As we backtrack, we remove the productions of the node from the set of productions.}
  \EndFunction
  \end{algorithmic}
 
 \end{algorithm}
+
+The worst case complexity of this algorithm is $O(n!)$ where $n$ is the number of nodes.
+
+\textit{Complexity Proof.} Assume a DAG has $n$ nodes. There are at most $n-1$ nodes adjacent to the root node. Each node adjacent to the root has at most $n-2$ nodes adjacent to it. This pattern continues until paths end in a sink. Thus the number of paths can be represented as $(n-1)(n-2)...1$ or $(n-1)!$.
+
+Fortunately, this worse case performance is rarely ever achieved. Only the most dense pipeline graphs, where a node at each level is connected to every other possible node has this kind of performance. Packet processing graphs are typically more sparse because edges (branches) only occur when determining what the next header is. These graphs are generally not very deep either as packets tend to have a very small number of headers.
 
 \section{Identifiers} \label{guide:identifiers}
 
@@ -96,7 +105,7 @@ An \textit{identifier} is an arbitrarily long sequence of characters. Supported 
 
 <identifier-character> :: <letter>
 \alt <digit>
-\alt \textbf{\_}
+\alt "_"
 
 <letter> ::= "A" | "B" | "C" | "D" | "E" | "F" | "G"
        | "H" | "I" | "J" | "K" | "L" | "M" | "N"
@@ -107,7 +116,7 @@ An \textit{identifier} is an arbitrarily long sequence of characters. Supported 
        | "q" | "r" | "s" | "t" | "u" | "v" | "w"
        | "x" | "y" | "z"
 
-<digit> ::= 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+<digit> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
 \end{grammar}
 \end{minip}
 
@@ -119,17 +128,19 @@ Identifiers are subject to the following limitations:
 \item Identifiers beginning with double underscores (\_\_) or an underscore followed by a capital letter (ex. \_F) are reserved by the compiler for internal identifiers.
 \end{itemize}
 
-Identifiers can be used as \textit{names} for \textit{entities}. An entity is a value, object, reference, function, layout, layout field, decoder, table, flow entry, port, event, extraction. In the Steve grammar, identifiers being used as names for a kind of declarations shall have the form \grd{kind}{name}, where \texttt{\textit{kind}} shall be the declaration kind. For example, a decoder name would be represented in the grammar as \grd{decoder}{name}.
+Identifiers can be used as \textit{names} for \textit{entities}. An entity is a value, object, reference, function, layout, layout field, decoder, table, flow entry, port, event, or extraction. In the Steve grammar, identifiers being used as names for a kind of declarations shall have the form \grd{kind}{name}, where \texttt{\textit{kind}} shall be the declaration kind. For example, a decoder name would be represented in the grammar as \grd{decoder}{name}.
 
-Identifiers that name a variable, function, decoder, table, or port can be used as an expression. In this case, the identifier becomes an \textit{identifier expression}. Identifier expressions refer to a declaration. In cases where identifier expressions refer to object declarations (see \ref{guide:object}) a \textit{reference} to \textit{value} conversion is applied (see Section \ref{guide:reftoval_conv}. In the Steve grammar, identifier expressions shall have the form \grd{kind}{id}, where \texttt{\textit{kind}} shall be the declaration kind. For example, an identifier to a variable would be represented in the grammar as \grd{variable}{id}.
+Identifiers that refer to a variable, function, decoder, table, or port can be used as an expression. In this case, the identifier becomes an \textit{identifier expression} (see \ref{guide:id_expr}). In the Steve grammar, identifier expressions shall have the form \grd{kind}{id}, where \texttt{\textit{kind}} shall be the declaration kind. For example, an identifier to a variable would be represented in the grammar as \grd{variable}{id}.
 
 \section{Keywords} \label{guide:keyword}
 
-A number of identifiers in Steve are reserved as \textit{keywords}. The meaning and semantics of these identifiers cannot be changed. A list of Steve keywords can be found in Figure \ref{fg:keywords_table}.
+A number of identifiers in Steve are reserved as \textit{keywords}. The meaning and semantics of these identifiers cannot be changed. A list of Steve keywords can be found in Table \ref{fg:keywords_table}.
 
-\begin{figure} [ht]
-{\ttfamily
-\begin{tabular*}{\textwidth\noindent}{@{\extracolsep{\fill}} l l l l l}
+\begin{table} [ht]
+\caption{Steve reserved keywords. Note that Steve reserves the right to make any identifiers keywords in future versions.}
+\label{fg:keywords_table}
+\ttfamily
+\begin{tabularx}{\textwidth\noindent}{@{\extracolsep{\fill}} l l l l l}
 bool   & break   & char    & continue & def  \\
 if     & else    & foreign & int      & uint \\
 return & struct  & this    & var      & while \\
@@ -140,11 +151,8 @@ drop   & flood   & clear   & set      & insert \\
 remove & into    & from    & event    & raise \\
 in\_port & in\_phys\_port & all & controller & reflow \\
 advance & egress & struct & char
-\end{tabular*}
-}
-\caption{Steve reserved keywords. Note that Steve reserves the right to make any identifiers keywords in future versions.}
-\label{fg:keywords_table}
-\end{figure}
+\end{tabularx}
+\end{table}
 
 \section{Field Name} \label{guide:field_name}
 
@@ -153,48 +161,42 @@ advance & egress & struct & char
 \begin{minip}
 \begin{grammar}
 <field-name> ::=
-<layout-id> \textbf{.} <field-id>
-\alt <field-name> \textbf{.} <field-id>
+<layout-id> \textit{.} <field-id>
+\alt <field-name> \textit{.} <field-id>
 \end{grammar}
 \end{minip}
 
-In the first form \grd{layout}{id}.\grd{field}{id}, or more succinctly \texttt{E1.E2}, \texttt{E1} must be a valid identifier to a layout declaration. \texttt{E2} must be a field of \texttt{E1}. In other words, \texttt{E2} must be found in the scope of \texttt{E1} using a qualified name lookup (see \ref{guide:qlfd_lookup}).
+Given a field name of the form \texttt{E1.E2}, if \texttt{E1} is a valid identifier to a layout declaration, then \texttt{E2} must be a field of \texttt{E1}. In other words, \texttt{E2} must be found in the scope of \texttt{E1} using a qualified name lookup (see \ref{guide:qlfd_lookup}).
 
-In the second form \grd{field}{name}.\grd{field}{id}, or more succinctly \texttt{E1.E2}, \texttt{E1} must be a valid field name which refers to a field declaration whose type, \texttt{T}, is layout type (see \ref{guide:layout_type}). \emph{E2} must be a field of the layout declaration which declares type \texttt{T}. In other words, \texttt{E2} must be found in the scope of the layout declaration which declares type \texttt{T} using qualified name lookup.
+If \texttt{E1} is a valid field name, and the referred to field has type \texttt{T}, then \texttt{T} must be layout type (see \ref{guide:layout_type}) declared by a layout declaration (see \ref{guide:layout}), \texttt{D}. \texttt{E2} must identify a field of \texttt{D}.  In other words, \texttt{E2} must be found in the scope of \texttt{D} using qualified name lookup.
 
-In both forms, \texttt{E1} is referred to as the \textit{container} and \texttt{E2} is referred to as the \textit{contained field}.
-
-The \textit{containing layout identifier} is the phrase used to mean the leftmost identifier in a field name. For example, in \texttt{l1.f1.f2.f3}, \texttt{l1} is the containing layout identifier.
+\texttt{E1} is referred to as the \textit{container} and \texttt{E2} is referred to as the \textit{contained field}. The \textit{root layout identifier} is used to mean the leftmost identifier in a field name. For example, in \texttt{l1.f1.f2.f3}, \texttt{l1} is the root layout identifier.
 
 Field names used as expressions become \textit{field access expressions} (see \ref{guide:field_access_expr}). Field access expressions may be used to refer to the value of the last extraction with that field name.
 
 \section{Scope} \label{guide:scope}
 
-Steve scope semantics borrow heavily from C++ scope semantics \cite{cpp_std}. \textit{Declarations} are used throughout program text to introduce \textit{names}. Names are \textit{identifiers} used to identify \textit{entities} (see \ref{guide:identifiers}). A \textit{name} is only \textit{valid} within parts of program text called the \textit{scope} of that name. A particular name is only considered valid if an \textit{entity} with that name can be found using an \textit{unqualified name lookup} (see \ref{guide:unqlfd_lookup}).
+Steve scope semantics work like all C-based block-structured languages (including C++, Java, C\#, etc). 
+\textit{Declarations} are used throughout program text to introduce \textit{names} which refer to an entities (see \ref{guide:identifiers}). 
+
+A \textit{name} is only \textit{valid} within parts of program text called the \textit{scope} of that name. A particular name is only considered valid if an \textit{entity} with that name can be found using an \textit{unqualified name lookup} (see \ref{guide:unqlfd_lookup}).
 
 \subsection{Global Scope} \label{guide:global_scope}
 
 The outermost part of program text where declarations can be made is known as \textit{global scope}. All declarations made at global scope are said to be \textit{global declarations} and their names are said to be \textit{global names}.
 
-Global names are valid at any point in the program. Steve does not require forward declarations.
-
-Two different declarations of the same name shall not be made at global scope. Any attempts to do this shall produce a compiler error.
+Global names are valid at any point in the program. Steve does not require forward declarations. Two declarations of the same name that are not overloaded functions shall not be made at global scope.
 
 \subsection{Block Scope} \label{guide:block_scope}
 
-Blocks are portions of program text which can have their own local declarations. The beginning of a block is delimited by the left-brace (\{) and the end of a block is delimited by the right-brace (\}). A declaration made within a block is in \textit{block scope} and is \textit{local} to that block.
+Blocks are portions of program text which can have their own local declarations. The beginning of a block is delimited by the left-brace (\{) and the end of a block is delimited by the right-brace (\}). Blocks define a block scope which limits the scope of declarations made within them. A declaration made within a block is in \textit{block scope} and is \textit{local} to that block.
 
-Two different declarations of the same name cannot be made inside the same block. Any attempts to do this shall produce a compiler.
+The scope of a name made within a block begins at the point of declaration and ends at the final left-brace of the block. It is illegal to use the name of a declaration in local scope at a textual position before its declaration.
+Two different declarations of the same name cannot be made inside the same scope.
 
 Scopes can be nested. In this case, the inner scope is said to be the \textit{enclosed} scope, and the outer scope is said to be the \textit{enclosing} scope. The same name can be declared in the enclosing scope, and again in one or more enclosed scopes. The same is true for further nested scopes within the enclosed scope. If this happens, the scope of the outer declaration is its typical scope excluding program text of the enclosed scope. Unqualified name lookup (see \ref{guide:unqlfd_lookup}) shall be used to unambiguously determine which declaration the name refers to.
 
-The statements \texttt{if}, \texttt{while}, \texttt{match} all implicitly introduce a block.
-
-%Here, it is useful to talk about a concept called \textit{potential scope}, similarly found in C++ \cite{cpp_std}. The scope of a declaration is the same as its potential scope. The only exception is if there are two or more declarations of the same name in the same potential scope. In this case, the actual scope of a declaration is its potential scope excluding the potential scope of the inner declarative region.
-
-Blocks found in the program text at global scope (i.e. function bodies, layout bodies, decoder bodies, etc) introduce block scopes which are nested in global scope.
-
-For example, in the following example, the name \texttt{i} is declared twice. The scope of the first \texttt{i} is global scope and includes the entire example excluding the block between the first left-brace (\texttt{\{}) and the closing right-brace (\texttt{\}}). The scope of the second \texttt{i} begins immediately after its declaration and ends at the the closing right-brace (\texttt{\}})
+For example, in the following example, the name \texttt{i} is declared twice. The scope of the first \texttt{i} is global scope and includes the entire example excluding the block between the first left-brace (\texttt{\{}) and the closing right-brace (\texttt{\}}). The scope of the second \texttt{i} begins at its declaration and ends at the the closing right-brace (\texttt{\}})
 
 \begin{minip}
 \begin{lstlisting}
@@ -208,68 +210,25 @@ def f() -> int
 \end{lstlisting}
 \end{minip}
 
+The body of \texttt{if}, \texttt{while}, and \texttt{match} statements all implicitly introduce a block.
+
 \subsection{Function Scope} \label{guide:function_scope}
 
-The body of a function declaration (see \ref{guide:function}) is its \grd{block}{statement} which introduces a block. All names introduced by a \grd{parameter}{declaration} in a function declaration's \grd{parameter}{sequence} have an effective scope starting at the beginning of the block.
-
-\subsection{Decoder Scope} \label{guide:decoder_scope}
-
-The body of a decoder declaration (see \ref{guide:decoder}) is its \grd{block}{statement} which introduces a block scope. Declarations made inside this block are said to have \textit{decoder scope}.
+The scope of a parameter declared in a \grd{function}{declaration} (see \ref{guide:function}) is the function's \grd{block}{statement}.
 
 \subsection{Table Scope} \label{guide:table_scope}
 
-A table declaration (see \ref{guide:tables}) has a body given by \grd{table}{initializer} which introduces a block scope. Declarations made inside this block are said to be in \textit{table scope}.
+A name is said to be in table scope if its scope is within the \grd{table}{initializer} of a \grd{table}{declaration} (see \ref{guide:tables}). The scope of field names declared by a \grd{key}{declaration} within \grdd{key}{declaration}{sequence} and field names listed in the \grd{requires}{clause} is the \grd{table}{initializer}.
 
-All field names given by a \grd{key}{declaration} within \grdd{key}{declaration}{sequence}, or within the \grd{requires}{clause}, become valid within the scope of the table if and only if \textit{requirements satisfaction} (see \ref{guide:requirements}) determines that field is satisfied.
+The field name refers to the \textit{last} extraction made with that field name. This entity may vary during runtime depending on the path through the pipeline which a packet took. Because of requirement satisfaction (see \ref{guide:requirements}), it is always guaranteed that an entity with that name exists.
 
-In the following example, two decoders are declared; \texttt{ipv4\_d} has extract declarations for field names \texttt{ipv4.type} and \texttt{ipv4.ttl}; \texttt{udp\_d} has extract declarations for \texttt{udp.dst\_port}.
+\subsection{Flow Scope} \label{guide:flow_scope}
 
-\begin{minip}
-\begin{lstlisting}
-decoder ipv4_d(ipv4)
-{
-	extract ipv4.type;
-	extract ipv4.ttl;
-	// ...
-	decode udp;
-}
+A name is said to be in \textit{flow entry scope} if its scope is within the \grd{flow}{body} of a \grd{flow}{declaration} (see \ref{guide:tables}). If a \grd{flow}{declaration} appears within a \grd{table}{initializer}, then all field names whose scope is that \grd{table}{initializer} are valid within the flow entry's body.
 
-decoder udp_d(udp)
-{
-	extract udp.dst_port;
-	// ...
-	goto t1;
-}
-\end{lstlisting}
-\end{minip}
+If a flow entry is being inserted into a table using the \grd{insert}{action} (see \ref{guide:insert_flow}), then a flow declaration is implicitly generated representing that flow entry. The \grd{flow}{body} of that declaration is treated as if it were within that table's \grd{table}{initializer}. This ensures that the field names valid within that table are valid within the inserted flow entry's body.
 
-Decoder \texttt{udp\_d} goes to table \texttt{t1}. Table \texttt{t1} has the key declarations \texttt{ipv4.type} and \texttt{udp.dst\_port}. Because requirement satisfaction is met, these field names become valid and in scope within the table's body and its flow entry's bodies. When these field names are used, they refer to the last extraction made with that field name. The same is true for \texttt{ipv4.ttl}.
-
-\begin{minip}
-\begin{lstlisting}
-exact_table t1(ipv4.type, udp.dst_port)
-	requires(ipv4.ttl)
-{
-	{ 0x01, 80 } ->
-	{
-		// The ipv4.type field name is valid here.
-		set ipv4.type = 0x02;
-		// The udp.dst_port field name is valid here.
-		set udp.dst_port = 88;
-		// The ipv4.ttl field name is valid here.
-		set ipv4.ttl = ipv4.ttl - 1;
-	}
-}
-\end{lstlisting}
-\end{minip}
-
-\subsection{Flow Entry Scope} \label{guide:flow_scope}
-
-A flow declaration (see \ref{guide:tables}) has a body given by \grd{flow}{body} which introduces a block scope. Declarations made in this block are said to have \textit{flow entry scope}. If a flow declaration is part of a \grd{table}{initializer}, the flow declaration has table scope. The flow entry scope is nested inside table scope.
-
-If a flow declaration is part of an \texttt{insert} action, the body is treated as if it were nested inside the scope of the table it is being inserted into.
-
-Names found in the \grd{properties}{block} follow regular scope semantics. That is, all names which are normally valid at the point where the \grd{properties}{block} appears in the program text are valid inside the \grd{properties}{block}. However, these names may not be valid for the \grd{flow}{body} in the case of an \texttt{insert} action.
+Names found in the \grd{properties}{block} of an inserted flow entry follow regular scope semantics. That is, all names which are normally valid at the point where the \grd{properties}{block} appears in the program text are valid inside the \grd{properties}{block}. However, these names may not be valid for the \grd{flow}{body} in the case of an \grd{insert}{action}.
 
 In the following example, the name \texttt{x} is valid in the properties block, but not in the body of the flow.
 
@@ -299,14 +258,14 @@ exact_table t1(eth.type) { }
 
 \subsection{Event Scope} \label{guide:event_scope}
 
-The body of an event declaration (see \ref{guide:event}) is a \grd{block}{statement} which introduces a block scope. All field names given by the \grd{requires}{clause} are valid within the body if and only if requirement's satisfaction (see \ref{guide:requirements}) determines that the field has been satisfied.
+The scope of names declared in the \grd{block}{statement} of an \grd{event}{declaration} follow regular block scope semantics (see \ref{guide:block_scope}). The scope of field names given by the \grd{requires}{clause} is also that \grd{block}{statement}.
 
 \subsection{Layout Scope} \label{guide:layout_scope}
 
-The body of a layout declaration (see \ref{guide:layout}) introduces a layout block. Field declarations introduce names into this layout block and are said to have \textit{layout scope}. Names of a field declaration can only be used as follows:
+The scope of a field declared within a layout is the \grd{layout}{body} of the containing \grd{layout}{declaration} (see \ref{guide:layout}). This name is valid in the following circumstances:
 
 \begin{itemize}
-\item Inside the scope of its layout.
+\item Inside the \grd{layout}{body}.
 
 \item After the dot-operator (\texttt{.}) applied to the name of its containing layout as part of either a field name (see \ref{guide:field_name}) or a field access expression (see \ref{guide:field_access_expr}).
 
@@ -315,11 +274,11 @@ The body of a layout declaration (see \ref{guide:layout}) introduces a layout bl
 
 \subsection{Unqualified Name Lookup} \label{guide:unqlfd_lookup}
 
-Unqualified name lookup attempts to find the corresponding declaration for a name being used. Unqualified name lookup begins at the innermost block, before the name is used and works outward toward enclosing blocks. If the declaration is not found in any enclosing blocks, global scope is searched. The innermost declaration (e.g. the first one found) with that given name found is considered the corresponding declaration.
+Unqualified name lookup attempts to find the corresponding declaration for a name being used. Unqualified name lookup begins at the innermost scope, before the name is used and works outward toward enclosing scopes. If the declaration is not found in any enclosing scopes, global scope is searched. The innermost declaration (e.g. the first one found) with that name is considered the corresponding declaration.
+
+A name must be declared before being used. Any attempts to use a name before its declaration shall result in a failed unqualified name lookup. If unqualified lookup fails to find a corresponding declaration, the a compiler error is produced.
 
 If the name refers to one or more function declarations, and is being used as a function call, an \textit{overload set} is associated with the name. If this is the case, \textit{argument dependent lookup} determines which declaration is being referred to. The function declaration chosen shall be the one whose parameter types match the argument types used in the function call.
-
-A name must be declared before being used. Any attempts to use a name before its declaration shall result in a failed unqualified name lookup.
 
 Global names used at any point are considered valid regardless of the order with which they are declared in the program text. For example, the following usage of the name \texttt{i} in function \texttt{foo} refers to a variable declaration made after the function declaration. This is considered valid.
 
@@ -333,13 +292,11 @@ var i : int = 0;
 \end{lstlisting}
 \end{minip}
 
-If unqualified lookup fails to find a corresponding declaration, the result is a compiler error.
-
 \subsection{Qualified Name Lookup} \label{guide:qlfd_lookup}
 
 Qualified name lookup attempts to find the corresponding declaration for a name in a given scope. The search is done only on the given scope before the usage of the name and does not expand outward to enclosing scopes.
 
-Qualified name lookup is most often used for looking up of names following the dot-operator in field names (see \ref{guide:field_name}) and field access expressions (see \ref{guide:field_access_expr}).
+Qualified name lookup is used for looking up names following the dot-operator in field names (see \ref{guide:field_name}) and field access expressions (see \ref{guide:field_access_expr}).
 
 If qualified lookup fails to find a corresponding declaration, the result is a compiler error.
 
@@ -410,17 +367,17 @@ Variables, ports, tables, and temporaries are objects. Objects are created in St
 The \textit{storage duration} of an object describes the point where an object's memory is allocated and the point where its memory is deallocated.
 
 \begin{itemize}
-\item \textbf{Automatic}. Automatic storage duration says that an object is allocated at the beginning of the code block where it is declared and deallocated at the end of a code block. Global and local variables have automatic storage.
+\item \textit{Automatic}. Automatic storage duration says that an object is allocated at the beginning of the code block where it is declared and deallocated at the end of a code block. Global and local variables have automatic storage.
 
-\item \textbf{Pipeline automatic}. Pipeline automatic storage duration is a property of the context object (see \ref{guide:context}). Upon packet ingress, the context is allocated, upon egress the context is deallocated.
+\item \textit{Pipeline automatic}. Pipeline automatic storage duration is a property of the context object (see \ref{guide:context}). Upon packet ingress, the context is allocated, upon egress the context is deallocated.
 \end{itemize}
 
 The \textit{lifetime} of an object is either equivalent or a subset of its storage duration.
 
 \begin{itemize}
-\item \textbf{Automatic}. Automatic lifetime begins at the point where an object is \textit{initialized} and ends at the point where an object is de-initialized.
+\item \textit{Automatic}. Automatic lifetime begins at the point where an object is \textit{initialized} and ends at the point where an object is de-initialized.
 
-\item \textbf{Pipeline automatic}. Pipeline automatic lifetime is equivalent to pipeline automatic storage duration.
+\item \textit{Pipeline automatic}. Pipeline automatic lifetime is equivalent to pipeline automatic storage duration.
 \end{itemize}
 
 \section{Context Data Structure} \label{guide:context}
@@ -676,7 +633,7 @@ Specifiers have the following form:
 
 \begin{grammar}
 \singlespace
-<specifier> ::= \textbf{foreign}
+<specifier> ::= \textit{foreign}
 \end{grammar}
 
 \subsection{Foreign Specifier} \label{guide:foreign_spec}
@@ -702,13 +659,15 @@ def main() -> int {
 \begin{minip}
 \begin{grammar}
 <layout-declaration> ::=
-\textbf{layout} <layout-name>
-\textbf{\{}
+"layout" <layout-name> <layout-body>
+
+<layout-body> ::=
+"{"
 	<field-declaration> +
-\textbf{\}}
+"}"
 
 <field-declaration> ::=
-<field-name> \textbf{:} <type> \textbf{;}
+<field-name> ":" <type> ";"
 \end{grammar}
 \end{minip}
 
@@ -748,8 +707,8 @@ Decoder declarations have the following form:
 \begin{grammar}
 \singlespace
 <decoder-declaration> ::=
-\textbf{decoder} <decoder-name> [\textbf{start}]
-\textbf{(} <layout-id> \textbf{)}
+\textit{decoder} <decoder-name> [\textit{start}]
+\textit{(} <layout-id> \textit{)}
 <block-statement>
 \end{grammar}
 \end{minip}
@@ -778,14 +737,14 @@ Extract declarations have the following form:
 
 \begin{grammar}
 <extract-declaration> ::=
-\textbf{extract} <field-name> \textbf{;}
+\textit{extract} <field-name> \textit{;}
 \end{grammar}
 
 An \textit{extract declaration} declares that a field with the specified \grd{field}{name} (see \ref{guide:field_name}) is to be extracted by the decoder. The field name is in scope at the point of the extract declaration. The extracted field, or \textit{extraction}, is an object in memory whose name shall be \grd{field}{name}.
 
 An extract declaration must be in decoder scope. Attempting to put an extract declaration in any other context shall result in a compiler error.
 
-The containing layout identifier of \grd{field}{name} (see \ref{guide:field_name}) shall be the same layout identifier as the one given by the decoder's \textit{layout rule} (see \ref{guide:decoder}). A decoder shall not extract fields from layouts which are not it's layout rule. For example, the following is illegal:
+The root layout identifier of \grd{field}{name} (see \ref{guide:field_name}) shall be the same layout identifier as the one given by the decoder's \textit{layout rule} (see \ref{guide:decoder}). A decoder shall not extract fields from layouts which are not it's layout rule. For example, the following is illegal:
 
 \begin{minip}
 \begin{lstlisting}
@@ -874,7 +833,7 @@ At certain times, it may be convenient to extract a certain field, but \textit{a
 \begin{minip}
 \begin{grammar}
 <rebind-declaration> ::=
-\textbf{extract} <field-name> \textbf{as} <field-name> \textbf{;}
+\textit{extract} <field-name> \textit{as} <field-name> \textit{;}
 \end{grammar}
 \end{minip}
 
@@ -966,19 +925,19 @@ Table declarations have the following form:
 \begin{minip}
 \begin{grammar}
 <table-declaration> ::=
-\textbf{table} <table-name> \textbf{(} <key-declaration-sequence> \textbf{)}
+\textit{table} <table-name> \textit{(} <key-declaration-sequence> \textit{)}
 [ <requires-clause> ] <table-initializer>
 
 <key-declaration> ::=
-<layout-id> \textbf{.} <field-id>
-\alt <key-declaration> \textbf{.} <field-id>
-\alt \textbf{in\_port}
-\alt \textbf{in\_phys\_port}
+<layout-id> \textit{.} <field-id>
+\alt <key-declaration> \textit{.} <field-id>
+\alt \textit{in\_port}
+\alt \textit{in\_phys\_port}
 
 <requires-clause> ::=
-\textbf{requires} \textbf{(} <field-name-sequence> \textbf{)}
+\textit{requires} \textit{(} <field-name-sequence> \textit{)}
 
-<table-initializer> ::= \textbf{\{} [ <flow-declaration-list> ] \textbf{\}}
+<table-initializer> ::= \textit{\{} [ <flow-declaration-list> ] \textit{\}}
 
 <flow-declaration-list> ::= <flow-declaration>
 \alt <flow-declaration-list> <flow-declaration>
@@ -1007,25 +966,25 @@ Each table has a set of \textit{flow entries} declared in Steve using a \grd{flo
 \begin{grammar}
 <flow-declaration> ::=
 <properties-block>
-\textbf{\{} <match-field-sequence> \textbf{\}} \textbf{-\textgreater} <flow-body>
+\textit{\{} <match-field-sequence> \textit{\}} \textit{-\textgreater} <flow-body>
 \alt <miss-flow-declaration>
 
 <match-field> ::= <expression>
 
-<flow-body> :: \textbf{\{} <action> + \textbf{\}}
+<flow-body> :: \textit{\{} <action> + \textit{\}}
 
 <properties-block> ::=
-\textbf{[} <property-sequence> \textbf{]}
+\textit{[} <property-sequence> \textit{]}
 
 <property> ::=
-<property-kind> \textbf{=} <expr>
+<property-kind> \textit{=} <expr>
 
 <property-kind> ::=
-\textbf{timeout}
-\alt \textbf{egress}
+\textit{timeout}
+\alt \textit{egress}
 
 <miss-flow-decl> ::=
-\textbf{miss} \textbf{-\textgreater} <flow-body>
+\textit{miss} \textit{-\textgreater} <flow-body>
 \end{grammar}
 \end{minip}
 
@@ -1044,7 +1003,7 @@ An event declaration has the following form:
 \begin{minip}
 \begin{grammar}
 <event-decl> ::=
-\textbf{event} <event-name> [ <requires-clause> ]
+\textit{event} <event-name> [ <requires-clause> ]
 <block-statement>
 \end{grammar}
 \end{minip}
@@ -1084,8 +1043,6 @@ event event1
 
 Event declarations are subject to meeting the \textit{requirements satisfaction} property of pipelines, even though they themselves are not completely separate stages.
 
-The \grd{requires}{clause} is optional. The field names given in \grd{requires}{clause} must be valid field names. Those field names become valid inside \grd{block}{statement} by event scope semantics (see \ref{guide:event_scope}).
-
 \section{Port Declaration} \label{guide:port}
 
 A port declaration has the following form:
@@ -1093,9 +1050,9 @@ A port declaration has the following form:
 \begin{minip}
 \begin{grammar}
 <port-decl> ::=
-\textbf{Port} <port-name> [ <port-initializer> ] \textbf{;}
+\textit{Port} <port-name> [ <port-initializer> ] \textit{;}
 
-<port-initializer> ::= \textbf{=} <integer-literal>
+<port-initializer> ::= \textit{=} <integer-literal>
 \end{grammar}
 \end{minip}
 
@@ -1259,20 +1216,20 @@ Integer, binary and hexadecimal literals have the following form:
 \alt <binary-literal>
 \alt <hexadecimal-literal>
 
-<decimal-digit> ::= \textbf{0} | \textbf{1} | \textbf{2} | \textbf{3} | \textbf{4} | \textbf{5} | \textbf{6} | \textbf{7} | \textbf{8} | \textbf{9}
+<decimal-digit> ::= \textit{0} | \textit{1} | \textit{2} | \textit{3} | \textit{4} | \textit{5} | \textit{6} | \textit{7} | \textit{8} | \textit{9}
 
-<hexadecimal-digit> ::= \textbf{\_} | <decimal-digit> | \textbf{a} | \textbf{b} | \textbf{c} | \textbf{d} | \textbf{e} | \textbf{f}             
+<hexadecimal-digit> ::= \textit{\_} | <decimal-digit> | \textit{a} | \textit{b} | \textit{c} | \textit{d} | \textit{e} | \textit{f}             
 
-<binary-digit> ::= \textbf{\_} | \textbf{0} | \textbf{1}
+<binary-digit> ::= \textit{\_} | \textit{0} | \textit{1}
 
 <integer-literal> ::=
 <decimal-digit> +
 
 <hexadecimal-literal> ::=
-\textbf{0x} <hexadecimal-digit> +
+\textit{0x} <hexadecimal-digit> +
 
 <binary-literal> ::=
-\textbf{0b} <binary-digit> +
+\textit{0b} <binary-digit> +
 \end{grammar}
 \end{minip}
 

@@ -19,7 +19,7 @@ Packet-switched networks have gone through an explosive evolution over the last 
 
 The Internet, which is nowadays ubiquitous with everyday life, connecting millions of computers across the globe, continues to drive networking technology forward. The network hardware used to connect computers has evolved. Primitive wires and repeater hubs evolved into modern devices such as switches and routers.
 
-These modern devices implement two fundamental components in their firmware, the control plane and the data plane. The control plane decides where packets should be sent and is capable of learning new forwarding behaviors over time. The control plane commands the data plane. The data plane actually moves the packets from port to port. Almost all modern networking devices continue to operate using this conventional model. However, firmware is rarely ever updated. The behavior thus rarely changes. These devices are dedicated to one singular task for the duration of their lifetime. This type of networking device can be considered \emph{hardware-defined networking}.
+These modern devices implement two fundamental components in their firmware, the control plane and the data plane. The control plane decides where packets should be sent and is capable of learning new forwarding behaviors over time. The control plane commands the data plane. The data plane actually moves the packets from port to port. Almost all modern networking devices continue to operate using this conventional model. However, firmware is rarely ever updated. The behavior thus rarely changes. These devices are dedicated to one singular task for the duration of their lifetime. This type of networking device can be considered \emph{hardware defined networking}.
 
 Over time this conventional type of networking became complex, rigid, and proprietary. These devices are built to handle an enormous amount of protocols. These protocols, however, can rarely evolve because devices cannot handle unexpected new header formats. Developers of these devices do not expose interfaces to the internals of the system leaving users with a black box which is both difficult to customize and hard to manage.
 
@@ -117,7 +117,6 @@ The Steve compiler generates LLVM intermediate representation (IR) code \cite{ll
 \subsection{Flowpath Runtime Environment}
 
 Flowpath is a runtime environment and a programmable software data plane. The Steve programming language compiles into dynamic link libraries, known as \emph{Steve applications}, which the Flowpath runtime can load and execute. A Steve application provides the packet decoding functionality, configures the flow tables on the data plane, and manages control flow through pipeline stages.
-
 
 \section{Thesis Overview}
 
