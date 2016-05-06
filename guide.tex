@@ -300,107 +300,49 @@ Qualified name lookup is used for looking up names following the dot-operator in
 
 If qualified lookup fails to find a corresponding declaration, the result is a compiler error.
 
-\section{Conversions} \label{guide:conversions}
-
-There are a number of type conversions in Steve which are all implicitly applied. These implicit conversions are applied to expressions in the order with which they are enumerate in this section.
-
-\subsection{Reference to Value Conversion} \label{guide:reftoval_conv}
-
-Expressions of reference type (see \ref{guide:ref_type}) can be converted to expressions of value type. An object of reference type stores an address to its data. A \textit{reference to value conversion} causes the data to be loaded from the address stored by the reference into a temporary. The value contained in the temporary is used for the operation in place of the expression of reference type.
-
-An identifier to an object declaration is an identifier expression. Assuming that object has type \texttt{T}, the identifier expression has type \texttt{T\&}. When used in a situation where the \textit{value} of the object is needed, a reference to value conversion is applied.
-
-In the following example, the identifier expression \texttt{x} has reference-to-integer type. When used as part of an additive expression, the reference to value conversion is implicitly applied so both operands have integer type.
-
-\begin{minip}
-\begin{lstlisting}
-var x : uint = 10;
-
-// The reference to value conversion is
-// implicitly applied on the identifier expression
-// 'x' here.
-x + 5;
-\end{lstlisting}
-\end{minip}
-
-\subsection{Integer Conversions} \label{guide:int_conv}
-
-Steve will convert the precision and signed/unsigned-ness of integers where necessary.
-
-If an integer \texttt{I1} of type \texttt{T1} must be converted to an integer of type \texttt{T2}, the following conversions each get applied in order.
-
-\begin{itemize}
-\item If \texttt{T1} is an unsigned integer and \texttt{T2} is a signed integer, then the type of \texttt{I1} is converted to a signed integer type with the same precision as \texttt{T1}.
-
-\item If \texttt{T1} is a signed integer and \texttt{T2} is an unsigned integer, then the type of \texttt{I1} is converted to an unsigned integer type with the same precision as \texttt{T1}.
-
-\item If the precision of \texttt{T1} is less than the precision of \texttt{T2}, then the type of \texttt{I1} is converted (promoted) to an integer type with the same precision as \texttt{T2}. The extra bits are zero-filled.
-
-\item If the precision of \texttt{T1} is greater than the precision of \texttt{T2}, then the type of \texttt{I1} is converted (demoted) to an integer type with the same precision as \texttt{T2}. The extra bits are truncated.
-\end{itemize}
-
-\subsection{Port to Integer Conversions} \label{guide:port_conv}
-
-In some cases, namely comparison and equality operators, a port expression (see \ref{guide:port_expr}) may be converted to have integer type. A port to integer conversion takes a port object and interprets its value to an integer value. The integer value is equal to the port object's system assigned ID number. Port objects which have not been initialized or are invalid have an integer value \texttt{0}.
-
-For example, in the following case, a port to integer conversion is applied to expression \texttt{p1} to allow it to be compared with \texttt{0} (note that a reference-to-value conversion is actually applied first since \texttt{p1} is an identifier expression with reference-to-port type).
-
-\begin{minip}
-\begin{lstlisting}
-Port p1; // Uninitialized port object.
-def foo() -> bool {
-	// Implicit port to integer conversion.
-	if (p1 == 0)
-		return true;
-}
-\end{lstlisting}
-\end{minip}
-
 \section{Objects} \label{guide:object}
 
 An \textit{object} in a Steve program is an area of memory that has size, lifetime, type, and value. An object may also be given a name.
 
-Variables, ports, tables, and temporaries are objects. Objects are created in Steve by variable, port, and table declarations. Objects may be created where temporary values are required. For example, the evaluation of expressions such as addition (see \ref{guide:bitwise_expr}) produce temporary objects.
+Variables, extractions, ports, tables, and temporaries are objects. Objects are created in Steve by variable, extract, port, and table declarations (see \ref{guide:variables}, \ref{guide:extract}, \ref{guide:port}, \ref{guide:tables}). Objects may be created where temporary values are required. For example, the evaluation of expressions such as addition (see \ref{guide:add_expr}) produce temporary objects.
 
 \subsection{Storage Duration and Lifetime} \label{guide:storage}
 
 The \textit{storage duration} of an object describes the point where an object's memory is allocated and the point where its memory is deallocated.
 
 \begin{itemize}
-\item \textit{Automatic}. Automatic storage duration says that an object is allocated at the beginning of the code block where it is declared and deallocated at the end of a code block. Global and local variables have automatic storage.
+\item \textit{Automatic}. Automatic storage duration says that an object is allocated at the beginning of the code block where it is declared and deallocated at the end of a code block. Global entities (such as tables, ports, and global variables) and local variables have automatic storage. 
 
-\item \textit{Pipeline automatic}. Pipeline automatic storage duration is a property of the context object (see \ref{guide:context}). Upon packet ingress, the context is allocated, upon egress the context is deallocated.
+\item \textit{Pipeline automatic}. Pipeline automatic storage duration is a property of the context object (see \ref{guide:context}). Upon packet ingress, the context is allocated, upon egress the context is deallocated. The memory associated with extracted fields, which are part of the packet, exist before they have actually been extracted, and thus have the same storage duration.
 \end{itemize}
 
 The \textit{lifetime} of an object is either equivalent or a subset of its storage duration.
 
 \begin{itemize}
-\item \textit{Automatic}. Automatic lifetime begins at the point where an object is \textit{initialized} and ends at the point where an object is de-initialized.
+\item \textit{Automatic}. Automatic lifetime begins at the point where an object is \textit{initialized} and ends at the point where an object is de-initialized (which is currently equivalent to the end of the block).
 
-\item \textit{Pipeline automatic}. Pipeline automatic lifetime is equivalent to pipeline automatic storage duration.
+\item \textit{Pipeline automatic}. Pipeline automatic lifetime is equivalent to pipeline automatic storage duration for contexts. The lifetime of an extracted field can be thought of as being from the point where its position is found (decoded) to the point where the context's storage duration ends.
 \end{itemize}
 
 \section{Context Data Structure} \label{guide:context}
 
-The storage duration and lifetime of a context is said to be \textit{pipeline automatic} (see \ref{guide:storage}). Management of the context's memory is exclusively and automatically handled by internal mechanics of the runtime system. This object is used exclusively by the internals of the program to keep track of information about a packet.
+The storage duration and lifetime of a context is said to be \textit{pipeline automatic} (see \ref{guide:storage}). Management of the context's memory is exclusively and automatically handled by internal mechanics of the runtime system. This object is used exclusively by the internals of the program to keep track of information about a packet. It is also important to note that the packet itself is also a part of the context. Any point where "the context" is referred to, it is implied to mean both the packet and context.
 
-It is also important to note that the packet itself is also a part of the context. Any point where "the context" is referred to, it is implied to mean both the packet and context.
-
-A user is never given direct access to a context. Context objects are implicit, yet invisible, within the scope of all pipeline processing stages (decoders, tables, and events). Certain expressions, declarations, and actions might access, modify, or otherwise affect the data of the context in limited and well-defined ways.
+A user is never given direct access to a context. Context objects are implicit, yet invisible, within all pipeline processing stages (decoders, tables, and events). They serve to carry data as input and output between stages. Certain expressions, declarations, and actions might access, modify, or otherwise affect the data of the context in limited and well-defined ways.
 
 \begin{itemize}
-\item Expressions which access a context are: field access expressions, in port expression, and in physical port expression.
+\item Expressions which access a context are: field access expressions (see \ref{guide:field_access_expr}), ingress port expression, and ingress physical port expression (see \ref{guide:port_expr}).
 
-\item Declarations which modify a context are: extract declarations and rebind declarations.
+\item Declarations which modify a context are: extract declarations (see \ref{guide:extract}) and rebind declarations (see \ref{guide:rebind}).
 
 \item All actions (see \ref{guide:action}) will affect the context in some way.
 \end{itemize}
 
 \section{Type} \label{guide:type}
 
-Types are a way of describing objects, references, expressions, fields, and functions. Types can describe size, structure, and limitations on possible values for these entities. By giving types to these things, it allows the compiler to reason about limitations on where terms may appear. This process is known as \textit{type checking}. Steve is a statically typed language. Therefore, the types of all things are known during compile time. 
+Types are a way of describing objects, references, expressions, fields, and functions. Types can describe size, structure, and limitations on possible values and legal operations for these entities. By giving types to these things, it allows the compiler to reason about limitations on where terms may appear. This process is known as \textit{type checking}. Steve is a strongly-typed language. Therefore, the types of all things are known during compile time. 
 
-Steve supports scalar types, reference types, layout type, port type, and function type. Types may appear as terms in language to specify the type of variables, parameters, and layout fields. At other points, the type of an entity may be implicit. For example, the type of an additive expression (see \ref{guide:add_expr}) is implicitly integer.
+Steve supports scalar types (see \ref{guide:scalar_type}), reference types (see \ref{guide:ref_type}), layout type (see \ref{guide:layout_type}), port type (see \ref{guide:port_type}), and function type (see \ref{guide:function_type}). Types may appear as terms in language to specify the type of variables, parameters, return values, and layout fields. At other points, the type of an entity may be implicit. For example, the type of an additive expression (see \ref{guide:add_expr}) is implicitly integer.
 
 Types have the form:
 
@@ -417,7 +359,7 @@ Types have the form:
 
 \section{Scalar Type} \label{guide:scalar_type}
 
-Objects of scalar type represent exactly one value. They are not compose of multiple sub-objects. Steve supports the scalar types boolean, integer, and character. Scalar types have the form:
+Objects of scalar type represent exactly one value. They are not composed of multiple sub-objects. Steve supports the scalar types boolean, integer, and character. Scalar types have the form:
 
 \begin{minip}
 \begin{grammar}
@@ -439,22 +381,25 @@ Objects of boolean type may only have the values \texttt{true} and \texttt{false
 
 \subsection{Integer Type} \label{guide:integer_type}
 
-Integer type describes the size, precision, and signed/unsigned-ness of a given integer value. They have the form:
+An integer type describes the size, precision, and signed/unsigned-ness of a given integer value. They have the form:
 
 \begin{minip}
 \begin{grammar}
 <integer-type> ::= <signed-integer-type>
 \alt <unsigned-integer-type>
 
-<signed-integer-type> ::= "int" <precision-clause>
+<signed-integer-type> ::= "int" [ <precision-specifier> ]
 
-<unsigned-integer-type> ::= "uint" <precision-clause>
+<unsigned-integer-type> ::= "uint" [ <precision-specifier> ]
 
-<precision-clause> ::= ["("<integer-literal>")"]
+<precision-specifier> ::= "("<integer-literal>")"
 \end{grammar}
 \end{minip}
 
-The precision and effective size of an integer is given by \grd{precision}{clause}. If \grd{precision}{clause} is not given, the default precision and effective size shall be 32. For signed integers, the range of integers that can be represented is from $-2^{N-1}$ to $2^{N-1}-1$, where \textit{N} is the precision. For unsigned integers, the range of integers that can be represent is $0$ to $2^{N}-1$.
+The precision of an integer is given by \grd{precision}{specifier}.
+Precision is not always equivalent to size. The size of an integer is
+always the next highest multiple of 8.
+If \grd{precision}{specifier} is not given, the default precision and effective size shall be 32. For signed integers, the range of integers that can be represented is from $-2^{N-1}$ to $2^{N-1}-1$, where \textit{N} is the precision. For unsigned integers, the range of integers that can be represent is $0$ to $2^{N}-1$.
 
 \subsection{Character Type} \label{guide:char_type}
 
@@ -468,13 +413,15 @@ Single characters have character type. Character type has the form:
 
 \section{Reference Type} \label{guide:ref_type}
 
-Objects and expressions of reference type represent an address to an object. Assuming the referred-to object has type \texttt{T}, then a reference to that object has type \texttt{T\&} which is read as "reference-to-\texttt{T}." Reference type may be written and has the form:
+Objects and expressions of reference type represent an address to an object.  Reference types have the form:
 
 \begin{minip}
 \begin{grammar}
 <reference-type> ::= <type> "\&" 
 \end{grammar}
 \end{minip}
+
+The type \texttt{T\&} is read as "reference-to-\texttt{T}," where \texttt{T} is the type of the referred to object.
 
 Identifier expressions referring to variables have reference type. Field access expressions refer to extractions and thus have reference type.
 
@@ -490,7 +437,9 @@ var y : int = x + 10;
 \end{lstlisting}
 \end{minip}
 
-When a value of type \texttt{T} is needed rather than the reference (traditionally in expressions which appear on the left side of an assignment) a reference-to-value conversion (see \ref{guide:reftoval_conv}) is applied. 
+When an expression of type \texttt{T\&} appears on the right-hand side of an
+assignment statement (see \ref{guide:assign_stmt}), a reference-to-value
+conversion (see \ref{guide:reftoval_conv}) is applied to recover the value of the object.
 
 Variables of reference type may be created. Assignment to that variable modifies the original object as well. For example:
 
@@ -502,20 +451,17 @@ y = 5; // This modifies x as well, so now both are 5.
 \end{lstlisting}
 \end{minip}
 
-Here we have a variable \texttt{x} of type \texttt{int}. We have a variable \texttt{y} if type \texttt{int\&}, and identifier expression \texttt{x} of type \texttt{int\&} is assigned to it. Any modifications to \texttt{y} have the same affect on \texttt{x}, because y only stores an address to the original object. Any modifications to why affect the original object.
+Here, any modifications to \texttt{y} have the same affect on \texttt{x}, because y only stores an address to the original object.
 
 \section{Array Type} \label{guide:array_type}
 
-Array types describes a region of contiguous memory containing \texttt{N} number of objects of type \texttt{T}. Array type has the form: 
+An array type, \texttt{T[N]}, describes a region of contiguous memory containing \texttt{N} number of objects of type \texttt{T}. Array types have the form: 
 
 \begin{minip}
 \begin{grammar}
 <array-type> ::= <type> "["<integer-literal>"]"
 \end{grammar}
 \end{minip}
-
-The type \texttt{T} is given by \gr{type}. The number of objects \texttt{N} is given by \grd{integer}{literal} whose type must be unsigned integer.
-
 
 \section{Block Type} \label{guide:block_type}
 
@@ -545,7 +491,7 @@ Layout types are declared via layout declarations (see \ref{guide:layout}). Layo
 \end{grammar}
 \end{minip}
 
-Objects of layout type shall not exist. The \grd{layout}{type} may only appear as part of a field declaration within a layout declaration (see \ref{guide:layout}). It may not appear in variable declarations or function declarations as such:
+Objects of layout type shall not exist. The \grd{layout}{type} may only appear as the type of a field declaration within a layout declaration (see \ref{guide:layout}). It may not appear in variable declarations or function declarations as such:
 
 \begin{minip}
 \begin{lstlisting}
@@ -557,6 +503,22 @@ def foo(y : L1) -> L1 { ... }
 \end{minip}
 
 The size of a layout is equal to the sum of the sizes of each of its field types. This is only knowable at compile time if the layout contains only scalar typed fields. For example, the layout \texttt{L1} has a size of 48 bits or 6 bytes.
+
+\subsection{Why Objects of Layout Type can not Exist.} \label{guide:no_dst}
+
+Layouts are not classes. The primary reason for this differentiation are dynamically-sized fields. These fields are said to have \textit{dynamically-sized type} (DST) and their size is determined by some value
+discovered during runtime.
+
+Consider that when objects of user-defined type (i.e. class type) are constructed, stack space must be allocated for them. The amount of space must be known during compilation. By including a member of DST in a class it effectively "taints" a class, making the class an aggregate type containing a DST. It is not easy to stack allocate an object which contains a member of DST because the amount of memory needed is unknown until runtime. It suddenly becomes difficult to stack allocate variables of that user-defined type. 
+
+Such objects can only be heap allocated, which Steve does not currently support. The only exception is if memory is being allocated for an object of non-class DST. In this case, stack space can be allocated for this "scalar" DST, but access to it would happen through pointer addressing which is prone to undefined behavior because it cannot be compiler checked.
+
+
+It becomes more unclear what happens when an object of class type containing a DST is a member to another class. Due to these unanswered issues, Steve avoids this problem altogether. 
+
+Since layouts must contain fields of DST, Steve cannot allow layouts to behave like a class type. Therefore, objects of layout type can never be created. Layouts cannot contain member functions either. It logically follows that since objects of layout type cannot exist, there is no justification for having member functions.
+
+The only language which supports user-defined DSTs, Rust, only allows it under very limited circumstance \cite{rust_dst_std}.
 
 \section{Port Type} \label{guide:port_type}
 
@@ -584,11 +546,62 @@ Functions have function type. Function type describes the type of each parameter
 \end{grammar}
 \end{minip}
 
-The type of each parameter is given by a corresponding type in \grd{type}{sequence}. The return type is given by \gr{type}.
+A function of type \texttt{(T1, T2, ..., Tn) -> T} has parameters of type \texttt{T1}, \texttt{T2}, ..., \texttt{Tn}, respectively, and a return type \texttt{T}.
+
+\section{Conversions} \label{guide:conversions}
+
+At certain points, the type of an expression may be implicitly converted to another type. A \textit{conversion sequence} applies conversions in turn until the original type has been converted to another target type.
+
+\subsection{Reference to Value Conversion} \label{guide:reftoval_conv}
+
+Given an assignment statement (see \ref{guide:assign_stmt}) \texttt{E1 = E2},
+an expression of type \texttt{T\&} which can appear as \texttt{E1} or in \texttt{E2} is traditionally called an \textit{lvalue}. Lvalues are objects which persist past a single expression. These are typically identifiers which refer to non-temporary objects. Expressions which may only appear in \texttt{E2} are known as \textit{rvalues}. Rvalues do not persist past the expression which creates them such as: literals, arithmetic expressions, comparison expressions, etc.
+
+When an lvalue of type \texttt{T\&} appears in \texttt{E2}, it must go through implicit reference to value conversion (also known as lvalue to rvalue conversion). The reference is replaced with the object it refers.
+
+\begin{minip}
+\begin{lstlisting}
+var x : uint = 10;
+// The reference to value conversion is
+// implicitly applied on the identifier expression
+// 'x' here.
+var y : uint = x + 5;
+\end{lstlisting}
+\end{minip}
+
+\subsection{Integer Conversions} \label{guide:int_conv}
+
+Steve will convert the precision and signed/unsigned-ness of integers where necessary. If an expression \texttt{E1} of type \texttt{T1} must be converted to an integer of type \texttt{T2}, the following conversions each get applied in order.
+
+\begin{enumerate}
+\item If \texttt{T1} is a signed integer and \texttt{T2} is an unsigned integer, then the type of \texttt{E1} is converted to an unsigned integer type with the same precision as \texttt{T1} (the original precision).
+
+\item If the precision of \texttt{T1} is less than the precision of \texttt{T2}, then the type of \texttt{E1} is converted (promoted) to an integer type with the same precision as \texttt{T2}. The extra bits are zero-filled if both are unsigned or sign-extended if both are signed.
+
+\item If the precision of \texttt{T1} is greater than the precision of \texttt{T2}, then the type of \texttt{E1} is converted (demoted) to an integer type with the same precision as \texttt{T2}. The extra bits are truncated.
+\end{enumerate}
+
+\subsection{Port to Integer Conversions} \label{guide:port_conv}
+
+In some cases, namely comparison and equality operators, a port expression (see \ref{guide:port_expr}) may be converted to have integer type. A port to integer conversion takes a port object and interprets its value to an integer value. The integer value is equal to the port object's system assigned ID number. Port objects which have not been initialized or are invalid have an integer value \texttt{0}.
+
+For example, in the following case, a port to integer conversion is applied to expression \texttt{p1} to allow it to be compared with \texttt{0} (note that a reference-to-value conversion is actually applied first since \texttt{p1} is an identifier expression with reference-to-port type).
+
+\begin{minip}
+\begin{lstlisting}
+Port p1; // Uninitialized port object.
+def foo() -> bool {
+	// Implicit port to integer conversion.
+	if (p1 == 0)
+		return true;
+}
+\end{lstlisting}
+\end{minip}
+
 
 \section{Declarations} \label{guide:declarations}
 
-\textit{Declarations}, generally speaking, introduce an entity and a name for that entity. When using that name, the declaration is used to determine how to interpret that name.
+\textit{Declarations}, generally speaking, introduce an entity and a name for that entity. When using that name, the declaration is used to determine how to interpret that name. 
 
 For example, a variable declaration (see \ref{guide:variables}) introduces a variable and a name for that variable. When the name for that variable is used in program text, it is used to mean the variable itself.
 
@@ -619,9 +632,7 @@ Declarations have the form:
 \end{grammar}
 \end{minip}
 
-All declarations must occur within a scope. A declaration that declares a layout, decoder, table, event, or function causes a scope to be nested in global scope. That scope might also have scopes nested within it.
-
-Certain declarations can only occur within certain scopes. Specifically, declarations which declare ports, layouts, decoders, tables, events, and functions must occur at global scope. These cannot occur within block scope. These are known as \textit{global} declarations.
+All declarations introduce a name into a scope. A layout, decoder, table, event, or function declaration must be made in global scope. These are known as \textit{global} declarations.
 
 Declarations may have a number of specifiers (see \ref{guide:specifications}) attached to them, given by \grd{specifier}{seq}. Specifiers modify the semantics of declarations.
 
@@ -633,24 +644,24 @@ Specifiers have the following form:
 
 \begin{grammar}
 \singlespace
-<specifier> ::= \textit{foreign}
+<specifier> ::= "foreign"
 \end{grammar}
 
 \subsection{Foreign Specifier} \label{guide:foreign_spec}
 
-The \texttt{foreign} specifier can only appear before \grd{function}{declaration}. This specifier says that a function has foreign linkage, that is, the function is not defined in this scope but rather in a different program. This function is said to be a \textit{foreign function}. The name of a foreign function is not mangled. Foreign functions cannot have a definition, that is, the \grd{function}{declaration} cannot have a \grd{block}{statement}. This is the only case where a declaration varies from a definition.
-
-Foreign linkage is most often used to link against the C runtime library. For example, the following introduces the \texttt{puts} C-function into global scope. Function calls to \texttt{puts} will call the C-function with the same name.
+The \texttt{foreign} specifier can only appear before a \grd{function}{declaration}. This specifier says that a function has foreign linkage, that is, the function is not defined in this scope but rather in a different program. This function is said to be a \textit{foreign function}. The name of a foreign function is not mangled. Foreign functions cannot have a definition, that is, the \grd{function}{declaration} cannot have a \grd{block}{statement}. This is the only case where a declaration varies from a definition.
 
 \begin{minip}
 \begin{lstlisting}
 foreign def puts(char[]) -> int;
 
-def main() -> int {
+def f() -> int {
 	puts("Hello world.");
 }
 \end{lstlisting}
 \end{minip}
+
+Foreign linkage is most often used to link against the C runtime library. For example, the following introduces the \texttt{puts} C-function into global scope. Function calls to \texttt{puts} will call the C-function with the same name.
  
 \section{Layout Declaration} \label{guide:layout}
 
@@ -671,13 +682,12 @@ def main() -> int {
 \end{grammar}
 \end{minip}
 
-Layout declarations shall contain one or more \textit{field declarations}, denoted in the grammar as \grd{field}{declaration}. Field declarations introduce names for fields into layout scope. The type of a field declaration, denoted by \gr{type} shall be scalar or layout type. \footnote{Though \texttt{bool} and \texttt{char} are valid scalar types and can appear as \gr{type}, they will result in a compiler error if the given field is needed as part of a table's key. This is a limitation that will be adjusted in later revisions.} Types of field declarations are used to specify the length of the given field. Because this is the extent of the usage, there is no reason to support more complex user-defined types here.
+A field declaration \texttt{F : T} introduces the name \texttt{F} into layout scope. \texttt{T} must be of scalar type (see \ref{guide:scalar_type}) or layout type (see \ref{guide:layout_type}).
+\footnote{Though \texttt{bool} and \texttt{char} are valid scalar types and can appear as \gr{type}, they will result in a compiler error if the given field is needed as part of a table's key. This is a limitation that will be adjusted in later revisions.} The type \texttt{T} specifies the length of the field. Because this is the extent of the usage, there is no reason to support more complex user-defined types here.
 
-Field declarations must occur in the order with which they appear in the an actual instance of a header which the layout represents. Incorrect ordering will result in incorrect extractions (see \ref{guide:extract}).
+Field declarations must occur in the order with which they appear in the an actual instance of a header which the layout represents. Incorrect ordering will result in incorrect extractions by decoders.
 
-All field declarations declared within a layout declaration define a \textit{complete} layout. Field declarations may not be added to a layout elsewhere.
-
-Though layout declarations declare layout types, objects of layout type can never be created and functions cannot have parameters or returns of layout type. The following is not legal in Steve. A layout type may only appear as the type of a field declaration in layout scope.
+Though layout declarations declare layout types, objects of layout type can never be created and functions cannot have parameters or returns of layout type (see \ref{guide:layout_type}, \ref{guide:no_dst}). The following is not legal in Steve. 
 
 \begin{minip}
 \begin{lstlisting}
@@ -687,17 +697,7 @@ def foo(x : l1) -> l1 { ... } // Illegal.
 \end{lstlisting}
 \end{minip}
 
-\subsection{Why Objects of Layout Type can not Exist.}
-
-Remember that layouts are not classes. The primary reason for this differentiation in Steve are dynamically-sized fields in packet headers. Headers potentially have fields whose length is predicated upon some value discovered during runtime. These fields are said to have \textit{dynamically-sized type}. Some examples of this are the \texttt{options} fields in IPv4, IPv6, and TCP headers.
-
-Consider that when objects of user-defined type (i.e. class type) are constructed, stack space must be allocated for them. The amount of space must be known during compilation. By including a member of DST in a class it effectively "taints" a class, making the class a user-defined DST. It is not possible to stack allocate an object which contains a member of DST because the amount of memory needed is unknown until runtime. It suddenly becomes impossible to create variables of that user-defined type, making the entire abstraction meaningless. Therefore, DSTs cannot be members of user-defined types.
-
-Such objects can only be heap allocated, which Steve does not currently support. The only exception is if memory is being allocated for an object of non-user-defined, dynamically-sized type. In this case, stack space can be allocated for this "scalar" DST, but access to it would happen through pointer addressing. The only language which supports user-defined DSTs, Rust, only allows it under very limited circumstance \cite{rust_dst_std}.
-
-By extension, because layouts must contain fields of DST, Steve cannot allow layouts to behave like a user-defined type. Therefore, objects of layout type can never be created.
-
-Layouts cannot contain member functions. It logically follows that since objects of layout type cannot exist, there is no justification for having member functions.
+A layout type may only appear as the type of a field declaration in layout scope. This is to allow for handling of nested header structures.
 
 \section{Decoder Declarations} \label{guide:decoder}
 
@@ -705,10 +705,9 @@ Decoder declarations have the following form:
 
 \begin{minip}
 \begin{grammar}
-\singlespace
 <decoder-declaration> ::=
-\textit{decoder} <decoder-name> [\textit{start}]
-\textit{(} <layout-id> \textit{)}
+\textit{decoder} <decoder-name> [ "start" ]
+"("<layout-id> ")" 
 <block-statement>
 \end{grammar}
 \end{minip}
@@ -721,15 +720,17 @@ The execution of a decoder is similar to that of a function. Each statement with
 
 \subsection{Decoder View and Shifting} \label{guide:decoder_view}
 
-The \textit{current view} of a packet begins where the first byte of the current header being decoded lies in memory. The end of the current view is found at the position of the beginning plus the length of the current header. For headers whose lengths can be determined during compile time using the layout declaration referred to be the layout rule, the current view is said to be \textit{statically-sized}. For headers whose lengths must be determined by operations performed at runtime, the current view is said to be \textit{dynamically-sized}.
+The \textit{current view} of a packet begins where the first byte of the current header being decoded lies in memory. The end of the current view is found at the position of the beginning plus the length of the current header. For headers whose lengths can be determined during compile time using the layout rule, the current view is said to be \textit{statically-sized}. For headers whose lengths must be determined by operations performed at runtime, the current view is said to be \textit{dynamically-sized}.
 
 Steve uses this view mechanism to allow for partial decodes of headers. Without the ability to find fields relative to the beginning of views, decoding phases would be forced into full forward decoding, meaning for a field to be extracted, all fields prior to it would have to be extracted. This prevents us from receiving the gains of partial decode.
+
+Additionally, this means extractions cannot exceed the logical bounds of a single header. It is implicitly impossible to decode further than the final field in the layout rule.
 
 The context is used to maintain a positional index, known as the \textit{view index}, corresponding to the beginning of the current view. At first, this index begins at 0, corresponding to the first byte of the packet, and thus the first byte of the first header. Each decoder shifts the current view by the length of the current header before transitioning to the next stage, that is, the length of the current header is added to the view index upon the execution of a \texttt{decode} or a \texttt{goto} action (see \ref{guide:decode_action} \& \ref{guide:goto}).
 
 If the view is statically-sized, the shift shall be implicitly emitted as code by the compiler by using the layout rule. This is known as an \textit{implicit advance}.
 
-If the view is dynamically-sized, the length of the shift must be explicitly qualified using the \texttt{\color{blue}advance} clause. This is known as an \texttt{explicit advance}.
+If the view is dynamically-sized, the length of the shift must be explicitly qualified using the \texttt{\color{blue}advance} clause attached to either a \texttt{goto} (see \ref{guide:goto}) or \texttt{decode} action (see \ref{guide:decode_action}). This is known as an \textit{explicit advance}.
 
 \section{Extract Declaration} \label{guide:extract}
 
@@ -740,11 +741,11 @@ Extract declarations have the following form:
 \textit{extract} <field-name> \textit{;}
 \end{grammar}
 
-An \textit{extract declaration} declares that a field with the specified \grd{field}{name} (see \ref{guide:field_name}) is to be extracted by the decoder. The field name is in scope at the point of the extract declaration. The extracted field, or \textit{extraction}, is an object in memory whose name shall be \grd{field}{name}.
+An extract declaration declares that a field with the specified \grd{field}{name} (see \ref{guide:field_name}) is to be extracted by the decoder. The field name is in scope at the point of the extract declaration. The extracted field, or \textit{extraction}, is an object in memory whose name shall be \grd{field}{name}.
 
 An extract declaration must be in decoder scope. Attempting to put an extract declaration in any other context shall result in a compiler error.
 
-The root layout identifier of \grd{field}{name} (see \ref{guide:field_name}) shall be the same layout identifier as the one given by the decoder's \textit{layout rule} (see \ref{guide:decoder}). A decoder shall not extract fields from layouts which are not it's layout rule. For example, the following is illegal:
+The root layout identifier of \grd{field}{name} (see \ref{guide:field_name}) shall be the same layout as the decoder's \textit{layout rule} (see \ref{guide:decoder}). A decoder shall not extract fields from layouts which are not it's layout rule. For example, the following is illegal:
 
 \begin{minip}
 \begin{lstlisting}
@@ -758,27 +759,27 @@ decoder eth_d(eth) {
 
 \subsection{Determining the Location and Length of Extracted Fields}
 
-An extract declaration produces an extraction by executing a set of instructions on a packet which saves the extraction's \textit{location} and \textit{length} to the context's header environment (see \ref{context_desc}, \ref{guide:context}). Information gathered from \grd{field}{name} is used to calculate these two values. This process is completely opaque to the user, and is described below.
+An extract declaration produces an extraction by executing a set of instructions on a packet which saves the extraction's \textit{location} and \textit{length} to the context's header environment (see \ref{context_desc}, \ref{guide:context}). Information gathered from the \grd{field}{name} and layout rule is used to calculate these two values. This process is completely opaque to the user, and is described below.
 
 \begin{enumerate}
 \item Discover the field declaration $f$ referred to by \grd{field}{name}. The length of the extracted field is calculated by a function $len(f)$. The result of $len(f)$ is the \textit{size} of an object of $f$'s type.
 
-\item The \grd{field}{name} has the form \texttt{E1.E2} where \texttt{E1} is the \textit{container} and \texttt{E2} is the \textit{contained field}. The set $P$ is the set of all field declarations preceding $f$ in its containing layout declaration. The function used to calculate the \textit{relative offset} of $f$ is given as $rel(E1)$ and is defined as:
+\item The \grd{field}{name} has the form \texttt{E1.E2} where \texttt{E1} is the \textit{container} and \texttt{E2} is the \textit{contained field}. The set $P$ is the set of all field declarations preceding $f$ in its containing layout declaration. The function used to calculate the \textit{relative offset} of $f$ is given as $rel(E1, E2)$ and is defined as:
 
 \begin{enumerate}
 
-\item If \texttt{E1} is a \grd{layout}{id}, then the $rel(E1) = \sum_{x \in P}{} len(x)$.
+\item If \texttt{E1} is a \grd{layout}{id}, then the $rel(E1, E2) = \sum_{x \in P}{} len(x)$.
 
-\item If \texttt{E1} is a \grd{field}{name} and \texttt{E1}'s container is denoted as \texttt{E1.c}, then $rel(E1) = rel(E1.c) + \sum_{x \in P}{} len(x)$
+\item If \texttt{E1} is a \grd{field}{name}, and \texttt{E1} has the form \texttt{E1c.E1f}, then $rel(E1, E2) = rel(E1c, E1f) + \sum_{x \in P}{} len(x)$
 
 \end{enumerate}
 
-\item Given a field name of the form \texttt{E1.E2}, and the current view index (see \ref{guide:decoder_view}), $i$, the \textit{absolute offset} of the field being extracted is this $i + rel(E1)$.
+\item Given a field name of the form \texttt{E1.E2}, and the current view index (see \ref{guide:decoder_view}), $i$, the \textit{absolute offset} of the field being extracted is this $i + rel(E1, E2)$.
 
 \item The location of an extracted field is its absolute offset, that is, the number of bytes it is away from the beginning of the packet.
 \end{enumerate}
 
-The following example shall be used to demonstrate how each calculation is made. Two layouts, \texttt{L} and \texttt{LN}, and a decoder, \texttt{D}, are provided. \texttt{L} has three fields: \texttt{a}, \texttt{b}, and \texttt{c}.  \texttt{LN} has two fields: \texttt{d} and \texttt{f}. Field \texttt{L.c} has layout type \texttt{LN} and is thus a nested layout. \texttt{D} decodes \texttt{L} and extracts \texttt{L.a} and \texttt{L.c.f}.
+The following example demonstrates how each calculation is made. Two layouts, \texttt{L} and \texttt{LN}, and a decoder, \texttt{D}, are provided. \texttt{L} has three fields: \texttt{a}, \texttt{b}, and \texttt{c}.  \texttt{LN} has two fields: \texttt{d} and \texttt{f}. Field \texttt{L.c} has layout type \texttt{LN} and is thus a nested layout. \texttt{D} decodes \texttt{L} and extracts \texttt{L.a} and \texttt{L.c.f}.
 
 \begin{minip}
 \begin{lstlisting}
