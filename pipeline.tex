@@ -73,14 +73,28 @@ as the position and length of extracted fields and headers must be saved for
 later recovery. Specifically, a Steve context saves the following data:
 
 \begin{itemize} \item The packet itself. From now on, anytime mention of the
-context is made, it is implied that this also includes the packet itself. \item
-The packet's logical and physical ingress ports. \item The egress port. This
+context is made, it is implied that this also includes the packet itself. 
+
+\item
+The packet's logical and physical ingress ports. 
+
+\item The egress port. This
 field is written to during pipeline processing. It ultimately determines which
-port the packet gets forwarded on. \item The packet's length. \item A tunnel
-identifier. \item The offset and length of decoded fields saved in a
-\textit{binding environments}. \item The offset of decoded headers saved in a
-\textit{binding environment}. \item An action set that may be written to and is
-executed during egress processing. \end{itemize}
+port the packet gets forwarded on. 
+
+\item The packet's length. 
+
+\item A tunnel identifier. 
+
+\item The offset and length of decoded fields saved in a
+\textit{binding environments}. 
+
+\item The offset of decoded headers saved in a
+\textit{binding environment}. 
+
+\item An action set that may be written to and is
+executed during egress processing. 
+\end{itemize}
 
 Extracted fields and headers get saved in \textit{binding environments}
 contained within the context. The term \textit{environment} refers to a data
