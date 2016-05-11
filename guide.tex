@@ -38,11 +38,16 @@ Every node in a pipeline graph has a set of \textit{productions} and \textit{req
 
 A \textit{production} is a field that has been extracted or created by the node's respective stage. Currently only decoding stages are capable of have productions because they are the only ones which can extract fields. If a field were pushed (i.e. created) onto the packet, that would also constitute a production (Steve does not currently support this action).
 
-Given any path \textit{P}, comprised of a set of nodes and edges needed to reach a node representing a stage, \textit{V}, a \textit{requirement} of \textit{V} is a field that must be a production of at least one node in the path \textit{P}. A path \textit{satisfies} a requirement of \textit{V} if and only if this definition holds true.
+A \emph{requirement} is a field which must be decoded before reaching a node on
+this graph. An event handler's requirements are listed in its
+\texttt{\color{green}requires} clause. A table's requirements are given by its
+key fields, and it may also have a \texttt{\color{green}requires} clause.
 
-In Steve, only tables, flow entries, and events can have requirements. Tables implicitly require all of their key fields. Both stages can explicitly state their requirements using the \texttt{requires} clause. A flow entry's requirements are implicitly that of its possessing table.
-
-The requirements satisfaction property says that given any node \textit{V}, all requirements of \textit{V} must be satisfied by all paths leading to \textit{V}. If this property does not hold true, a compiler error must be produced.
+Let $P$ be a set of all paths from the root node (representing the starting decoder) to a node $V$.
+For a path $p \in P$, a requirement of $V$ must be a production of at least one node in
+$p$. A path, $p$, \emph{satisfies} a requirement of $V$ if and only if this
+definition holds true. If this is not true for all $p \in P$, then the program
+is ill-formed.
 
 \textit{Proof.} 
 The objective is to prevent field access on fields that have not been extracted. Field access can only be done in four cases. In Case 1, a decoder can access a field if that field has been extracted by that decoder. In Case 2, a table can access a field only if that field is part of the table's key or given by the table's \texttt{requires} clause. In Case 3, a table's flow entry can access fields which are part of the table's requirements. In Case 4, an event can access a field if that field is given by the event's \texttt{requires} clause.
