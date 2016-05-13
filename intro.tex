@@ -23,23 +23,26 @@ Modern routers and switches provide the backbone for the Internet.
 These modern devices implement two fundamental components in their firmware: the
 \emph{control plane} and the \emph{data plane}.
 The control plane decides where packets should be sent and is capable of learning
-new forwarding behaviors over time. The control plane commands the data plane.
-The data plane actually moves the packets from port to port.
+new forwarding behaviors. The control plane commands the data plane.
+The data plane is responsible for moving packets between ports.
 
-Over time this conventional type of networking became rigid, complex, and
+Over time this conventional type of networking became rigid, unscalable, and
 proprietary. Defining network functionality in firmware is inherently inflexible.
-It is difficult to update firmware and changes are generally small. These devices
-have to be able to deal with most or all common protocol headers. With dozens of
-common protocols now, and potentially dozens more in the future, it becomes clear
-that this model becomes more and more complex and unscalable.
-Many of these devices are black boxes, only exposing an interface which the
-vendor allows, making them difficult to fine-tune or customize.
+Firmware is architecture-dependent, difficult to write, and challenging to update
+regularly.
+Conventional switches are unscalable because they must deal with most or all
+common protocol headers.
+With dozens of common protocols now, and potentially dozens more in the future,
+it becomes evident that this model cannot last forever.
+Additionally, many devices are black boxes,
+only exposing an interface exposed by the vendor,
+making them difficult to customize for enterprises with special needs.
 
-Due to these and other related issues,
+Due to these and others,
 a new paradigm for networking was created. This new paradigm
 is called \textit{software-defined networking} (SDN). The Open Network
 Foundation (ONF) defines SDN as ``the physical separation of the network control
-plane from the forwarding plane'' \cite{onf_sdn_def}.
+plane from the forwarding [data] plane'' \cite{onf_sdn_def}.
 The control plane is removed from the firmware.
 Instead, it is implemented in software.
 This software control plane is capable of controlling several devices over a
@@ -57,30 +60,34 @@ Protocol independence means that a networking device is not reliant on supportin
 a suite of well-known protocols (ethernet, IPv4, TCP, etc).
 Rather than relying on specialized hardware or firmware tailored towards parsing/decoding
 these protocols, the data plane supports processors
-and generic instructions that a user could use to decode any header and field.
-Additionally, the instruction set architecture (ISA) of these processors
-are likely to support generic operations such as arithmetic, branching, and loops
-which can be useful for operating on fields.
+and generic instructions that a user could use to decode and operate on
+any header and field.
 This allows users to define their own protocols in addition to
 supporting well-known protocols. This makes the data plane scalable, that is, it
-can adapt to new headers fairly easily.
+can adapt to new headers easily.
 
-A common interpretation of the control and data plane relationship is that the
-control plane is smart but slow, while the data plane is fast yet dumb. That is
-the control plane can perform the general purpose computing but communicating with
-it has high latency. The data plane, on the other, hand is the fast path for packet processing.
+In the control and data plane relationship,
+the control plane is smart but slow, while the data plane is fast yet dumb. That is,
+the control plane can perform general purpose computing but communicating with
+it has high latency. The data plane, on the other hand, is the fast path for packet processing.
 It has very limited computing power, but can process packets at a low latency.
 As programmable data planes start to support more general purpose operations,
-the communicating with the control plane becomes less and less necessary.
+the communicating with the control plane becomes less necessary, and data planes
+grow more flexible.
 
+In order to pursue programmable SDN devices, there must be a language to write
+packet processing program. A number of language solutions arise here.
+Some attempt to solve this problem by providing APIs for existing programming languages
+(specifically C/C++).
+Others attempt to produce domain-specific languages (DSLs) for SDN devices.
 
-The typical communication channel between data and control planes in SDN switches
-produces
+The focus of this thesis is one such DSL, Steve, a language for the safe and
+efficient specification of packet processing applications for programmable data
+and control planes.
 
-Packet processing and forwarding logic is usually performed using an abstract
-model known as a \emph{packet processing pipeline} which is a generalization of
-the pipeline model described by OpenFlow \cite{openflow_spec}.
-
+% Packet processing and forwarding logic is usually performed using an abstract
+% model known as a \emph{packet processing pipeline} which is a generalization of
+% the pipeline model described by OpenFlow \cite{openflow_spec}.
 
 
 %
@@ -96,108 +103,202 @@ the pipeline model described by OpenFlow \cite{openflow_spec}.
 % hardware}. The same device can go from being a repeating hub to a MAC learning
 % switch to a router just by running a different program on it.
 
-Writing programs for these data planes is the next logical step. There must
-exist a programming language that any programmer can learn and write packet
-processing programs with. A number of these languages exist. Some attempt to
-solve this problem by providing APIs for existing programming languages. Others
-attempt to produce domain-specific \textit{SDN languages}. The Steve programming
-language is one of these SDN languages.
+\section{The Steve Programming Language}
 
-\section{Difficulty of Programming Data Planes}
+The Steve programming language is a protocol independent, architecture indepedent,
+declarative language for packet processing on SDN devices.
+Steve defines network functions using an abstract model
+known as a \emph{packet processing pipeline} -- a model which is a generalization
+of the pipeline defined by OpenFlow \cite{openflow_spec}.
+A packet processing pipeline is an algorithm which
+uses multiple stages to process and forward packets.
+Steve provides high-level language features for specifying stages in this pipeline.
+To support the definition of these pipelines, Steve provides language features
+for:
+
+\textbf{Header Structures}.
+A programmer may define the structure of any protocol header using an abstract
+mechanism known as a \emph{layout}.
+A layout specifies what fields are in a header, the lengths of those fields,
+and types for those fields.
+
+\textbf{Decoders}. Decoders are special functions for extracting fields from a
+packet header. They conform to user-defined layouts, making them flexible enough
+to deal with any protocol header.
+
+%
+% Steve allows the user to program special functions decoders
+% which are used for decoding and extract fields from a header. Decoders allow the
+% user to specify which fields they need. Decoders do not require that a user
+% extract all fields if they do not need those fields. The user is not required to
+% manually extract the bytes associated with a field. Instead, the user gives a
+% field name from the header layout they defined, and the language generates the
+% code for them.
+
+\textbf{Flow tables}. A flow table (an OpenFlow inspired abstraction) is a dynamic
+decision table which classifies packets into groups (known as \emph{flows}) using
+decision rules (known as \emph{flow entries}).
+Packets which are part of the same flow have a common set of \emph{actions}
+applied to them.
+Flow tables are responsible for the majority of forwarding logic.
+
+\textbf{Actions}. Actions provide a way to modify a packet's fields, add/remove
+flows from tables, and forward/drop packets. Steve actions are a generalization
+of OpenFlow's instructions and actions.
+
+\textbf{Pipeline Composition}. A Steve pipeline is a composition of two stages:
+decoders and flow tables.
+A packet moves through these stages which perform some set of processing operations.
+Eventually one of these stages will make a forwarding decision for that packet.
+The language provides a mechanism for connecting these
+stages together in a number of flexible ways.
+
+\section{Why Steve? -- Issues with Other Languages}
+
+A network program must enforce safety over any other concepts.
+Network programs, especially those running on high-traffic devices, must not
+crash due to logical mistakes or unnoticed undefined behaviors.
+Such errors could result in security holes, denial of service attacks, and
+disastrous network downtime.
 
 Typical packet processing programs are written in low-level languages, most
 commonly C. These C programs usually work with data plane programming APIs such
 as Open Data Plane (ODP) \cite{odp_webpage} and the Data Plane Programming Kit
-(DPDK) \cite{dpdk_webpage}. Writing these programs can be difficult for a number
-of reasons.
+(DPDK) \cite{dpdk_webpage}. Programming network functions in C can be prone
+to logical error and unnoticed undefined behavior stemming from buffer management
+and resource management. These issues are compounded by the fact C is a general
+purpose language not tailors toward packet processing, thus the burden of safety
+is left to the programmer.
+Specifically, C programs open the opportunity for logical errors and undefined
+behaviors such as:
 
-Low-level packet processing code can be very light on easy to understand
-abstraction and very heavy on gritty implementation details. The programmer
-should be focusing on high-level abstractions; concepts such as: what fields are
-needed, what operations must be performed on these fields, conditional decision
-making, packet classification, etc. Instead, they are worried about the many
-common ailments of writing in low-level code.
+\begin{itemize}
+\item accessing memory outside the bounds of a packet buffer,
 
-The programmer must deal with resource allocation and management. They must deal
-with allocating their own buffers for storing packets and by extension must deal
-with de-allocating those buffers. This type of resource management is prone to
-accidental memory leakage, especially in C. Memory leakage of gigabytes of data
-will quickly bring a system down.
+\item writing bytes which exceed a contrained subset of the packet
+resulting in a buffer overflow (i.e. writing new bytes into a header field
+but exceeding the size of that field),
 
-The programmer must directly manage ports. They are also responsible for
-manually receiving, reading, and sending packets on those ports. This is code is
-common to all packet processing applications. The programmer should not be
-burdened with this kind of common code when writing a packet processor.
+\item buffer underflow resulting from not writing enough bytes when modifying
+a field,
 
-When working with packet headers, the programmer must manually work with raw
-arrays of bytes. The burden of decoding fields from byte arrays and interpreting
-the value of those fields is shifted onto the programmer. Manual decoding can be
-a painful process on its own. It is prone to error, particularly off-by-N
-errors. When reinterpreting those bytes into header data structures, the result
-can be disastrous if the bytes are wrong or the data structure is wrong. Moving
-or copying those bytes around is particularly prone to buffer overflows.
+\item using the value of a field in an operation that is not supported by its
+range of value,
 
-A number of other common problems come up when working in low-level code.
-Undefined behavior from reading past the end of packet buffers can be one.
-Performing operations on null pointers, invalid pointers, or uninitialized
-memory is another.
+\item non-terminating cycles in program logic (an infinite loop
+triggered by a single packet),
 
-Steve and its runtime, Flowpath, attempt to remedy most of these problems. The
-objective is to abstract many of these low-level details. Instead, the
-programmer only focuses on the high-level abstractions. Specifically, the Steve
-language focuses the programmer on writing the packet processing pipeline and
-makes the grittier details opaque.
+\item incorrect assumptions about decoding state. That is, a programmer using
+a field which they have not extracted yet.
+\end{itemize}
 
-\section{Contributions: A Language for Safe Packet Processing Pipelines}
+Programmers using C for SDN applications are also burdened with management of
+device resources. Specifically, a C programmer must manage:
 
-Steve is a high-level SDN language for defining protocol oblivious packet
-processing pipelines for programmable data planes. Steve's packet processing
-pipelines are programs which provide packet decoding, manipulation, and
-forwarding functionalities. The language is easy to write and comprehend for new
-users. Most importantly it ensures type safety, efficiency, resource safety, and
-certain logical guarantees on all user-written pipelines.
+\begin{itemize}
+\item memory. The programmer must manage their own buffers for holding packet
+data and packet meta data. This opens the opportunity for accidental
+memory leakage.
 
-\subsection{Language Features}
+\item ports. The programmer is responsible for receiving, reading, and forwarding
+through ports. This process should be decoupled from the packet processing logic
+for flexibility. A packet processing application should be architecture independent
+whereas port management is a very architecture dependent thing.
+\end{itemize}
 
-Steve language features allow a programmer to express the high level
-abstractions needed for writing packet processing pipelines.
+% Low-level packet processing code can be very light on easy to understand
+% abstraction and very heavy on gritty implementation details. The programmer
+% should be focusing on high-level abstractions; concepts such as: what fields are
+% needed, what operations must be performed on these fields, conditional decision
+% making, packet classification, etc. Instead, they are worried about the many
+% common ailments of writing in low-level code.
+%
+% The programmer must deal with resource allocation and management. They must deal
+% with allocating their own buffers for storing packets and by extension must deal
+% with de-allocating those buffers. This type of resource management is prone to
+% accidental memory leakage, especially in C. Memory leakage of gigabytes of data
+% will quickly bring a system down.
+%
+% The programmer must directly manage ports. They are also responsible for
+% manually receiving, reading, and sending packets on those ports. This is code is
+% common to all packet processing applications. The programmer should not be
+% burdened with this kind of common code when writing a packet processor.
+%
+% When working with packet headers, the programmer must manually work with raw
+% arrays of bytes. The burden of decoding fields from byte arrays and interpreting
+% the value of those fields is shifted onto the programmer. Manual decoding can be
+% a painful process on its own. It is prone to error, particularly off-by-N
+% errors. When reinterpreting those bytes into header data structures, the result
+% can be disastrous if the bytes are wrong or the data structure is wrong. Moving
+% or copying those bytes around is particularly prone to buffer overflows.
+%
+% A number of other common problems come up when working in low-level code.
+% Undefined behavior from reading past the end of packet buffers can be one.
+% Performing operations on null pointers, invalid pointers, or uninitialized
+% memory is another.
+%
+% Steve and its runtime, Flowpath, attempt to remedy most of these problems. The
+% objective is to abstract many of these low-level details. Instead, the
+% programmer only focuses on the high-level abstractions. Specifically, the Steve
+% language focuses the programmer on writing the packet processing pipeline and
+% makes the grittier details opaque.
 
-\emph{Header layouts}. The Steve language provides a way for users to define the
-layout of headers. The user can define the fields contained within a header. The
-user provides types for those fields which: 1) provide the length of the field
-and 2) allow Steve type-checking to limit operations on those fields to only
-those safe for that type. Steve is protocol oblivious, and thus does not
-inherently support well-known headers. It is left up to the user to determine
-what fields they expect to work with.
+\section{Contribution: A Language for Defining Safe Pipelines}
 
-\emph{An abstract pipeline model}. Steve adopts an abstract packet processing
-pipeline model which is a generalized version of that defined by OpenFlow
-\cite{openflow_spec}. The Steve pipeline is composed of two stages: decoders and
-flow tables. Decoders \textit{decode} (find the location of) and
-\textit{extract} (recover the value of) fields. Flow tables make decisions,
-perform actions, and forward packets. A packet entering the pipeline must first
-be decoded by at least one decoder. From there, stages may be flexibly
-interleaved. A series of decoders may be followed by a series of flow table
-matches which may lead into more decoders.
+The Steve language provides a type and constraints system to ensure the safety
+of all Steve-defined pipelines.
+Steve targets the runtime environment, Flowpath, which abstracts resource management,
+such as memory and ports, of a given hardware device.
+In addition, Steve uses an optimizing compiler to ensure efficient code generation.
 
-\emph{Decoders}. Steve allows the user to program special functions decoders
-which are used for decoding and extract fields from a header. Decoders allow the
-user to specify which fields they need. Decoders do not require that a user
-extract all fields if they do not need those fields. The user is not required to
-manually extract the bytes associated with a field. Instead, the user gives a
-field name from the header layout they defined, and the language generates the
-code for them.
+\subsection{Type Safety}
 
-\emph{Flow tables}. A flow table, which is an OpenFlow abstraction, is a dynamic
-decision structure which classifies packets into flows. Each flow has a set of
-actions associated with it. Packets which are part of the same flow have those
-actions applied to them. Steve allows the user to express flow tables
-\textit{and} flows.
+Steve is a statically-typed language. Steve prevents the user from using header
+fields in ways that would result in obvious bugs or crashes. Steve supports:
 
-\emph{Actions}. Actions provide a way to modify a packet's fields, add/remove
-flows from tables, and forward/drop packets. Steve actions are a generalization
-of OpenFlow instructions and actions.
+\begin{enumerate}
+\item the representation of fields as
+arbitrary precision, signed or unsigned integers, (as long as they
+are multiples of 8). This allows the programmer to avoid using arrays of bytes
+to represent fields.
 
+\item logical and arithmetic expressions which are type checked
+to ensure no undefined behavior happens (e.g. shifting by negative values,
+adding to a boolean, etc).
+
+\item implicit conversions can be applied where necessary (e.g. integer size
+promotion, unsigned to signed conversions, etc).
+
+\item buffer overflow/underflow prevention. 
+Writing a new value into a header field \textit{never} causes accidental
+buffer overflows. The Steve compiler uses implicit conversions to guarantee that
+the size of the new value fits exactly into the byte width of a field. If the
+new value is represented in less bytes than the size of field, it gets extended
+to fit. Values that are too large get truncated.
+\end{enumerate}
+
+
+% Specifically, the Steve language aims to avoid:
+%
+% \begin{itemize}
+% \item accessing memory outside the bounds of a packet buffer,
+%
+% \item writing bytes which exceed a contrained subset of the packet
+% resulting in a buffer overflow (i.e. writing new bytes into a header field
+% but exceeding the size of that field),
+%
+% \item buffer underflow resulting from not writing enough bytes when modifying
+% a field,
+%
+% \item using the value of a field in an operation that is not supported by its
+% range of value,
+%
+% \item non-terminating cycles of decoders and table matchings (an infinite loop
+% of packet processing),
+%
+% \item incorrect assumptions about decoding state. That is, a programmer using
+% a field which they have not extracted yet.
+% \end{itemize}
 
 \subsection{Pipeline Guarantees}
 
@@ -221,30 +322,29 @@ loop through stages in a pipeline.
 \end{enumerate}
 
 
-\subsection{Type Safety}
 
-Steve is a statically-typed language. Steve prevents the user from using header
-fields in ways that would result in obvious bugs or crashes. Specifically the
-Steve type system provides:
 
-\begin{enumerate}
-\item Steve supports integers with arbitrarily large precision (as long as they
-are multiples of 8). This allows the user to avoid using arrays of bytes to
-represent fields which do not fit into C standard types.
+% \section{Contributions: A Language for Safe Packet Processing Pipelines}
+%
+% Steve is a high-level SDN language for defining protocol oblivious packet
+% processing pipelines for programmable data planes. Steve's packet processing
+% pipelines are programs which provide packet decoding, manipulation, and
+% forwarding functionalities. The language is easy to write and comprehend for new
+% users. Most importantly it ensures type safety, efficiency, resource safety, and
+% certain logical guarantees on all user-written pipelines.
+%
+% \subsection{Language Features}
+%
+% Steve language features allow a programmer to express the high level
+% abstractions needed for writing packet processing pipelines.
 
-\item Steve supports logical and arithmetic expressions which are type checked
-to ensure no undefined behavior happens (e.g. shifting by negative values,
-adding to a boolean, etc).
 
-\item Implicit conversions can be applied where necessary (e.g. integer size
-promotion, unsigned to signed conversions, etc).
 
-\item Writing a new value into a header field \textit{never} causes accidental
-buffer overflows. The Steve compiler uses implicit conversions to guarantee that
-the size of the new value fits exactly into the byte width of a field. If the
-new value is represented in less bytes than the size of field, it gets extended
-to fit. Values that are too large get truncated.
-\end{enumerate}
+
+
+
+
+
 
 \subsection{Resource Safety}
 
