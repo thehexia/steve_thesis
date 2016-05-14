@@ -4,133 +4,220 @@
 \section{Background}
 \label{rel:openflow}
 
-Much of the work on the development of technologies for SDN is targeted at or inspired by OpenFlow: a specification describing the general architecture of SDN switches and the protocol that allows them to be remotely observed and controlled \cite{openflow_spec}. The key parts of the OpenFlow switch architecture are a packet processing pipeline, an external controller, and ports.
+Software-defined networking aims to provide programmable network functions,
+network management, and forwarding logic to modern networks that need more
+than conventional switches.
+Much of the work on the development of technologies for SDN is targeted at or 
+inspired by OpenFlow: a specification describing the general architecture of SDN 
+switches and the protocol that allows them to be remotely observed and controlled 
+\cite{openflow_spec}. The key parts of the OpenFlow switch architecture are a packet 
+processing pipeline, an external controller which sends and receives
+OpenFlow messages, and ports.
 
-An OpenFlow pipeline is defined as a sequence
-of one or more \textit{flow tables} and a \textit{group table} which handle
-packet lookups, decision making, and forwarding. Steve's packet processing pipeline differs from the traditional OpenFlow
-semantics in a number of ways. First,
-Steve provides language features for a user to create flow tables and define
-their flow entries, but does not yet support group tables.
+However, SDN standards like OpenFlow are not the limit of what programmable
+network functions can become. OpenFlow artificially constrains the evolution
+of SDN with their protocol-dependent model, messages, and switch structure.
 
-Second, a Steve pipeline has more than \textit{just} flow tables. Steve
-pipelines will also have \textit{decoders} which may be interleaved between
-tables. Decoders define how fields get decoded (or parsed) and extracted. In
-most switches, decoding is handled by specialized hardware that deal with
-well-known headers. OpenFlow only supports certain fields from these headers,
-known as OXM fields. However, the Freeflow data plane is
-protocol oblivious, knowing nothing about any specific headers; therefore
-decoding must be an explicit user-defined stage of the pipeline. By extension,
-Steve does not, by default, support these OXM fields either.
+Research into Steve and Freeflow used OpenFlow as a guide post for what an abstract
+packet processing machine might look like and what language features may be
+necessary to support such a machine. However, by no means did this research
+strictly adhere to OpenFlow principles or semantics.
+Steve and Freeflow, differ from OpenFlow concepts in a number of key ways.
 
-Third, the semantics for packet handling using an external controller are different. An OpenFlow controller is software used to control an OpenFlow switch. It will handle ``exceptional events'' such as inserting,
-removing, and updating flow entries or processing packets which the pipeline
-could not. However, Steve and Flowpath do not use nor expect an external
-OpenFlow controller nor do they use OpenFlow messages to communicate with that
-controller.
+Steve is protocol independent, whereas OpenFlow specifies a limited set of
+support fields known as OXM fields.
+Because Steve is protocol independent, its
+pipeline model may contain a series of programmable decoders in between flow tables. 
+OpenFlow does not say anything about packet decoding in its
+specification as such behaviors are expected to be performed by specialized hardware
+before pipeline processing. 
+Steve does not currently support OpenFlow group tables.
 
-Steve and Flowpath attempt to reduce the role of the controller. Controller
-functions, which would typically handle exceptional cases (such as table
-manipulation and un-handled packets), can be written in Steve using special
-event handler functions. These event handlers are executed by the data plane
-on a special internal Flowpath ``controller'' thread rather than relying on an
-external controller.
+The abstract SDN switch proposed by OpenFlow is not completely adopted by
+the Freeflow runtime. Specifically, the remote OpenFlow controller was
+removed from the Freeflow switch model. It is not desirable to remote configure
+a switch for basic reactive programs. Sending messages to a controller through
+a wire is a prohibitively high-latency operation.
+Instead of communicating with a remote controller via messages, Freeflow uses an 
+internal (non-distributed) controller which executes Steve event handlers. 
+However, Steve is still capable of decoding OpenFlow messages like any other protocol
+if there is a need for a distributed controller.
 
-\section{SDN Data Plane Languages} \label{rel:p4}
+%An OpenFlow pipeline is defined as a sequence
+%of one or more \textit{flow tables} and a \textit{group table} which handle
+%packet lookups, decision making, and forwarding. Steve's packet processing pipeline differs from the traditional OpenFlow
+%semantics in a number of ways. First,
+%Steve provides language features for a user to create flow tables and define
+%their flow entries, but does not yet support group tables.
+%
+%Second, a Steve pipeline has more than \textit{just} flow tables. Steve
+%pipelines will also have \textit{decoders} which may be interleaved between
+%tables. Decoders define how fields get decoded (or parsed) and extracted. In
+%most switches, decoding is handled by specialized hardware that deal with
+%well-known headers. OpenFlow only supports certain fields from these headers,
+%known as OXM fields. However, the Freeflow data plane is
+%protocol oblivious, knowing nothing about any specific headers; therefore
+%decoding must be an explicit user-defined stage of the pipeline. By extension,
+%Steve does not, by default, support these OXM fields either.
 
-Steve is a language for modifying the packet processing and forwarding functionality of a data plane. Steve is \textit{protocol oblivious}, meaning it does not by default
-know of any well-known network protocols (IPv4, IPv6, TCP, etc). Instead, it
-provides language features for programmers to deal with any protocol, making the
-language more scalable for future protocols. Other SDN languages are pursuing
-these idea as well.
+%Third, the semantics for packet handling using an external controller are different. An OpenFlow controller is software used to control an OpenFlow switch. It will handle ``exceptional events'' such as inserting,
+%removing, and updating flow entries or processing packets which the pipeline
+%could not. However, Steve and Flowpath do not use nor expect an external
+%OpenFlow controller nor do they use OpenFlow messages to communicate with that
+%controller.
 
-The P4 language \cite{p4_spec, p4_spec2, p42014} is another high-level language for
-defining protocol oblivious packet processing pipelines. It is probably the
-most widely adopted SDN language. P4 allows users to define packet headers,
-packet parsers and
-match+action tables (which are equivalent to OpenFlow flow tables). Parsers are
-used to extract entire headers and store them in a "parsed representation"
-before entering pipeline processing. When the packet enters the pipeline,
-match+action tables match against fields in the parsed representation and
-perform actions on matched packets.
+%Steve and Flowpath attempt to reduce the role of the controller. Controller
+%functions, which would typically handle exceptional cases (such as table
+%manipulation and un-handled packets), can be written in Steve using special
+%event handler functions. These event handlers are executed by the data plane
+%on a special internal Flowpath ``controller'' thread rather than relying on an
+%external controller.
 
-Protocol-Oblivious Forwarding (POF) \cite{pof_fis, pof, pof_impl} is another
-project also tackling the problem of protocol oblivious pipeline processing. POF
-is a very low-level, assembly-like, instruction set. The POF instruction
-set gives the programmer very fine-grained control of which fields get parsed.
-The POF programming model uses metadata as a "scratch pad" for parsing fields,
-requiring that the
-programmer represent fields as generic \{offset, length\} pairs, known as
-"search keys". When performing table matching, a programmer specifies
-an array of these search keys to match against the flow table.
-Essentially, fields only get extracted as they are needed, right before matching
-against a given table.
+\section{Early Steve Work}
 
-POF also supports additional actions that allow the data plane to manipulate
-flow tables. This includes adding, removing, and updating flow
-entries. Though these actions are traditionally left up to the controller, they
-are useful because they reduce the load on the controller and provide
-flexibility to the data plane. This feature is notably absent from other SDN
-languages.
+Cassey, et al, provided much of the early Steve language work into programmatic
+analysis of packet headers \cite{wripe}. Steve ensures the semantic constraints,
+structural constraints (including buffer and view abstractions used by decoders), and 
+safe access properties described by Cassey, et al. Steve also takes the idea
+of full program analysis and applies it to pipeline stages to ensure requirement
+constraints are not violated.
 
-The POF instruction set is difficult to write in and does not have the safety
-guarantees of a higher level language. The programmer is burdened with the
-error-prone task of parsing by manually specifying which bits comprise a fields.
-A high level language compiling into POF instructions would thus be ideal.
+The Arbiter Framework was an early language implementation that allow for the
+specification of data and control plane components. Arbiter used axiomatic 
+programming concepts to ensure safe data path configuration by verifying that 
+protocol definitions are not violated by the decoders which handle them
+\cite{noproto1}.
 
-Steve tries to take the best of both worlds. Steve can define decoding functions
-similar to P4 parsers, with the added benefit of allowing the programmer to only
-extract the fields they need, reducing the amount of time needed to parse
-overall. The \{offset, length\} pairs describing each field get generated by the
-Steve compiler rather than being manually written by the programmer, thus
-reducing
-the risk for error. Steve decoders may also be interleaved between tables,
-meaning fields can be extracted, as needed, right before table matching like
-POF. Like P4,
-Steve decoding can also happen all at once "up-front," before any table
-matching.
-It is up to the programmer to decide which is better. This makes Steve
-decoders a little more robust than either P4 or POF.
+\section{Languages for Programmable Data Planes} \label{rel:p4}
 
-Steve supports high-level definition of flow tables (or match+action tables in
-P4). Additionally, Steve also allows the programmer to define flow entries. This
-means the match field values and actions for each flow entry can be expressed
-within the language, allowing the Steve compiler to ensure safety and
-correctness guarantees over them. For example, adding a flow entry that causes
-an infinite loop is always prevented. This task is normally left up to the
-controller during runtime, which can be slow. Steve also supports instructions
-for adding and removing these flow entries from tables like POF.
+P4 is another protocol oblivious (independent) language for pipeline specification
+ \cite{p4_spec, p4_spec2, p42014}.
+P4 specifies a pipeline of parsers (equivalent to Steve decoders) followed
+by a series of match+action
+tables (equivalent to flow tables). Parsing state is stored in a data structure
+called a ``parsed representation.''
 
-Unlike P4 and POF, Steve is not \textit{just} an SDN specific language; it is an
-extension to a general purpose language. It thus supports features like
-functions, function calls, lexical scoping, loops, conditional statements, and
-local/global variables. Steve also has support for types, arithmetic
-expressions, and comparison expressions. On top of that, it automatically links
-against the C Runtime Library, supports calls to external functions, and may be
-statically or dynamically linked against any library.
-
-Admittedly, P4 is a more mature language than Steve. P4 supports things like
-meters, variable sized fields, table matching methods (Steve only supports exact
-matching), and certain actions that Steve does not. P4 can also target more
-platforms than Steve, which currently only compiles into modules for Freeflow.
-POF also supports certain actions and table matching methods that Steve does not
-currently support.
+Huawei's, Protocol-Oblivious Forwarding (POF) \cite{pof_fis, pof, pof_impl} provides a
+low-level, assembly-like, instruction set for POF SDN switches. 
+The POF programming model uses metadata as a ``scratch pad'' for parsing fields,
+requiring that the programmer represent fields as generic \textit{\{offset, length\}} pairs, 
+known as "search keys". POF switches also use a pipeline of tables, however,
+a table extracts the fields it needs to match on from the metadata or packet buffer.
+When performing table matching, a programmer specifies
+an array of search keys needed by the table.
 
 NetASM is an intermediate representation language for programmable data planes
-\cite{shahbaz2015netasm}. It aims to solve the same issues as POF, but also provides a language that is target/device independent. The goal is for higher level languages to compile into NetASM which can then be compiled into platform-specific code by device-specific compilers.
+\cite{shahbaz2015netasm}. It aims to solve the same issues as POF, but also provides a language that is target/device independent.
 
-The Arbiter Framework is an SDN language designed for safer data path configuration by verifying that standard protocol definitions are not violated \cite{noproto1}.
+Steve's high-level pipeline specification syntax is similar to P4.
+However, the underlying abstract pipeline model is closer to that of POF.
+Steve decoders are placed between tables so that fields are only decoded as they are
+needed similar to how POF tables extract their own fields.
+Additionally, Steve supports partial decode of headers like POF to improve decoder
+performance.
+P4 fully parses all headers before table matching which Steve considers wasteful.
+
+Steve uses a high-level language for pipeline specification because
+the POF instruction set is difficult to write and
+has no high-level language safety guarantees (such as a type and constraints system) 
+layered on top of it.
+POF's search keys require precise bit-offset and length values which are also too
+difficult for a programmer to write.
+Instead, Steve relies on the compiler to generate similarly efficient instructions
+so that the programmer does not have to.
+
+
+%Essentially, fields only get extracted as they are needed, right before matching
+%against a given table.
+
+%Steve is a language for modifying the packet processing and forwarding functionality of a data plane. Steve is \textit{protocol oblivious}, meaning it does not by default
+%know of any well-known network protocols (IPv4, IPv6, TCP, etc). Instead, it
+%provides language features for programmers to deal with any protocol, making the
+%language more scalable for future protocols. Other SDN languages are pursuing
+%these idea as well.
+%
+%The P4 language \cite{p4_spec, p4_spec2, p42014} is another high-level language for
+%defining protocol oblivious packet processing pipelines. It is probably the
+%most widely adopted SDN language. P4 allows users to define packet headers,
+%packet parsers and
+%match+action tables (which are equivalent to OpenFlow flow tables). Parsers are
+%used to extract entire headers and store them in a "parsed representation"
+%before entering pipeline processing. When the packet enters the pipeline,
+%match+action tables match against fields in the parsed representation and
+%perform actions on matched packets.
+%
+%Protocol-Oblivious Forwarding (POF) \cite{pof_fis, pof, pof_impl} is another
+%project also tackling the problem of protocol oblivious pipeline processing. POF
+%is a very low-level, assembly-like, instruction set. The POF instruction
+%set gives the programmer very fine-grained control of which fields get parsed.
+%The POF programming model uses metadata as a "scratch pad" for parsing fields,
+%requiring that the
+%programmer represent fields as generic \{offset, length\} pairs, known as
+%"search keys". When performing table matching, a programmer specifies
+%an array of these search keys to match against the flow table.
+%Essentially, fields only get extracted as they are needed, right before matching
+%against a given table.
+%
+%POF also supports additional actions that allow the data plane to manipulate
+%flow tables. This includes adding, removing, and updating flow
+%entries. Though these actions are traditionally left up to the controller, they
+%are useful because they reduce the load on the controller and provide
+%flexibility to the data plane. This feature is notably absent from other SDN
+%languages.
+%
+%The POF instruction set is difficult to write in and does not have the safety
+%guarantees of a higher level language. The programmer is burdened with the
+%error-prone task of parsing by manually specifying which bits comprise a fields.
+%A high level language compiling into POF instructions would thus be ideal.
+%
+%Steve tries to take the best of both worlds. Steve can define decoding functions
+%similar to P4 parsers, with the added benefit of allowing the programmer to only
+%extract the fields they need, reducing the amount of time needed to parse
+%overall. The \{offset, length\} pairs describing each field get generated by the
+%Steve compiler rather than being manually written by the programmer, thus
+%reducing
+%the risk for error. Steve decoders may also be interleaved between tables,
+%meaning fields can be extracted, as needed, right before table matching like
+%POF. Like P4,
+%Steve decoding can also happen all at once "up-front," before any table
+%matching.
+%It is up to the programmer to decide which is better. This makes Steve
+%decoders a little more robust than either P4 or POF.
+%
+%Steve supports high-level definition of flow tables (or match+action tables in
+%P4). Additionally, Steve also allows the programmer to define flow entries. This
+%means the match field values and actions for each flow entry can be expressed
+%within the language, allowing the Steve compiler to ensure safety and
+%correctness guarantees over them. For example, adding a flow entry that causes
+%an infinite loop is always prevented. This task is normally left up to the
+%controller during runtime, which can be slow. Steve also supports instructions
+%for adding and removing these flow entries from tables like POF.
+%
+%Unlike P4 and POF, Steve is not \textit{just} an SDN specific language; it is an
+%extension to a general purpose language. It thus supports features like
+%functions, function calls, lexical scoping, loops, conditional statements, and
+%local/global variables. Steve also has support for types, arithmetic
+%expressions, and comparison expressions. On top of that, it automatically links
+%against the C Runtime Library, supports calls to external functions, and may be
+%statically or dynamically linked against any library.
+%
+%Admittedly, P4 is a more mature language than Steve. P4 supports things like
+%meters, variable sized fields, table matching methods (Steve only supports exact
+%matching), and certain actions that Steve does not. P4 can also target more
+%platforms than Steve, which currently only compiles into modules for Freeflow.
+%POF also supports certain actions and table matching methods that Steve does not
+%currently support.
 
 \section{SDN Controller Programming Languages} \label{rel:frenetic}
 
-Other languages are protocol-dependent and are designed to program the control plane. The Frenetic project has produced a family of network programming
+The Frenetic project has produced a family of network programming
 languages. The Frenetic language is a declarative language, embedded in Python,
 that uses SQL-like queries to classify packets and a library for describing
 packet forwarding policies over a collection of network switches
 \cite{foster2011frenetic, foster2013frenetic}. This language is designed to
 abstract away the difficulties of programming a centralized SDN controller. Its
 sister project, Pyretic, does the same with some divergence in how forwarding
-policies are expressed \cite{modularpyretic}. Both languages try to confirm the correctness of a program over an entire network.
+policies are expressed \cite{modularpyretic}.
 
 NetCore is a network programming language for expressing forwarding policies and
 generating classifiers from those policies \cite{monsanto2012netcore}. These
@@ -139,23 +226,25 @@ NetCore, for expressing packet processing functions and reasoning about a
 network using Kleene Algebra \cite{kozen2014netkat, anderson2014netkat}. NetKAT
 attempts to prove the correctness of its network programs through mathematical theory.
 
-\section{Packet Parsers}
+\section{Packet Parsers and Header Specifications}
 
-Gibb, et al. described the design principles of different kinds of packet parsers \cite{parser2013gibb}. Steve adopts a similar abstract parser model to the one described in this paper. Steve decoders fit into the non-streaming programmable parsers described in this paper. 
+Some early DSLs focused on binary header specification languages that are similar to 
+those used by Steve and P4 \cite{binpac, packet_types, datascript}.
+
+Gibb, et al. described the design principles of different kinds of packet parsers 
+\cite{parser2013gibb}. Steve decoders fit into the non-streaming programmable parsers 
+described in this paper. 
 
 The Kangaroo packet parser design tries to solve the problem of designing high performance and flexible packet parsers \cite{kangaroo}. Kangaroo can "compile" parser instructions from parse graphs. Kangaroo can analyze these graphs and generate "lookahead" parsers which can parse several headers at once.
 
 The BSD packet filter (BPF) supports a low-level instruction set for parsing packets and defining packet filtering rules \cite{bpf1993mccanne}. It is most commonly used for network monitoring tools.
 
-\section{Open Data Plane}
-\label{rel:odp}
-
-Open Data Plane (ODP) is an open source API in C for developing data plane applications \cite{odp_webpage}. ODP provides application portability by providing a common set of APIs across multiple platforms and instruction set architectures such as ARM, MIPS, x86, and proprietary hardware.
-
-\section{Data Plane Development Kit}
+\section{Data Plane Programming Libraries}
 \label{rel:odp}
 
 Data Plane Development Kit (DPDK) by Intel is a set of software libraries for improving packet processing speeds on Intel processors and NICs \cite{dpdk_webpage}. DPDK attempts to provide a single platform (Intel processors) for performing all packet processing tasks, thus eliminating the need for specialized hardware.
+
+Open Data Plane (ODP) is an open source API in C for developing data plane applications \cite{odp_webpage}. ODP provides application portability by providing a common set of APIs across multiple platforms and instruction set architectures such as ARM, MIPS, x86, and proprietary hardware.
 
 \section{Open VSwitch}
 \label{rel:vswitch}
@@ -166,5 +255,9 @@ Open vSwitch is an SDN virtual, software switch which supports programmatic exte
 \label{rel:freeflow}
 
 Freeflow is an SDN software switch architecture developed
-by Flowgrammable \cite{freeflow_software}. Flowpath is the programmable, protocol oblivious, software data plane within the Freeflow system. Steve is
-designed to generate code targeting the Flowpath runtime environment. A Freeflow data plane loads Steve applications which control the logic behind its packet processing pipeline.
+by Flowgrammable \cite{freeflow_software}. The Freeflow virtual machine (FFVM) 
+provides a programmable, protocol oblivious, software data plane that 
+supports multi-tenancy. Steve is
+designed to generate code targeting the FFVM runtime environment. A Freeflow data 
+plane loads Steve applications which control the logic behind its packet processing 
+pipeline.

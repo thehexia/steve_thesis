@@ -50,12 +50,15 @@
 		language=steve,
 		basicstyle=\ttfamily\singlespacing\small,
 	    emph={
-	    	layout, int, uint, decoder, extract, var, else, if, exact_table, event, match, case, while, miss, break, continue, Port, return, def, in\_port, in\_phys\_port, egress, reflow, controller, all, timeout,  flood
+	    	layout, int, uint, decoder, extract, var, else, if, exact_table, event,
+match, case, while, miss, break, continue, Port, return, def, in\_port,
+in\_phys\_port, egress, reflow, controller, all, timeout,  flood
 	    },
 	    emph=[2]{ start, as, requires, advance },
 	    emph=[3]
 	    {
-	    	output, decode, goto, drop, set, write, clear, raise, insert, into, remove, from,
+	    	output, decode, goto, drop, set, write, clear, raise, insert, into,
+remove, from,
 	    },
 	    emphstyle={\color{blue}\textbf},
 	    emphstyle=[2]{\color{green}\textbf},
@@ -69,7 +72,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%   Dealing with grammar style
 
-\renewcommand{\arraystretch}{1.5}
+%\renewcommand{\arraystretch}{1.5}
 
 \renewcommand{\syntleft}{$\langle$\ttfamily\itshape}
 \renewcommand{\syntright}{$\rangle$}
@@ -123,8 +126,10 @@
 \def\la{\textlangle{}}
 \def\ra{\textrangle{}}
 \def\mn{\text{-}}
-\newcommand\grddd[4]{\la\textit{\texttt{#1}}\mn \textit{\texttt{#2}}\mn  \textit{\texttt{#3}}\mn \textit{\texttt{#4}}\ra}
-\newcommand\grdd[3]{\la\textit{\texttt{#1}}\mn \textit{\texttt{#2}}\mn  \textit{\texttt{#3}}\ra}
+\newcommand\grddd[4]{\la\textit{\texttt{#1}}\mn \textit{\texttt{#2}}\mn 
+\textit{\texttt{#3}}\mn \textit{\texttt{#4}}\ra}
+\newcommand\grdd[3]{\la\textit{\texttt{#1}}\mn \textit{\texttt{#2}}\mn 
+\textit{\texttt{#3}}\ra}
 \newcommand\grd[2]{\la\textit{\texttt{#1}}\mn \textit{\texttt{#2}}\ra}
 \newcommand\gr[1]{\la\textit{\texttt{#1}}\ra}
 
@@ -165,11 +170,11 @@
 \begin{document}
 \maketitle
 \input{intro}
-\input{related}
 \input{pipeline}
 \input{tutorial}
 \input{flowpath}
 \input{experiments}
+\input{related}
 \input{guide}
 
 \bibliographystyle{unsrt}
@@ -185,3 +190,4 @@
 % \input{appendixc}
 
 \end{document}
+

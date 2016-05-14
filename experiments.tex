@@ -10,7 +10,7 @@ The samples are relatively diverse, having varying packet sizes, packet count, a
 \begin{table}
 \caption{The three pcap test cases used for experiments.}
 \begin{center}
-\begin{tabularx}{\textwidth}{| c || c | c | c | X |}
+\begin{tabularx}{\linewidth}{| c || c | c | c | X |}
 \hline
 \# & Pcap sample & Packet Count & Average Packet Size & Summary \\
 \hline
@@ -40,7 +40,7 @@ Three measures of performance are used. First, the amount of data processed per 
 \begin{table}
 \caption{Performance metrics after sending 1000 iterations of the smallFlows pcap sample through each application.}
 \begin{center}
-\begin{tabularx}{\textwidth}{| c || c | c | c | }
+\begin{tabularx}{\linewidth}{| c || c | c | c | }
 \hline
 % header row
 Application & Data Speed (Gbps) & Throughput (Gbps) & Processing Speed (Mpps)  \\
@@ -70,7 +70,7 @@ The most interesting thing to note from Table \ref{tbl:pcap1_stats} is that the 
 \begin{table}
 \caption{Performance metrics after sending 20 iterations of the bigFlows pcap sample through each application.}
 \begin{center}
-\begin{tabularx}{\textwidth}{| c || c | c | c | }
+\begin{tabularx}{\linewidth}{| c || c | c | c | }
 \hline
 Application & Data Speed (Gbps) & Throughput (Gbps) & Processing Speed (Mpps)  \\
 \hline
@@ -100,7 +100,7 @@ That is not to say that the size of the packet has no affect. The amount of time
 \begin{table}[ht]
 \caption{Performance metrics after sending 20 iterations of the 4SICS pcap sample through each application.}
 \begin{center}
-\begin{tabularx}{\textwidth}{| c || c | c | c | }
+\begin{tabularx}{\linewidth}{| c || c | c | c | }
 \hline
 Application & Data Speed (Gbps) & Throughput (Gbps) & Processing Speed (Mpps) \\
 \hline
