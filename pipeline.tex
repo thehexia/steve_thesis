@@ -1,79 +1,148 @@
-\chapter{THE PACKET PIPELINE PROCESSING MODEL} \label{ch:pipeline_model}
+\chapter{FUNDAMENTALS OF A STEVE PROGRAM} \label{ch:pipeline_model}
 
-The Flowpath runtime environment uses an abstract switch model depicted in Figure \ref{fg:abstract_switch}. The switch model is composed of three major components: the Steve application, ports, and a controller. This chapter is dedicated to describing these components.
+This chapter describes the fundamentals of a Steve program: how it works,
+how its structured, and what algorithms it relies on to process packets.
+Before a programmer can begin writing a Steve program, they must understand
+two important concepts: 
+
+\begin{enumerate}
+\item how a Steve program divides between data and control planes and
+\item the \emph{packet processing pipeline} abstract model.
+\end{enumerate}
+
+\section{Structure of a Steve Program}
+
+A Steve program is a list of declarations. These declarations describe
+packet structure, decoders, flow tables, and event handlers.
+These entities being declared may be split into two categories:
+entities which define data plane processing and
+entities which define control plane logic. 
+Figure \ref{fg:abstract_switch} demonstrates this divide.
 
 \begin{figure}[ht]
-\includegraphics[width=\textwidth]{switch}
-\caption{The abstract switch model is composed of three major components: the Steve application, ports, and an internal controller.}
+\includegraphics[width=\linewidth]{steve_model}
+\caption{Steve program entities and how the split between control and
+data planes. The data plane's pipeline raise events which are handled by event 
+handlers on the control plane. Event handlers make system calls back to the
+data plane to modify pipeline behavior or to re-enter special packets.}
 \label{fg:abstract_switch} 
 \end{figure}
 
-Steve applications are executable, dynamic link libraries which are loaded by the Flowpath runtime environment. Steve is distinct from other SDN languages in that it compiles into modules which implement parts of \textit{both} the data and control planes. 
+The packet processing pipeline is part of the abstract data plane.
+This is the fundamental algorithm used to process packets and
+make forwarding decisions.
+This will sometimes be referred to as the fast path for packet
+processing. 
+Data plane processing does not have the latency associated
+with requesting processing from the control plane. 
+The abstract pipeline model is discussed in Section \ref{pipeline_desc}.
 
-Steve \textit{pipelines} are part of the data plane which forwards packets. Packets are sent and received on ports which reside on the data plane. As Flowpath receives packets, it sends them through the Steve application's pipeline. This pipeline is an algorithm that determines where a packet is forwarded. The Steve pipeline is discussed in the following Section \ref{pipeline_desc}.
+Event handlers provide hooks into the control plane which defines control
+and logic over the data plane. The control plane uses these event handlers
+to process exceptional events raised by the pipeline.
+This typically indicates that the data plane was unable to process a packet
+and is requesting assistance from the control plane.
+Event handlers are further discussed in Section \ref{events_desc}.
 
-Steve \textit{event handlers} are part of the control plane. Part of the responsibility of the control plane is to augment the forwarding behavior of the data plane when necessary. Event handlers are executed when some exceptional event has arisen and the behavior of the pipeline must change. Event handling and the Flowpath controller are discussed later in Section \ref{events_desc}.
+%The Flowpath runtime environment uses an abstract switch model depicted in
+%Figure \ref{fg:abstract_switch}. The switch model is composed of three major
+%components: the Steve application, ports, and a controller. This chapter is
+%dedicated to describing these components.
+%
+%\begin{figure}[ht]
+%\includegraphics[width=\textwidth]{switch}
+%\caption{The abstract switch model is composed of three major components: the
+%Steve application, ports, and an internal controller.}
+%\label{fg:abstract_switch} 
+%\end{figure}
+%
+%Steve applications are executable, dynamic link libraries which are loaded by
+%the Flowpath runtime environment. Steve is distinct from other SDN languages in
+%that it compiles into modules which implement parts of \emph{both} the data
+%and control planes. 
+%
+%Steve \emph{pipelines} are part of the data plane which forwards packets.
+%Packets are sent and received on ports which reside on the data plane. As
+%Flowpath receives packets, it sends them through the Steve application's
+%pipeline. This pipeline is an algorithm that determines where a packet is
+%forwarded. The Steve pipeline is discussed in the following Section
+%\ref{pipeline_desc}.
+%
+%Steve \emph{event handlers} are part of the control plane. Part of the
+%responsibility of the control plane is to augment the forwarding behavior of the
+%data plane when necessary. Event handlers are executed when some exceptional
+%event has arisen and the behavior of the pipeline must change. Event handling
+%and the Flowpath controller are discussed later in Section \ref{events_desc}.
 
 \section{The Steve Pipeline} \label{pipeline_desc}
 
-Steve uses an abstract model known as a \textit{pipeline} to process packets. This is the algorithm which handles packet processing and forwarding logic. A pipeline is a composition of smaller stages, known as \textit{pipeline stages} which perform subsections of the overall algorithm. Each stage is connected to the next in such a way that the output of
-one stage becomes the input to the next. Pipeline stages may be connected in a number of flexible ways. This the the topic of Section \ref{pipeline_comp_desc}. 
+%Steve uses an abstract model known as a \emph{pipeline} to process packets.
+%This is the algorithm which handles packet processing and forwarding logic. A
+%pipeline is a composition of smaller stages, known as \emph{pipeline stages}
+%which perform subsections of the overall algorithm. 
 
-The pipeline processing model is essentially a
-state machine. Each pipeline stage is a state in the machine. Each state has a
-set of conditions which, when met, causes the packet to move to new stages, or
-new states. This can naturally be represented as a graph. The graph representation allows the Steve programming language to analyze these
-pipelines using graph algorithms to confirm certain safety guarantees.
+A pipeline may described as a series of stages, where each stage performs
+a small amount of work on a packet, and then passes that packet on to the
+next stage.
+Each stage is connected to the next in such a way that the output of
+one stage becomes the input to the next. 
+Figure \ref{fg:pipeline_model} depicts the abstract pipeline model.
 
-The Steve pipeline processing model can be described in terms of four phases: 1)
-\textit{ingress processing}, 2) \textit{decoding stages}, 3) \textit{table
-matching stages}, and 4) \textit{egress processing}. Figure
-\ref{fg:pipeline_model} depicts this pipeline processing model. One must understand this model to be able to write a Steve pipeline application.
+%The pipeline processing model is essentially a
+%state machine. Each pipeline stage is a state in the machine. Each state has a
+%set of conditions which, when met, causes the packet to move to new stages, or
+%new states. This can naturally be represented as a graph. The graph
+%representation allows the Steve programming language to analyze these
+%pipelines using graph algorithms to confirm certain safety guarantees.
 
-\begin{figure} [ht] \includegraphics[width=\textwidth]{pipeline}
 
-\caption{The flow of a packet through the Steve pipeline. The first phase is
-ingress processing, where a \textit{context} (described in Section
-\ref{context_desc}) is built around the packet. Decoding stages decode and
-extract. Tables match packets and perform actions. Event processing may take
-place on special circumstances Egress processing decides where a packet is
-forwarded (or dropped).} \label{fg:pipeline_model} 
+\begin{figure} [ht] 
+\includegraphics[width=\textwidth]{pipeline}
+\caption{Packets entering the device go through ingress processing.
+Then a pipeline, composed of decoders and tables, decide where the packet
+should be forwarded. Once the decision is made, the packet goes through
+egress processing before being forwarded.} 
+\label{fg:pipeline_model} 
 \end{figure}
 
+The Steve pipeline can be described in terms of three phases: 
+1) ingress processing, 2) pipeline processing, and 3) egress processing. 
+The pipeline processing phase can be further decomposed into two kinds
+of stages: decoders and flow tables.
 
-The Steve pipeline is defined as a composition of decoding and table matching stages. The language allows programmers to express
-pipeline stages and how they connect.
-Steve pipeline programs follow a run-to-complete model of execution. Once a
-packet enters the pipeline, each stage is consecutively applied to
-the packet. Once no more stages are applied, the packet exits the pipeline and
-the next packet enters.
+%The Steve pipeline processing model can be described in terms of four phases: 1)
+%\emph{ingress processing}, 2) \emph{decoding stages}, 3) \emph{table
+%matching stages}, and 4) \emph{egress processing}. Figure
+%\ref{fg:pipeline_model} depicts this pipeline processing model. One must
+%understand this model to be able to write a Steve pipeline application.
 
 
-\section{Ingress Processing} \label{ingress_desc}
+\subsection{Ingress Processing} \label{ingress_desc}
 
-Ingress processing will always be the first phase of pipeline processing.
-A packet enters a network device on a port, known as its \textit{ingress port}.
+Ingress processing is the the first phase every packet will go through.
+A packet enters a network device on a port, known as its \emph{ingress port}.
 At this time, the data plane builds a data structure known as the
-\textit{context} around the packet. This context is what the pipeline uses to
-save data as the packet moves between pipeline stages. Further explanation of the
-context can be found in Section \ref{context_desc}.
+\emph{context} around the packet. 
+Contexts save additional data about a packet as it moves through the pipeline.
+They serve as the input and output between pipeline stages.
+Further explanation of the context can be found in Section \ref{context_desc}.
 
 After ingress processing, the data plane dispatches the context (which includes
 the packet) to the first decoding stage. The ingress processing stage is not
-something that is written in a Steve application. It is implicit and handled by
-the Flowpath runtime discussed in Chapter \ref{ch:flowpath}.
+something that is written in a Steve application. It is implicitly handled by
+the runtime system which manages data plane resources described in Chapter
+\ref{ch:flowpath}.
 
-\subsection{Packet Context} \label{context_desc}
+\subsection{Contexts} \label{context_desc}
 
-Pipeline stages are connected in such a way that the output from one stage
-becomes the input to the next. The \textit{context} data structure is that
-output and input. It carries data between stages. A stage often needs to use
-data created by prior stages. As a packet moves between stages, information such
-as the position and length of extracted fields and headers must be saved for
-later recovery. Specifically, a Steve context saves the following data:
+A context is a data structure used to save and carry
+additional metadata and stateful information about a packet between pipeline stages.
+Pipeline stages may use this data structure to memoize things it has learned
+about a packet. Specifically, the context data structure contains:
 
-\begin{itemize} \item The packet itself. From now on, anytime mention of the
-context is made, it is implied that this also includes the packet itself. 
+\begin{itemize} 
+\item The packet itself. From now on, anytime mention of the
+context is made, it is implied that this also includes the packet. 
 
 \item
 The packet's logical and physical ingress ports. 
@@ -84,147 +153,170 @@ port the packet gets forwarded on.
 
 \item The packet's length. 
 
-\item A tunnel identifier. 
+\item A tunnel identifier used for handling virtual networks.
 
-\item The offset and length of decoded fields saved in a
-\textit{binding environments}. 
+\item A \emph{binding environment} used to memoize the offset
+and length of header fields. 
 
-\item The offset of decoded headers saved in a
-\textit{binding environment}. 
+\item A \emph{binding environment} used to memoize the offset
+of protocol headers. 
 
-\item An action set that may be written to and is
+\item An \emph{action set} that may be written to and is
 executed during egress processing. 
 \end{itemize}
 
-Extracted fields and headers get saved in \textit{binding environments}
-contained within the context. The term \textit{environment} refers to a data
-structure which maps names (in this case field and header names) to their
-storage location during runtime \cite{compilers1}. The mapping of those storage
-locations to the values held there is known as \textbf{state}. There is a
-binding environment for fields and headers respectively.
+The two important data structures contained within a context: 
+the \emph{action set} and the \emph{binding environment}.
+Actions, which are described in Section \ref{action_desc}, are appended
+to the action set using a write action.
+These actions are executed during egress processing in the 
+order that they were appended.
 
-Figure \ref{fg:ContextEnv} depicts the binding environment. The field binding
-environment is used to map fields to  \{\textit{offset},\textit{length}\} pairs, where \textit{offset} is the absolute offset of the beginning of the field from the beginning of the packet (in bytes) and \textit{length} is the length of the field (in bytes). The header binding environment similarly maps headers to their absolute offset from the beginning of the packet. These mappings are known as \textit{bindings}.
+A binding environment is a data structure which maps object names to
+corresponding storage location at runtime \cite{compilers1}.
+The storage location of fields is represented using an \emph{\{offset, length\}} pair.
+These mappings are known as \emph{bindings}. Figure \ref{fg:ContextEnv} 
+depicts a binding environment.
 
-\begin{figure} \includegraphics[scale=0.75,natwidth=203,natheight=298]{context}
-\caption{The binding environment inside a context used to store the length and
-offset of fields, or the offset of headers. On the left, indexes one through
-sixteen represent the fields that can be extracted. Each field maintains a
-binding stack. Each element in the binding stack is a binding which stores the
-offset and length where an instance of that field can be found. }
-\label{fg:ContextEnv} \end{figure}
+\begin{figure}[ht]
+\centering
+\includegraphics[scale=0.75,natwidth=203,natheight=298]{context}
+\caption{The Steve binding environment maps field names to stacks of
+\emph{\{offset, length\}} pairs. This allows multiple fields of the same
+name to be extracted and also supports fields being rebound with new names.}
+\label{fg:ContextEnv} 
+\end{figure}
 
 Since any given packet can contain one or more of any field or header with the
 same name, a binding environment maintains a stack for every field and header.
-These stacks are called \textit{binding stacks}. By extension, this means an
-environment is actually a mapping of field names to binding stacks. When the
-value of a field is needed, the topmost binding on the binding stack, i.e. the most recently extracted field with that name, shall be
-used to recover the value of that field.
+These stacks are called \emph{binding stacks}. A binding environment is thus a 
+mapping of field names to binding stacks. 
+When the value of a field is needed, 
+the topmost binding on the binding stack, i.e. the
+most recently extracted field with that name, shall be used.
 
-Figure \ref{fg:ContextEnvWorking} demonstrates how data is stored in the context
-as it is being decoded. The example is a packet which contains an encapsulated
-IPv4 header commonly used in IP tunneling. First, the ethernet \texttt{macdst}
-(mapped to index 0), \texttt{macsrc} (mapped to index 1), and \texttt{ethtype}
-(mapped to index 2) fields are extracted and stored in the context. Then the
-first IPv4 header's \texttt{ipdst} (mapped to index 3) and \texttt{iptype}
-(mapped to index 4) fields are extracted. After that, another IPv4 header's
-\texttt{ipdst} fields are extracted. If the value of
-\texttt{ipdst} is used in the program, it is the second one which gets used.
+The field binding environment allows for the full memoization of all
+extractions made during pipeline processing. It also allows fields to
+be rebound with new names where necessary. It is of note that this
+approach is heavyweight, that is, it is space consuming and may be
+more information than is necessary for certain network functions.
 
-\begin{figure}[ht]
-\begin{subfigure}[t]{.45\textwidth}
-  \centering
-  \includegraphics[width=.8\linewidth]{cxt_pkt_ex}
-  \caption{An example packet with ethernet, IPv4, and nested IPv4 header.}
-  \label{fg:view1}
-\end{subfigure}%
-\hfill
-\begin{subfigure}[t]{.45\textwidth}
-  \centering
-  \includegraphics[width=.8\linewidth]{cxt_s1}
-  \caption{Binding the fields in the ethernet header.}
-  \label{fg:view2}
-\end{subfigure}
+%Figure \ref{fg:ContextEnvWorking} demonstrates how data is stored in the context
+%as it is being decoded. The example is a packet which contains an encapsulated
+%IPv4 header commonly used in IP tunneling. First, the ethernet \texttt{macdst}
+%(mapped to index 0), \texttt{macsrc} (mapped to index 1), and \texttt{ethtype}
+%(mapped to index 2) fields are extracted and stored in the context. Then the
+%first IPv4 header's \texttt{ipdst} (mapped to index 3) and \texttt{iptype}
+%(mapped to index 4) fields are extracted. After that, another IPv4 header's
+%\texttt{ipdst} fields are extracted. If the value of
+%\texttt{ipdst} is used in the program, it is the second one which gets used.
+%
+%\begin{figure}[ht]
+%\begin{subfigure}[t]{.45\textwidth}
+%  \centering
+%  \includegraphics[width=.8\linewidth]{cxt_pkt_ex}
+%  \caption{An example packet with ethernet, IPv4, and nested IPv4 header.}
+%  \label{fg:view1}
+%\end{subfigure}%
+%\hfill
+%\begin{subfigure}[t]{.45\textwidth}
+%  \centering
+%  \includegraphics[width=.8\linewidth]{cxt_s1}
+%  \caption{Binding the fields in the ethernet header.}
+%  \label{fg:view2}
+%\end{subfigure}
+%
+%\begin{subfigure}[t]{.45\textwidth}
+%  \centering
+%  \includegraphics[width=.8\linewidth]{cxt_s2}
+%  \caption{Binding fields from the first IPv4 header.}
+%  \label{fg:view3}
+%\end{subfigure}%
+%\hfill
+%\begin{subfigure}[t]{.45\textwidth}
+%  \centering
+%  \includegraphics[width=.8\linewidth]{cxt_s3}
+%  \caption{Binding fields from the second IPv4 header.}
+%  \label{fg:view4}
+%\end{subfigure}
+%\caption{A context environment in
+%action during runtime.} \label{fg:ContextEnvWorking} 
+%\end{figure}
+%
+%The \emph{action set} is the other major data structure contained within the
+%context. An action set in Steve is a sequence of \emph{actions}. Actions are
+%written to the action set for \emph{deferred execution}
+%through the course of pipeline processing. These actions are executed in the
+%order with which they were written once the
+%packet completes pipeline processing, during the egress processing phase.
 
-\begin{subfigure}[t]{.45\textwidth}
-  \centering
-  \includegraphics[width=.8\linewidth]{cxt_s2}
-  \caption{Binding fields from the first IPv4 header.}
-  \label{fg:view3}
-\end{subfigure}%
-\hfill
-\begin{subfigure}[t]{.45\textwidth}
-  \centering
-  \includegraphics[width=.8\linewidth]{cxt_s3}
-  \caption{Binding fields from the second IPv4 header.}
-  \label{fg:view4}
-\end{subfigure}
-\caption{A context environment in
-action during runtime.} \label{fg:ContextEnvWorking} 
-\end{figure}
+\section{Decoding Stages} \label{decoder_desc}
 
-The \textit{action set} is the other major data structure contained within the
-context. An action set in Steve is a sequence of \textit{actions}. Actions are written to the action set for \textit{deferred execution}
-through the course of pipeline processing. These actions are executed in the order with which they were written once the
-packet completes pipeline processing, during the egress processing phase.
+A packet is a chunk of raw uninterpreted binary data.
+In order to make meaningful decisions, the program needs to
+recover protocol headers whose fields contain the control
+information needed to forward the packet.
+Decoders are responsible for determining which
+groups of bits form a header, and which subsets of that grouping form fields. 
+The decoder then extracts those fields for usage by later stages.
+Since a packet is composed of a sequence of headers, those headers and fields
+may be extracted by a series of decoders linked together in a Steve pipeline.
 
-\section{Decoding Stage} \label{decoder_desc}
+Steve decoders are capable of extracting only a subset of fields
+which form a header. 
+These extracted fields are stored as \emph{\{offset, length\}} pairs in
+the context binding environment. 
+This format of decoding was inspired by work done in Protocol-Oblivious Forwarding 
+(POF) \cite{pof, pof_fis, pof_impl}.
+However, Steve does not require the programmer to specify these pairs manually.
+Instead, the compiler generates them automatically using user-specified header
+structures called \emph{layouts} (discussed in Tutorial Section \ref{tut:layout}).
 
-When a packet is received on its ingress port, it is a chunk of raw,
-uninterpreted data. Before a packet can be processed and forwarded, its
-fields must be decoded (found) and extracted (have their value recovered) so that meaningful decisions can be made
-based on those values. Decoding stage, or \textit{decoders} for short, are
-responsible for this.
-
-Steve allows for programmers to specify \textit{how} and \textit{which} fields
-are decoded. Decoded fields get saved in the context as \{\textit{offset},\textit{length}\} pairs, a
-format inspired by POF \cite{pof, pof_fis, pof_impl}. The Steve compiler takes
-care of generating these \{\textit{offset},\textit{length}\} pairs, lifting the error-prone burden
-from the programmer. When the value of that field is required, the bytes are
-extracted from the packet using these \{\textit{offset},\textit{length}\} pairs.
-
+Extracting a subset of fields from a header is known as a \emph{partial decode}.
 In some packet processing languages like P4 \cite{p4_spec, p4_spec2}, all
-relevant headers have all their fields decoded from start to finish. All fields
-are extracted and saved before any pipeline processing happens. This is what is
-considered a \textit{full decode}. After this full decode, the decision making
-process on the packet begins using those saved fields. However, this method is
-inherently inefficient. Only certain fields and headers within a packet are ever
-really needed. To compound this, different devices may care about different
-subsets of fields within a given packet. Decoding all headers and fields from a
-packet is inherently wasteful.
+relevant headers have all their fields extracted before any pipeline processing
+is done. 
+This is known as a full decode.
+The issue is that full decodes are inherently wasteful.
+Only certain fields and headers within a packet are ever really needed for a
+forwarding decision.
+Extracting any other fields is a waste of valuable processing time.
+Due to the way Steve memoizes extracted fields, it is also wastes space.
+Efficiency is important when trying
+to achieve software processing rates comparable to hardware line rate 
+(10Gbps to 40 Gbps).
 
-Full decodes waste valuable processing time. Efficiency is important when trying
-to achieve data processing rates comparable to line rate (10Gbps to 40 Gbps). This inherent
-inefficiency is why Steve proposes the idea of a \textit{partial decode}. Like
-POF \cite{pof, pof_fis, pof_impl}, Steve is designed to allow programmers to
-specify the extraction of only specific fields rather than an entire header.
-Though the specification may be verbose in some cases, it makes programmers
-think very carefully about which fields they need and which fields they do not.
-
-Additionally, Steve proposes that not all headers need to be decoded. For
+Additionally, not all headers need to be decoded. For
 example, if a networking application only needs to forward using MAC addresses,
 there is no reason to waste time extracting fields from IPv4 or IPv6 headers,
-and so on. It is up to the programmer to express how deep they wish to look into a packet.
+and so on. It is up to the programmer to express how deep they wish to look into
+a packet.
 
-That being said, Steve also supports the full decode. It may be desirable to
+That being said, Steve also supports the full decode as well. It may be desirable to
 some programmers to do this in certain scenarios, thus the language does not
 favor one paradigm over another.
 
 \section{Table Stage} \label{table_desc}
 
-Table stages classify packets into groups based on values found in a subset of
-that packet's extracted fields. In fact, it is a decision table, like those
-found in heuristics applications. This is done through a mechanism known as a
-flow table defined by the OpenFlow standard \cite{openflow_spec}. A sample flow table is depicted in Table \ref{tbl:flow_table}.
+A network \emph{flow} is a series of packets from a source to a set of one or
+more destinations.
+Table stages use the mechanism known as \emph{flow tables} to establish these
+flows \cite{openflow_spec}. 
+Flow tables are specialized decision tables which classify packets into
+groups (flows) based on field values found in their headers. 
+A common set of actions are then applied to classified packets.
+Table \ref{tbl:flow_table} provides an example flow table.
 
 \begin{table}[ht]
-\caption{An example flow table matches on IPv4 destination and TCP protocol destination port.}
+\caption{An example flow table matches on IPv4 destination and TCP protocol
+destination port.}
 \label{tbl:flow_table}
 \centering
 \begin{tabularx}{\linewidth}{| c | X | X | X |}
 \hline
 % Header of table
-\multirow{2}{*}{Priority} & Key: IP Destination & Key: TCP Destination port  & \multirow{2}{*}{Actions} \\
+\multirow{2}{*}{Priority} & Key: IP Destination & Key: TCP Destination port  &
+\multirow{2}{*}{Actions} \\
 \cline{2-3}
   & \multicolumn{2}{|c|}{Match Fields} & \\
 \hline
@@ -242,31 +334,37 @@ flow table defined by the OpenFlow standard \cite{openflow_spec}. A sample flow 
 \end{table}
 
 
-A \textit{flow table} has a \textit{key} and a set of \textit{flow entries}. A
-key specifies a set of fields, called \textit{key fields}, that a table matches
+A flow table has a \emph{key} and a set of \emph{flow entries}. A
+key specifies a set of fields, called \emph{key fields}, that a table matches
 against (or classifies with). They are the equivalent of decision attributes.
-
-Table \ref{tbl:flow_table} has two key fields: IP destination and TCP destination port. A table is said to \textit{match on} its key fields.
+Table \ref{tbl:flow_table} has two key fields: IP destination and TCP
+destination port.
 
 A flow entry is equivalent to a rule in a decision table. Each flow entry is
-composed of \textit{match fields}, a \textit{priority}, a set of
-\textit{actions}, and miscellaneous additional metadata (called
-\textit{properties}). Table \ref{tbl:flow_table} has three sample flow entries. 
+composed of \emph{match fields}, a \emph{priority}, a set of
+\emph{actions}, and miscellaneous additional metadata (called
+\emph{properties}). Table \ref{tbl:flow_table} has three sample flow entries
+(with properties omitted).
+
+If a packet with an IP destination of 10.10.1.0 and a TCP port
+destination of 80 were matched against Table \ref{tbl:flow_table}, it would
+match the first flow entry. It would have its IP destination changed to
+192.168.1.30, then it would be forwarded to port 1.
 
 For each key field, each flow entry has a corresponding value, known as a
-\textit{match field}, such that every flow entry in the table is uniquely
+\emph{match field}, such that every flow entry in the table is uniquely
 identified by its match fields and its priority. When a packet is being matched
 against a table, the fields given by the table's key are extracted from the
-context. These extracted fields, together, are called the \textit{query key}.
+context. These extracted fields, together, are called the \emph{query key}.
 Each match field is then compared against the corresponding packet field. If all
 fields match, then the flow entry's actions are executed on the packet. Actions
 may modify the packet, context, or flow tables. Priority is used to
 unambiguously execute exactly one flow entry if multiple flow entry matches are
 found. The highest priority flow entry is always executed.
 
-For example, if a packet with an IP destination of 10.10.1.0 and a TCP port destination of 80 were matched against Table \ref{tbl:flow_table}, it would match the first flow entry. It would have its IP destination changed to 192.168.1.30, then it would be forwarded to port 1.
 
-If no flow entry matches the packet's field values, the \textit{miss case} flow
+
+If no flow entry matches the packet's field values, the \emph{miss case} flow
 entry is applied to the packet instead. By default, a miss case will drop the
 packet, but the behavior can be user defined. Miss cases always have the lowest
 possible priority amongst flow entries and each match field can be considered a
@@ -280,6 +378,16 @@ comparison, a flow table is analogous to a relational table, the concept of a
 key is the same for both, and a flow entry is analogous to a tuple in a SQL
 table. Each packet and its fields "queries" the table for flow entries with
 matching keys.
+
+\section{Pipeline Execution}
+
+The Steve pipeline is defined as a composition of decoding and table matching
+stages. The language allows programmers to express
+pipeline stages and how they connect.
+Steve pipeline programs follow a run-to-complete model of execution. Once a
+packet enters the pipeline, each stage is consecutively applied to
+the packet. Once no more stages are applied, the packet exits the pipeline and
+the next packet enters.
 
 \section{Egress Processing} \label{egress_desc}
 
@@ -300,28 +408,32 @@ These actions may be applied during any processing stage.
 
 \begin{itemize}
 
-\item \textbf{Output.} The output action will forward a copy of a packet to a given
+\item \textbf{Output.} The output action will forward a copy of a packet to a
+given
 port. If this action is written to the action set, when executed during egress
 processing, it writes the given port to the context's egress port field which
 determines where that packet gets forwarded.
 
 \item \textbf{Drop.} The drop action drops a packet.
 
-\item \textbf{Decode and goto.} These actions are known as \textit{transition
+\item \textbf{Decode and goto.} These actions are known as \emph{transition
 actions}. They end the current stage and send the context to a new stage. The
 decode action sends the context to a given decoder. Goto sends the context to a
 given flow table.
 
-\item \textbf{Raise.} Raise sends a copy of the context and an event handler to be
+\item \textbf{Raise.} Raise sends a copy of the context and an event handler to
+be
 executed by the controller port. The original packet continues through pipeline
 processing as usual.
 
-\item \textbf{Insert and remove flow entry.} These actions can insert or remove a flow
+\item \textbf{Insert and remove flow entry.} These actions can insert or remove
+a flow
 entry with given match fields. Inserting a flow entry that already exists will
 eject the old one and replace it with the new one. Removing a non-existent flow
 entry does nothing.
 
-\item \textbf{Set.} The set action will overwrite the bytes in a field with a given
+\item \textbf{Set.} The set action will overwrite the bytes in a field with a
+given
 value.
 
 \item \textbf{Write.} Write action allows actions to be written to the context's
@@ -333,7 +445,13 @@ action set. Only set and output actions may be written.
 
 \section{The Flowpath Controller and Event Handling} \label{events_desc}
 
-Once pipeline processing is completed by the Steve application, the packet is forwarded on a port. Occasionally, the Steve pipeline will choose to forward to a special port called the \textit{controller port}. The controller port is connected to a Flowpath thread of execution known as a \textit{controller}. A controller executes functions, known as \textit{event handlers}, which deal with exceptional events. The controller queues these packets and executes Steve event handlers on them. This mechanic is known as an \textit{event stage}.
+Once pipeline processing is completed by the Steve application, the packet is
+forwarded on a port. Occasionally, the Steve pipeline will choose to forward to
+a special port called the \emph{controller port}. The controller port is
+connected to a Flowpath thread of execution known as a \emph{controller}. A
+controller executes functions, known as \emph{event handlers}, which deal with
+exceptional events. The controller queues these packets and executes Steve event
+handlers on them. This mechanic is known as an \emph{event stage}.
 
 An event stage is not part of the typical pipeline processing model.
 Event stages execute when the Steve programmer decides that special
@@ -349,7 +467,10 @@ event stage executes when the programmer sends a copy of the context and an
 event handler to a controller using the raise action summarized in Section
 \ref{action_desc}.
 
-The Flowpath runtime does not use the same external controller mechanic as other SDN switches, namely OpenFlow \cite{openflow_spec}. To reduce the latency of sending messages to an external controller, Flowpath is capable of executing Steve-defined event handlers internally.
+The Flowpath runtime does not use the same external controller mechanic as other
+SDN switches, namely OpenFlow \cite{openflow_spec}. To reduce the latency of
+sending messages to an external controller, Flowpath is capable of executing
+Steve-defined event handlers internally.
 
 \section{Pipeline Composition} \label{pipeline_comp_desc}
 
@@ -383,4 +504,5 @@ transitions from one stage of the pipeline to the next. With each stage, certain
 conditions are evaluated which will determine where the packet must flow next.
 Finally, the packet will exit the pipeline either through a port(s) or by being
 dropped and discarded.
+
 
