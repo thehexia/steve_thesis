@@ -1,10 +1,10 @@
 \contentsline {table}{\numberline {2.1}{\ignorespaces An example flow table matches on IPv4 destination and TCP protocol destination port.\relax }}{18}
-\contentsline {table}{\numberline {4.1}{\ignorespaces The Flowpath API that may be used by Flowpath pipeline applications. The API and its function implementations are subject to change, so specific parameters and return types are not given.\relax }}{84}
-\contentsline {table}{\numberline {4.2}{\ignorespaces The application interface. All Flowpath loadable applications must provide this interface.\relax }}{85}
-\contentsline {table}{\numberline {5.1}{\ignorespaces The three pcap test cases used for experiments.\relax }}{88}
-\contentsline {table}{\numberline {5.2}{\ignorespaces Performance metrics after sending 1000 iterations of the smallFlows pcap sample through each application.\relax }}{89}
-\contentsline {table}{\numberline {5.3}{\ignorespaces Performance metrics after sending 20 iterations of the bigFlows pcap sample through each application.\relax }}{90}
-\contentsline {table}{\numberline {5.4}{\ignorespaces Performance metrics after sending 20 iterations of the 4SICS pcap sample through each application.\relax }}{91}
-\contentsline {table}{\numberline {5.5}{\ignorespaces Comparing firewall performance (in Mpps) with partial header decodes versus full header decodes.\relax }}{92}
-\contentsline {table}{\numberline {5.6}{\ignorespaces Average wall clock time for executing certain operations. Output action has been excluded as it varies with the threading model implementation of Flowpath.\relax }}{93}
-\contentsline {table}{\numberline {7.1}{\ignorespaces Steve reserved keywords. Note that Steve reserves the right to make any identifiers keywords in future versions.\relax }}{108}
+\contentsline {table}{\numberline {5.1}{\ignorespaces The Flowpath API that may be used by Flowpath pipeline applications. The API and its function implementations are subject to change, so specific parameters and return types are not given.\relax }}{86}
+\contentsline {table}{\numberline {5.2}{\ignorespaces The application interface. All Flowpath loadable applications must provide this interface.\relax }}{87}
+\contentsline {table}{\numberline {6.1}{\ignorespaces The three pcap test cases used for experiments.\relax }}{90}
+\contentsline {table}{\numberline {6.2}{\ignorespaces Performance metrics after sending 1000 iterations of the smallFlows pcap sample through each application.\relax }}{91}
+\contentsline {table}{\numberline {6.3}{\ignorespaces Performance metrics after sending 20 iterations of the bigFlows pcap sample through each application.\relax }}{92}
+\contentsline {table}{\numberline {6.4}{\ignorespaces Performance metrics after sending 20 iterations of the 4SICS pcap sample through each application.\relax }}{93}
+\contentsline {table}{\numberline {6.5}{\ignorespaces Comparing firewall performance (in Mpps) with partial header decodes versus full header decodes.\relax }}{94}
+\contentsline {table}{\numberline {6.6}{\ignorespaces Average wall clock time for executing certain operations. Output action has been excluded as it varies with the threading model implementation of Flowpath.\relax }}{95}
+\contentsline {table}{\numberline {8.1}{\ignorespaces Steve reserved keywords. Note that Steve reserves the right to make any identifiers keywords in future versions.\relax }}{111}

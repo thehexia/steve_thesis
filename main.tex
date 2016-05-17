@@ -17,6 +17,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 
+\usepackage[all]{nowidow}
 \usepackage[nounderscore]{syntax}
 \usepackage{listings}
 \usepackage{textcomp}
@@ -54,7 +55,7 @@
 match, case, while, miss, break, continue, Port, return, def, in\_port,
 in\_phys\_port, egress, reflow, controller, all, timeout,  flood
 	    },
-	    emph=[2]{ start, as, requires, advance },
+	    emph=[2]{ start, as, requires, advance, foreign },
 	    emph=[3]
 	    {
 	    	output, decode, goto, drop, set, write, clear, raise, insert, into,
@@ -172,6 +173,7 @@ remove, from,
 \input{intro}
 \input{pipeline}
 \input{tutorial}
+\input{limits}
 \input{flowpath}
 \input{experiments}
 \input{related}

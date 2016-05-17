@@ -14,8 +14,7 @@ defining and connecting the pipeline processing stages described in Chapter
 components. Specifically, this chapter will discuss how headers are represented, how to
 write decoders, how to write tables, and how to apply actions to packets.
 
-By the end of this chapter, a user should be able to write many basic network
-applications using Steve. Four such applications will be presented in Section \ref{tut:examples}: a simple MAC
+At the end of this chapter, four network applications will be presented in Section \ref{tut:examples}: a simple MAC
 learning switch, an IPv4 learning switch, a stateless TCP/UDP firewall, and a wire. Many of the examples
 presented throughout this chapter are just smaller parts of these applications
 presented in isolation. This tutorial will slowly build
@@ -24,174 +23,16 @@ the complete program at the end.
 
 Semantics and limitations of Steve will be mentioned throughout this chapter, 
 but only in minor detail. For the complete semantic description of
-Steve, including grammar, typing rules, and other restrictions, see the Reference Guide in Chapter \ref{ch:users_guide}. For a complete reference of all Steve
-grammar, see Appendix \ref{ap:a}.
+Steve, including grammar, typing rules, and other restrictions, see the Reference Guide in Chapter \ref{ch:users_guide}.
 
 \section{General Purpose Language Features} \label{tut:gen_purp}
 
 Steve supports language features that can be considered
-\textit{general purpose}. These language features are common to most programming
+\textit{general purpose}. They are common to most programming
 languages and are not explicitly for packet processing, though they may prove
 useful.
 
-\subsection{Variables} \label{tut:variable}
-
-Steve allows for the allocation of both local and global variables for storing values. Suppose one wanted to write a variable named \texttt{x} which holds an
-integer value \texttt{10}. It would be written as follows.
-
-\begin{codepage}
-\begin{lstlisting}
-var x : int = 10;
-\end{lstlisting}
-\end{codepage}
-
-The type of the variable, \texttt{int}, follows the colon
-(\texttt{:}). A new value can be assigned to it.
-
-\begin{codepage}
-\begin{lstlisting}
-x = 1;
-\end{lstlisting}
-\end{codepage}
-
-Arithmetic and bitwise operations can be performed as well. The complete set of
-arithmetic and bitwise operations can be found in Section
-\ref{guide:binary_expr}.
-
-\begin{codepage}
-\begin{lstlisting}
-var y : int = 2;
-var z : int = 3;
-y = x + y; // Addition
-z = y + z + 1;
-z = z << 4; // Left shift
-var a : int = y & z; // Bitwise and
-\end{lstlisting}
-\end{codepage}
-
-
-\subsection{Conditional Statements} \label{tut:condition}
-
-Steve supports three conditional statements for decision making: the \texttt{if} statement and the \texttt{match} statement. The \texttt{if} statement is the same as most C-like languages.
-
-\begin{codepage}
-\begin{lstlisting}
-var a : bool = true;
-var b : bool = false;
-
-// If statement
-if (a || b) { }
-
-// If else statement
-if (a && b) { ... }
-else if (a) { ... }
-else { ... }
-\end{lstlisting}
-\end{codepage}
-
-A \texttt{match} statement allows for a decision to be made given a number of possible
-case values. This makes it similar to a C-like switch statement, with the only
-major difference being that there is no \textit{fall-through} behavior. In other
-words, after the execution of a \texttt{case} statement, control jumps out of the \texttt{match}
-statement rather than moving to the next case (i.e. an implied \texttt{break}). The
-condition and labels must be integers just like in C. A \texttt{match} statement can be
-written as follows.
-
-\begin{codepage}
-\begin{lstlisting}
-// Assuming there are integer variables named x and y.
-match (x) {
-  case 0: x = x + 1;
-  // Multiple statements following the label must be
-  // enclosed in a block.
-  case 1: {
-    x = x + 2;
-    y = y * x;
-  }
-
-  // The default case statement.
-  miss: x = 0;
-}
-\end{lstlisting}
-\end{codepage}
-
-Here, if \texttt{x} equals \texttt{0}, then \texttt{x = x + 1} gets executed. If
-\texttt{x} equals \texttt{1}, then two statements get executed in order:
-\texttt{x = x + 2}, then \texttt{y = y * x}. If \texttt{x} is neither, then
-\texttt{x = 0} is executed.
-
-\subsection{While Loops} \label{tut:while}
-
-The \texttt{while} loop appears in Steve just like they appear in C-like languages. 
-They also support the \texttt{break} and \texttt{continue} statements for limited
-branching abilities inside a loop.
-
-The following is a trivial \texttt{while} loop which demonstrates the basics
-of \texttt{break} and \texttt{continue}. By the end of this loop, the value of \texttt{x} will be \texttt{4} and \texttt{z} will be \texttt{2}.
-
-\begin{codepage}
-\begin{lstlisting}
-var x : int = 0;
-var z : int = 0;
-// Loop while x is less than 5.
-while (x < 5) {
-  x = x + 1;
-  // If x equals 3, control goes back to the
-  // first statement in the loop body.
-  if (x == 3)
-    continue;
-
-  // This part is never reached if x == 2.
-  // If z equals 2, then we exit the loop
-  // altogether.
-  if (z == 2)
-    break;
-  // This will never execute when z == 2.
-  z = z + 1;
-}
-\end{lstlisting}
-\end{codepage}
-
-The usage of \texttt{while} loops in packet processing right now is rather limited. Usage
-of loops will rarely come up in defining pipeline processing stages. However,
-they may become more useful as other features are added.
-
-\subsection{Functions} \label{tut:function}
-
-Steve supports writing simple functions, though the syntax is a little different
-from C-like languages. Functions can be called with parameters and can return
-results just like any other language.
-
-Suppose one wanted to write a function named \texttt{sum} which takes two
-integers, \texttt{a} and \texttt{b}, and returned the integer sum of \texttt{a}
-and \texttt{b}. One would write \texttt{sum} as follows.
-
-\begin{codepage}
-\begin{lstlisting}
-def sum(a : int, b : int) -> int
-{
-  return a + b;
-}
-\end{lstlisting}
-\end{codepage}
-
-The return type follows the \texttt{->} in Steve functions. To call
-the \texttt{sum} function one would write the following. Here, the result of
-\texttt{sum} would be \texttt{3}.
-
-\begin{codepage}
-\begin{lstlisting}
-var x : int = 1;
-var y : int = 2;
-var z : int = sum(x, y);
-\end{lstlisting}
-\end{codepage}
-
 \subsection{Literals} \label{tut:literal}
-
-% FIXME: I would give a list of the literal kinds first and then talk
-% about digit separators. So... Here is a hex literal. Here is a binary
-% literal. Look, you can use digit separators!
 
 Steve supports decimal, binary, and hexadecimal integer literals. Steve does not
 currently support things like IP address literals or MAC address literals.
@@ -210,86 +51,241 @@ These integer literals can be written as follows.
 \end{lstlisting}
 \end{codepage}
  
-The underscore (\texttt{\_}) can optionally be used as a digit separator for hexadcimal and binary literals with no impact on the value of that literal.
+The underscore (\texttt{\_}) can optionally be used as a digit separator (like 
+Java) for hexadecimal and binary literals with no impact on the value of that 
+literal.
 This is purely for organization and readability.
 
 \begin{codepage}
 \begin{lstlisting}
-// These are the same binary value.
 0b10101010
 0b1010_1010
 
-// These are the same hexadecimal value.
 0x0800
 0x08_00
 \end{lstlisting}
 \end{codepage}
 
-\section{Layouts} \label{tut:layout}
-
-A \textit{layout} is used to describe the \textit{structure} of a packet header.
-More specifically, they describe \textit{what} fields are present, their
-\textit{lengths}, the \textit{order} in which they appear, and their
-\textit{relative offset} from the beginning of the header. Layouts become
-pivotal during decoding stages, where all this information is used to guide the
-extraction of fields from a header.
-
-\textit{A layout and a header are two different concepts.}
-It is important to make this distinction clear. A layout is like a blueprint for
-a header. It gives us information; it \textit{describes} that header. The header
-is an actual sequence of bits, a portion of the packet, which is taken off of the
-network. The header \textit{exists} whereas a layout helps the Steve application
-\textit{understand} it.
-
-The simplest example to begin with is the
-ethernet header \cite{eth_std}. Ethernet is a Layer 2 protocol
-and the most common in use. The first header most programs decode will be
-ethernet.
-
-An ethernet header has three fields: destination and source MAC addresses which
-are both 6 bytes (or 48-bits) long, and a type field which is 2 bytes (or
-16-bits long). A layout describing the ethernet header is written using a
-\textit{layout declaration} (\ref{guide:layout}). The following example presents
-an ethernet layout declaration matching these specifications.
+Steve also supports character and string literals which are useful for
+logging through functions (described in Section \ref{tut:function}).
+For example:
 
 \begin{codepage}
 \begin{lstlisting}
-// This layout describes the ethernet header.
-layout ethernet {
-	dst  : uint(48); // This is 48 bits long.
-	src  : uint(48); // This is 48 bits long.
-	type : uint(16); // This is 16 bits long.
+'H' // A character.
+"Hello, World." // A string literal.
+\end{lstlisting}
+\end{codepage}
+
+\subsection{Variables} \label{tut:variable}
+
+Steve allows for the allocation of both local and global variables. 
+A variable named \texttt{x} which holds an integer \texttt{10} is written
+as follows. 
+
+\begin{codepage}
+\begin{lstlisting}
+var x : int = 10;
+\end{lstlisting}
+\end{codepage}
+
+The type of the variable, \texttt{int}, follows the colon
+(\texttt{:}). New values can be assigned to variables like so.
+
+\begin{codepage}
+\begin{lstlisting}
+x = 1;
+\end{lstlisting}
+\end{codepage}
+
+The range of common arithmetic and bitwise operations are also supported. The 
+complete set of arithmetic and bitwise operations can be found in Section
+\ref{guide:binary_expr}.
+
+\begin{codepage}
+\begin{lstlisting}
+var y : int = 2;
+var z : int = 3;
+y = x + y; // Addition
+z = z << 4; // Left shift
+var w : int = y & z; // Bitwise And
+\end{lstlisting}
+\end{codepage}
+
+\subsection{Conditional Statements} \label{tut:condition}
+
+Steve supports two conditional statements for decision making: the \texttt{if} statement and the \texttt{match} statement. The \texttt{if} statement is the same as most C-like languages.
+
+\begin{codepage}
+\begin{lstlisting}
+var a : bool = true;
+var b : bool = false;
+if (a || b) { }
+if (a && b) { ... }
+else if (a) { ... }
+else { ... }
+\end{lstlisting}
+\end{codepage}
+
+A \texttt{match} statement allows for a decision to be made given a number of 
+possible case values. 
+This is similar to a C-like switch statement, with the only
+major difference being that there is no \textit{fall-through} behavior. In other
+words, after the execution of a \texttt{case} statement, control jumps out of the 
+\texttt{match} statement rather than moving to the next case (i.e. an implied 
+\texttt{break}). 
+The condition and labels must be integers just like in C. 
+A \texttt{match} statement can be written as follows.
+
+\begin{codepage}
+\begin{lstlisting}
+match (x) {
+  case 0: x = x + 1;
+  // Multiple statements following the label must be
+  // enclosed in a block.
+  case 1: {
+    x = x + 2;
+    y = y * x;
+  }
+  // The default case statement.
+  miss: x = 0;
 }
 \end{lstlisting}
 \end{codepage}
 
-Here, a layout named \texttt{ethernet} is declared. Each layout defines which
-fields it has with a \textit{field declarations} (\ref{guide:layout}). Each
-field is given a \textit{name} (\ref{guide:identifiers}) and a \textit{type}
-(\ref{guide:type}). In this example, three such fields are declared: \texttt{dst},
-\texttt{src}, and \texttt{type}. The \textit{length} of each field is denoted by
-the \textit{size} required to store an object of that \textit{type}. Here, each
-field has unsigned integer type (\ref{guide:integer_type}), \texttt{uint}, with
-an (optional) precision. The precision denotes the size (in bits) needed to
-store that integer. Thus the \texttt{dst} and \texttt{src} fields have a length
-of 48 bits, and the \texttt{type} field has a length of 16 bits.
+Here, if \texttt{x} equals \texttt{0}, then \texttt{x = x + 1} gets executed. If
+\texttt{x} equals \texttt{1}, then two statements get executed in order:
+\texttt{x = x + 2}, then \texttt{y = y * x}. If \texttt{x} is neither, then
+\texttt{x = 0} is executed.
 
-The \textit{relative offset} of each field is the number of bytes it is away
+\subsection{While Loops} \label{tut:while}
+
+The \texttt{while} loop in Steve is the same as C-like languages. 
+They also support the \texttt{break} and \texttt{continue} statements for limited
+branching abilities inside a loop. The following is a basic \texttt{while} loop in Steve.
+
+\begin{codepage}
+\begin{lstlisting}
+var x : int = 0;
+var z : int = 0;
+while (x < 5) {
+  x = x + 1;
+  if (x == 3)
+    continue;
+  if (z == 2)
+    break;
+  z = z + 1;
+}
+\end{lstlisting}
+\end{codepage}
+
+The usage of \texttt{while} loops in packet processing right now is rather limited. Usage
+of loops will rarely come up in defining pipeline processing stages. However,
+they may become more useful as other features are added.
+
+\subsection{Functions} \label{tut:function}
+
+Steve supports writing simple functions, though the syntax is a little different
+from C-like languages.
+A function named \texttt{sum} which takes two
+integers, \texttt{a} and \texttt{b}, and returned their sum is written as follows.
+
+\begin{codepage}
+\begin{lstlisting}
+def sum(a : int, b : int) -> int {
+  return a + b;
+}
+\end{lstlisting}
+\end{codepage}
+
+The return type follows the \texttt{->} in Steve functions. To call
+the \texttt{sum} function one would write the following. The result of the call to
+\texttt{sum(x,y)} would be \texttt{3}.
+
+\begin{codepage}
+\begin{lstlisting}
+var x : int = 1;
+var y : int = 2;
+var z : int = sum(x, y);
+\end{lstlisting}
+\end{codepage}
+
+\subsection{Foreign Functions} \label{tut:foreign}
+
+By default, all Steve compiled applications are linked against the C runtime
+library. Steve applications may also be linked against other libraries.
+Steve programmers may call functions in linked libraries by first declaring
+them in the Steve application using a \emph{foreign function} with the same
+function signature.
+
+\begin{codepage}
+\begin{lstlisting}
+foreign def puts(input : char[]) -> int;
+// ...
+puts("Hello, World.");
+\end{lstlisting}
+\end{codepage}
+
+Here, this foreign function links to the C standard \texttt{puts} function
+for text output. It may be called like any other function.
+
+\section{Layouts} \label{tut:layout}
+
+A \textit{layout} is used to describe 
+the \textit{structure} of a packet header.
+More specifically, they describe \textit{what} fields are present, their
+\textit{lengths}, the \textit{order} in which they appear, and their
+\textit{relative offset} from the beginning of the header. 
+Decoders use layout information to reason about extracting fields.
+
+%A layout and a header are two different concepts.
+%It is important to make this distinction clear. A layout is like a blueprint for
+%a header. It gives us information; it \textit{describes} that header. The header
+%is an actual sequence of bits, a portion of the packet, which is taken off of the
+%network. The header \textit{exists} whereas a layout helps the Steve application
+%\textit{understand} it.
+
+A \emph{layout declaration} (\ref{guide:layout}) is used to write a layout.
+The simplest example to begin with is the Ethernet frame header \cite{eth_std}.
+The corresponding layout would look like the following.  
+
+\begin{codepage}
+\begin{lstlisting}
+layout ethernet {
+	dst  : uint(48); // 48 bits.
+	src  : uint(48); // 48 bits.
+	type : uint(16); // 16 bits.
+}
+\end{lstlisting}
+\end{codepage}
+
+Every layout has a name (\texttt{ethernet}) and a sequence of field declarations
+which describe the fields contained within the header.
+This ethernet layout has three such field declarations (\texttt{dst}, \texttt{src},
+and \texttt{type}).
+Each field declaration has a name and a type that describes valid operations and
+value ranges for that field.
+To reduce errors related to working with byte buffers, Steve allows header fields to
+be represented as arbitrary-precision, signed or unsigned, integer types.
+The precision denotes the length of the field in bits.
+Here, \texttt{dst} and \texttt{src} fields are 48 bits long and \texttt{type} is
+16 bits long.
+
+The \textit{relative offset} of each field is the number of bits it is away
 from the beginning of the header. The first field will always have a relative
-offset of 0 bytes. The relative offset of each subsequent field is equal to the
+offset of 0 bits. The relative offset of each subsequent field is equal to the
 sum of the lengths of all fields preceding it. Here, \texttt{dst} has a relative
-offset of 0 bytes, \texttt{src} has one of 6 bytes, and \texttt{type} has one of
-12 bytes.
+offset of 0 bits, \texttt{src} has one of 48 bits (6 bytes), and \texttt{type} has one of
+96 bits (12 bytes).
 
-Here, the fields appear in the order with which they would normally appear
-in an ethernet header. This is important. Field ordering should always be
+The field declarations must appear in the order with which they would normally appear
+in an ethernet header. Field ordering should always be
 preserved when declaring layouts. If the ordering is incorrect, decoders will
-assume a sequence of bits is a certain field when it truly is not.
+assume a sequence of bits is a certain field when it truly is not. 
 
 Not all header structures are as simple as the ethernet header. Sometimes one
-must deal with headers nested inside headers. It is for this very reason, that
-Steve allows layouts to be nested.
-
+must deal with headers nested inside headers. Steve supports nested layouts
+to describe this nested header structures.
 The following presents such a case where the programmer expects a VLAN header
 \cite{vlan_std} nested before the \texttt{type} field of an ethernet
 header.
@@ -300,28 +296,30 @@ header.
 layout ethernet {
   dst  : uint(48);
   src  : uint(48);
-  vlan_tag : vlan; // Nested layout
+  vtag : vlan; // Nested layout
   type : uint(16);
 }
 
 layout vlan {
-  type : uint(16);
-  tci  : uint(16);
+  ethertype : uint(16);
+  tci : uint(16);
 }
 \end{lstlisting}
 \end{codepage}
 
 In this example, two layouts are declared: \texttt{ethernet} and \texttt{vlan}. To
-achieve a nested layout a field named \texttt{vlan\_tag} is added to
-\texttt{ethernet} and its type is given as the name of another layout,
-\texttt{vlan}. The length of the \texttt{vlan\_tag} field would be the sum of
-its sub-fields, in this case, 32 bits or 4 bytes.
+achieve a nested layout a field named \texttt{vtag} is added to
+\texttt{ethernet} and its type is given as the name of another layout (
+\texttt{vlan}). The length of the \texttt{vtag} field would be the sum of
+its fields, in this case, 32 bits (4 bytes).
 
 With the way
-layouts are described and written, it is easy to draw the comparison between layouts and
-classes in object-oriented languages. \textit{Layouts are not the same concept as classes.} Layouts are much stricter.
+layouts are described and written, it is easy to draw the comparison between 
+layouts and
+class types (or record types). \textit{Layouts are not the same concept as 
+classes.} Layouts are much stricter.
 
-First of all, \textit{the types of each field are restricted}. Fields may only
+First, \textit{the types of fields are restricted}. Fields may only
 have two types: integer (\ref{guide:integer_type}) and layout
 (\ref{guide:layout_type}). There may be varying kinds of integer (e.g.
 precisions, signed, unsigned, etc.), but the precision of each integer must also
@@ -329,28 +327,34 @@ be \textit{byte-aligned}, that is, a multiple of 8.
 
 Second, the most important distinction is that \textit{objects of layout type
 can never be created}. Layouts may not appear as the type of parameters, nor may
-they appear as return types. All of the following are considered illegal.
+they appear as return types. All of the following are considered ill-formed.
 
 \begin{codepage}
 \begin{lstlisting}
 layout L1 { f1 : uint; f2 : uint(16); }
-var x : L1 = 0; // Invalid.
-// Invalid parameter type and return type.
-def foo(y : L1) -> L1 { }
+var x : L1 = 0;
+def foo(y : L1) -> L1 { ... }
 \end{lstlisting}
 \end{codepage}
 
-Packets and their headers exist independent of a running Steve application.
-Layouts are purely used to guide decoding them. Additionally, there are a number
-of concerns related to constructing objects of layout type, thus such behavior
-is not allowed. For further details on layout limitations, refer to Section
-\ref{guide:layout} in the Reference Guide.
+Layouts are distinct from the headers that they describe.
+The sole purpose of layouts is to allow decoders to reason about the logical 
+structure of a header in memory.
+The memory for packets and their headers exist independent of a running Steve 
+application.
+To create an object of layout type would imply the need to create new headers,
+which is not currently supported by Steve.
+
+%Additionally, there are a number
+%of concerns related to constructing objects of layout type, thus such behavior
+%is not allowed. For further details on layout limitations, refer to Section
+%\ref{guide:no_dst} in the Reference Guide.
 
 Another important thing to note is that Steve does not currently support dynamically
 sized types (DST). A DST is a type whose size is predicated upon some value
 known only during runtime. These DST's are used to represent fields whose
 lengths are dynamic. Some examples of dynamic length fields are the
-\texttt{options} fields in IPv4, IPv6, and TCP headers \cite{ipv4_std, ipv6_std,
+\texttt{options} fields in IPv4, IPv6 extended, and TCP headers \cite{ipv4_std, ipv6_std,
 tcp_std}.
 
 DST's are a language feature that will eventually be added, but are outside the
@@ -359,132 +363,143 @@ currently be declared, extracted, nor used. The existence and eventual support
 of DST's is one of the reasons why objects of layout type cannot be created.
 This is further discussed in Section \ref{guide:no_dst}.
 
-The following example presents a case where some of these limitations become relevant -- the IPv4 layout. IPv4 is a Layer 3 protocol and is used
-for routing. An IPv4 header appears in almost all Internet-bound packets and
-thus makes it a common layout to write.
+The following example presents a case where some of these limitations become relevant -- the IPv4 layout.
 
 \begin{codepage}
 \begin{lstlisting}
 layout ipv4 {
   version_ihl : uint(8); // Non-byte aligned fields are merged.
-  dscp_ecn    : uint(8);  // This is merged, too.
+  dscp_ecn    : uint(8); // This is merged, too.
   len         : uint(16);
   id          : uint(16);
-  fragment    : uint(16); // Fragment usually has flags.
+  fragment    : uint(16); // Fragment flags and offset merged.
   ttl         : uint(8);
   protocol    : uint(8);
   checksum    : uint(16);
   src         : uint(32);
   dst         : uint(32);
-  // Note the missing, unsupported options field.
+  // Options field omitted because it is a DST.
 }
 \end{lstlisting}
 \end{codepage}
 
-In this example, one can seen that \texttt{version} (a 4 bit field) has to be
+In this example, \texttt{version} (a 4 bit field) has to be
 merged with \texttt{ihl} (internet header length) (also a 4 bit field) to
 achieve byte alignment. The same is true for \texttt{dscp} and \texttt{ecn}. The
 \texttt{fragment} field, typically composed of three 1 bit flags and a 13 bit
-fragment offset field, is merged into a single 16 bit field. To recover the
-values of these sub-fields, one must use bitwise-and
-(\ref{guide:bitwise_expr}) to mask the un-needed bits. An example will come up
-later when an IPv4 decoder is discussed.
+fragment offset field, is merged into a single 16 bit field. 
+Bitwise-And and bit shifting is needed to recover the needed bits.
+Examples will come up later when an IPv4 decoder is discussed in
+Sections \ref{tut:decoder_access} and \ref{tut:learning_router}.
 
 \section{Decoders} \label{tut:decoder}
 
-Decoding stages, or \textit{decoders} for short, are special purpose functions
-used to handle decoding and extracting fields from a \textit{single} header. Decoders use layouts to help them extract fields. By
-chaining multiple decoders together, a user can construct a sequence of
-functions used to parse an entire packet. 
+Decoders are special purpose functions
+used to extract fields from a single header. 
+They implicitly take context data structures as arguments and 
+operate on them.
+A decoder conforms to a layout specification.
+Layout information allows the decoder to determine where fields
+are located in a header and how long they are.
 
-When writing a decoder, it is good practice to keep the following in mind.
 
-\begin{itemize}
-\item Which header is being decoded?
-
-\item What fields from the header are needed and why?
-
-\item How will these fields be used? Will they be used in arithmetic or 
-
-\item \textit{Actions} (described later in Section \ref{tut:action}) are used to manipulate packet fields, forward packets,
-and add/remove flow entries from tables. What actions must be be taken on the packet?
-
-\item Where must the packet be sent next? Must it be further decoded or can it be sent to table matching for decision making?
-\end{itemize}
+%\begin{itemize}
+%\item Which header is being decoded?
+%
+%\item What fields from the header are needed and why?
+%
+%\item How will these fields be used? Will they be used in arithmetic or 
+%
+%\item \textit{Actions} (described later in Section \ref{tut:action}) are used to manipulate packet fields, forward packets,
+%and add/remove flow entries from tables. What actions must be be taken on the packet?
+%
+%\item Where must the packet be sent next? Must it be further decoded or can it be sent to table matching for decision making?
+%\end{itemize}
 
 \subsection{The Basic Decoder Form} \label{tut:basic_decoder}
 
 A decoder is written using a \textit{decoder declaration} (\ref{guide:decoder}).
-A decoder declaration has four important parts: 1) a name, 2) a \textit{layout
-rule}, 3) a keyword specifying whether this is the starting decoder, and 4) a
-body.
-
-A \textit{layout rule} is the layout which the decoder
-will use to guide its extractions. It provides all the information necessary for
-the decoder to determine which bits in a packet comprise which fields.
-
-For almost all applications, ethernet will need to be decoded first. An assumption is made that all packets coming to the device begin with the
-ethernet header (the most common first header). The basic ethernet decoder would look like the following example.
+The most common decoder written is likely the ethernet decoder. The following
+is the basic form of an ethernet decoder.
 
 \begin{codepage}
 \begin{lstlisting}
-// The empty ethernet decoder.
 decoder start eth_d(ethernet) { ... }
 \end{lstlisting}
 \end{codepage}
 
-In this example, the decoder is named \texttt{eth\_d}. The layout rule is
-\texttt{ethernet}. The \texttt{start} keyword has been added to denote that this is the \textit{starting decoder}. This means this
-decoder will always be the first to execute. A program must have exactly one
-starting decoder. 
+A decoder declaration has four important parts: 
+1) a name (\texttt{eth\_d}), 
+2) a \textit{layout rule} (\texttt{ethernet}),
+3) a body, and
+4) the (optional) \texttt{start} keyword.
 
-The decoder has a body, delimited by $\lbrace\rbrace$, which executes. This body will be filled with operations for the decoder to perform.
+The decoding process conforms to the layout rule and uses it to reason
+about the location and lengths of fields within the header it is decoding.
+Decoder operations are placed in the body delimited by $\lbrace\rbrace$.
+The \texttt{start} keyword identifies this decoder as the \emph{starting
+decoder}. 
+
+A starting decoder is the root of the pipeline.
+By extension there can only be one starting decoder.
+Every packet must be processed by the starting decoder first.
+Since Ethernet is the most common Layer 2 framing protocol, it will
+likely be the root of almost all pipelines.
 
 \subsection{Extractions} \label{tut:decoder_extract}
 
-The primary goal of a decoder is to extract fields from a single header. These
-extracted fields, or \textit{extractions} for short, are found using information
-gathered from the \textit{layout rule}.
-
-To extract a field, one writes an \textit{extract declaration}
-(\ref{guide:extract}) in the decoder's body. The programmer (hypothetically) makes the decision that they want all fields
-extracted from the ethernet header. The decoder would thus look like the following.
+An \textit{extract declaration} (\ref{guide:extract}) in the decoder's body
+instructs it to extract the given field. Extracted fields, or extractions,
+for short, may then be used by the program as a variable.
+The following example expands the body of the \texttt{eth\_d} decoder 
+with extract declarations.
 
 \begin{codepage}
 \begin{lstlisting}
-// The ethernet decoder extracts all fields.
-decoder start eth_d(ethernet)
-{
+decoder start eth_d(ethernet) {
 	extract ethernet.dst;
-	extract ethernet.src;
 	extract ethernet.type;
+	// ...
 }
 \end{lstlisting}
 \end{codepage}
 
-Each extract declaration gives a \textit{field name} (\ref{guide:field_name}).
-The field name refers to a field in the \textit{layout rule}. Here,
-\texttt{ethernet.dst}, \texttt{ethernet.src}, and \texttt{ethernet.type} are
-field names which refer to a respective extraction. The decoder
-gathers information on these fields from the layout rule to find the relative offset and length of the field, then saves the information
-in the context data structure (\ref{context_desc}) as offset-length pairs.
+Each extract declaration gives a \emph{field name} (\ref{guide:field_name}) 
+which tells the decoder which field is being extracted. 
+In this example, there are
+two such extract declarations which instruct the decoder to extract
+the fields \texttt{ethernet.dst} and \texttt{ethernet.type}.
+The compiler generates \textit{(offset, length)} pairs 
+denoting the relative offset and length of the field
+from the field names and layout rule. 
+The programmer is never burdened with the process of manually specifying
+which bytes form a field.
 
-Only field names which refer to fields in the layout rule may be used. For example, it would not be possible to extract \texttt{ipv4.protocol} in the \texttt{eth\_d} decoder. It would
-obviously make no sense to extract a field not in the header. 
+Only field names which refer to fields in the layout rule may be used. For example, it would not be possible to extract \texttt{ipv4.protocol} in the \texttt{eth\_d} decoder. 
+It obviously make no sense to extract a field not in the header. 
 
 \subsection{How Decoder's Extract Fields} \label{tut:extract_how}
 
-A decoder follows a set of steps to determine the location and length of a field. A decoder has a very limited look into a packet. It only has
-access to a subset of contiguous bytes, known as the \textit{view} of the
-decoder. A decoder's view begins where the header it decodes begins, and ends
-(implicitly) where that header ends. Its view ends implicitly because a layout
-only provides information on a single header. It is obvious that a
-decoder would not be able to decode past the final field it knows about from its
-layout rule.
+The Steve language ensures that decoders have constrained
+access over a packet buffer. Decoders only have limited
+access to a subset of contiguous bytes in a packet buffer, 
+known as its \emph{view} of the packet.
 
-Figure \ref{fg:decoding} demonstrates how decoders and their views work. Here, the Steve application was decoding a typical packet with ethernet, IPv4, and UDP headers. The
-starting decoder's view always starts at the beginning of the packet. In the
-case of Figure \ref{fg:view1}, the first header is ethernet.
+A decoder's view begins where the header it decodes begins, and ends
+(implicitly) where that header ends. 
+This constrained region is enforced by the definition of its layout rule. 
+That is, a decoder only knows about bytes up to (and including the final field in
+its layout rule and cannot know about or access any fields past that point.
+
+A packet's context maintains the beginning of the current view using
+a \emph{view index}. Once a decoder is finished executing, it is
+responsible for shifting this view index so that it refers to the
+first byte of the next header.
+
+Figure \ref{fg:decoding} demonstrates how decoders extract fields and
+how this view mechanism is applied on an actual packet instance. 
+Here, the Steve application decodes a typical packet 
+containing ethernet, IPv4, and TCP headers.
 
 \begin{figure}[ht]
 \begin{subfigure}[t]{.45\textwidth}
@@ -525,21 +540,41 @@ header -- 14 bytes.}
 \label{fg:decoding}
 \end{figure}
 
-Each field in the header is discovered by information gathered by the layout
-rule. The layout rule tells a decoder the location, or relative offset, of
-each field from the beginning of the header (which is equivalent to the
-beginning of the view). It also gives the length of each
-field. From here, a decoder can go about discovering which bits form each
-field as demonstrated in Figure \ref{fg:view2}.
+ 
+The view index always starts at the beginning of the packet.
+In Figure \ref{fg:view1}, the first header is ethernet.
+In Figure \ref{fg:view2}, the three fields of the ethernet header
+are extracted.
 
-When a decoder finishes, it \textit{shifts} the view, as seen in Figure
-\ref{fg:view3}. The beginning of the view is moved by the length of header. The
-view now starts one byte \textit{after} the previous header's final byte. All decoders are responsible for shifting the view in
+When the compiler generates \textit{(offset, length)} pairs,
+the offset value is relative to the view index. That is, the
+absolute offset of the field in the packet is the view index plus 
+the relative offset in the pair.
+The absolute offset and length are saved in the context binding environment.
+In Figure \ref{fg:view2}, the pairs \textit{(0, 48)} (\texttt{ethernet.dst}),
+\textit{(48, 48)} (\texttt{ethernet.src}), and \textit{(96, 16)} 
+(\texttt{ethernet.type}) are stored in the context.
+
+%Each field in the header is discovered by information gathered by the layout
+%rule. The layout rule tells a decoder the location, or relative offset, of
+%each field from the beginning of the header (which is equivalent to the
+%beginning of the view). It also gives the length of each
+%field. From here, a decoder can go about discovering which bits form each
+%field as demonstrated in Figure \ref{fg:view2}.
+
+When a decoder finishes, it \textit{shifts} the view index, as seen in Figure
+\ref{fg:view3}. The beginning of the view is moved by the length of header.
+The view now starts one byte \textit{after} the previous header's final byte. 
+All decoders are responsible for shifting the view in
 preparation for the next decoder. Once the next decoder is reached, its view is
 already on the header it decodes. When this next decoder finishes, it shifts the
 view once again, as seen in Figure \ref{fg:view4}.
 
-This process continues until the user decides that they are done decoding headers.
+This process continues until all decoders are finished.
+If at any point a layout is silently ill-defined 
+(longer than the remaining packet memory), and a decoder tries
+to extract a field which is past the bounds of the packet, the packet
+is immediately dropped before the extraction completes.
 
 \subsection{Accessing Extracted Fields} \label{tut:decoder_access}
 

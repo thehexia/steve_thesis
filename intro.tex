@@ -164,8 +164,10 @@ packet. Event handlers may be defined to deal with events such as learning a new
 flow, removing an old flow, etc.
 
 Though Steve is an SDN language, it also supports a number of general purpose
-features similar to C. Steve supports functions, variables, arithmetic, branching, looping
-and a foreign function interface which may be used to call linked C functions.
+features with syntax similar to C. 
+Steve supports functions, variables, arithmetic, branching, 
+looping and a foreign function interface which may be used to call linked C 
+library functions.
 
 \section{Motivation: Issues with Low-level Languages}
 
@@ -262,10 +264,8 @@ whereas port management is a architecture dependent problem.
 
 The Steve language provides a type and constraints system to ensure the safety
 of all Steve-defined packet operations and pipelines.
-Steve targets the runtime environment, Flowpath, abstracts the resources
-such as memory and ports, of a given hardware device so the Steve program does not
-have to.
-In addition, Steve uses an optimizing compiler to ensure efficient code generation.
+In addition, Steve uses an optimizing compiler to ensure efficient code generation
+and a runtime environment to abstract hardware resources (ports, memory, etc).
 
 \subsection{Type Safety}
 
@@ -348,7 +348,7 @@ Steve never requires the user to heap allocate resources. The majority of
 allocation is done on the stack, ensuring Steve applications are free of
 memory leakage and faster (as heap allocation tends to be slow).
 
-Steve relies on its runtime system, Freeflow \cite{freeflow_software}, 
+Steve relies on its runtime environment, Freeflow \cite{freeflow_software}, 
 to manage system resources such as
 ports, packet reading, and packet buffer allocations.
 This decouples the logic of system resource management from the packet

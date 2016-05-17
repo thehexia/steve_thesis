@@ -509,22 +509,6 @@ def foo(y : L1) -> L1 { ... }
 
 The size of a layout is equal to the sum of the sizes of each of its field types. This is only knowable at compile time if the layout contains only scalar typed fields. For example, the layout \texttt{L1} has a size of 48 bits or 6 bytes.
 
-\subsection{Why Objects of Layout Type can not Exist.} \label{guide:no_dst}
-
-Layouts are not classes. The primary reason for this differentiation are dynamically-sized fields. These fields are said to have \textit{dynamically-sized type} (DST) and their size is determined by some value
-discovered during runtime.
-
-Consider that when objects of user-defined type (i.e. class type) are constructed, stack space must be allocated for them. The amount of space must be known during compilation. By including a member of DST in a class it effectively "taints" a class, making the class an aggregate type containing a DST. It is not easy to stack allocate an object which contains a member of DST because the amount of memory needed is unknown until runtime. It suddenly becomes difficult to stack allocate variables of that user-defined type. 
-
-Such objects can only be heap allocated, which Steve does not currently support. The only exception is if memory is being allocated for an object of non-class DST. In this case, stack space can be allocated for this "scalar" DST, but access to it would happen through pointer addressing which is prone to undefined behavior because it cannot be compiler checked.
-
-
-It becomes more unclear what happens when an object of class type containing a DST is a member to another class. Due to these unanswered issues, Steve avoids this problem altogether. 
-
-Since layouts must contain fields of DST, Steve cannot allow layouts to behave like a class type. Therefore, objects of layout type can never be created. Layouts cannot contain member functions either. It logically follows that since objects of layout type cannot exist, there is no justification for having member functions.
-
-The only language which supports user-defined DSTs, Rust, only allows it under very limited circumstance \cite{rust_dst_std}.
-
 \section{Port Type} \label{guide:port_type}
 
 All port declarations have port type. Port type is not a type that appears explicitly in the grammar. Variables, parameters, and fields may not have port type.
