@@ -4,102 +4,6 @@ This chapter serves as a reference manual for Steve programmers. It provides det
 
 There is an expectation that the user has read the Tutorial and has a basic understanding of Steve.
 
-\section{Pipeline Guarantees} \label{guide:pipeline_checking}
-
-Steve makes guarantees about the logical correctness and safety of pipeline stage composition. These guarantees are enforced by ensuring each Steve pipeline has two important properties: \textit{progress} and \textit{requirement satisfaction}. Any pipeline which does not have these properties shall produce a compiler error. Pipelines that cannot ensure these properties risk crashes or undefined behavior during runtime.
-
-\subsection{Pipeline to Graph Conversion} \label{guide:pipeline_graph}
-
-These properties are checked by first converting a Steve pipeline into a directed graph. Each property thus becomes a graph evaluation algorithm on the pipeline graph. Each stage (decoders, tables, and events) becomes a \textit{node} on the pipeline graph. Flow entries are treated as independent nodes. An edge is drawn from the containing table to the flow entry. All inserted flow entries are also independent nodes with edges from the table they would be inserted into. Added flows cannot violate pipeline properties either, regardless of when they get added.
-
-Every \texttt{decode}, \texttt{goto}, and \texttt{raise} action found in a stage (or flow entry within a table) causes an \textit{edge} to be added between the stage and the destination specified by the action. This edge is added even if the action is encapsulated by a conditional statement because its impossible to determine during compile time whether or not that edge is reachable during runtime.
-
-Every pipeline graph must have exactly one source node (the starting decoder), but can have multiple sinks.
-
-\subsection{Progress} \label{guide:progress}
-
-The \textit{progress} property says that a packet always moves to a later stage in a pipeline and can never move, or risk moving, to a previously visited stage. Progress is the fundamental nature of the pipeline abstraction. This prevents packets from infinitely looping between the same stages more than once.
-
-To enforce this property, a Steve program may only compile if and only if the graph representation of the pipeline is a directed acyclic graph (DAG). This property can be easily confirmed using topological sorting.
-
-\textit{Proof.} A DAG, by definition, has no cycles. If there are no cycles, there is no way to visit the same stage more than once. Because there are a finite number of stages, a packet is always guaranteed to leave the pipeline after a finite number of steps.
-
-%First of all, table nodes are assigned a hidden, unique, incremented integer identifier in the order with which they are declared. For example, the first table declared in a Steve program is given the integer identifier 0, the second table declare is given the identifier 1, and so on. Conventionally, tables are expected to be declared in the order with which they are expected to occur in a pipeline.
-%
-%The \textit{table identifiers} rule says that at no point in the pipeline can a packet reach a target table if it has already visited a table stage whose integer identifier is higher than or equal to that of the target table. In other words, a packet can only go forward through tables, never backwards. This is compliant with the OpenFlow specification for tables \cite{openflow_spec}. Because of this table identifiers rule, it is impossible for any number of table stages to form a cycle with each other.
-%
-%\textit{Proof.} A cycle can only be formed if the next table has either been visited, or is contained within a path to a table that has been visited. This can only happen if the next table has an identifier less than or equal to that of the current largest identifier visited. This property is enforced by the way tables are numbered. Since the table identifiers rule prevents a packet from being sent to these tables, it is thus impossible to form a cycle.
-
-\subsection{Requirements Satisfaction} \label{guide:requirements}
-
-\textit{Requirement Satisfaction} ensures that field access can only be done on fields that have been decoded by a decoder. This prevents accidental access of fields that have not been discovered or that do not exist.
-
-Every node in a pipeline graph has a set of \textit{productions} and \textit{requirements}.
-
-A \textit{production} is a field that has been extracted or created by the node's respective stage. Currently only decoding stages are capable of have productions because they are the only ones which can extract fields. If a field were pushed (i.e. created) onto the packet, that would also constitute a production (Steve does not currently support this action).
-
-A \emph{requirement} is a field which must be decoded before reaching a node on
-this graph. An event handler's requirements are listed in its
-\texttt{\color{green}requires} clause. A table's requirements are given by its
-key fields, and it may also have a \texttt{\color{green}requires} clause.
-
-Let $P$ be a set of all paths from the root node (representing the starting decoder) to a node $V$.
-For a path $p \in P$, a requirement of $V$ must be a production of at least one node in
-$p$. A path, $p$, \emph{satisfies} a requirement of $V$ if and only if this
-definition holds true. If this is not true for all $p \in P$, then the program
-is ill-formed.
-
-\textit{Proof.} 
-The objective is to prevent field access on fields that have not been extracted. Field access can only be done in four cases. In Case 1, a decoder can access a field if that field has been extracted by that decoder. In Case 2, a table can access a field only if that field is part of the table's key or given by the table's \texttt{requires} clause. In Case 3, a table's flow entry can access fields which are part of the table's requirements. In Case 4, an event can access a field if that field is given by the event's \texttt{requires} clause.
-
-By the definition of the requirements satisfaction property all nodes in a pipeline graph must have their requirements satisfied, i.e. those fields must have been extracted along the path to that node, otherwise the result is a compiler error. Therefore, it is evident that it is impossible to compile a pipeline where field access is done on non-extracted fields.
-
-\subsection{Depth First Search Graph Checking} \label{guide:dfs_desc}
-
-In order to produce the most complete error messages, the Steve compiler uses depth-first traversal with backtracking to evaluate all possible paths in a pipeline graph, see Algorithm \ref{alg:dfs}. 
-
-As the algorithm traverses a path in the graph, it accumulates a set of productions at each node. At each node, the node's requirements are checked against the accumulating set of productions to confirm the \textit{requirement satisfaction} property holds true. Any node which fails immediately produces a compiler error and further traversal along that path stops.
-
-At any point in a given path, if a node's edge is directed toward a previously visited node in the path, e.g. a cycle is found, traversal past that node immediately stops and a compiler error is generated warning about the error. This ensures that the \textit{progress} property is met.
-
-\begin{algorithm}[ht]
- \caption{Depth-first traversal with backtracking used to check pipeline properties.}
- \label{alg:dfs}
- \begin{algorithmic}
- \State
- \State \textit{Input}: Let \textit{G} be the pipeline graph. Let \textit{v} be a node in \textit{G}. Let \textit{p} be a set of productions.
- \State \textit{Output}: Whether or not the current stage violates the progress or requirements satisfaction property. If any property fails, output a compiler error.
- \State
-
- \Function{DFS}{$G, v, p$}
- 	\State v.visited = true
- 	\State p  += v.productions
- 	\If{meetsRequirements(v, p)}
- 		\For{\textit{all} i \textit{in} G.adjacentNodes(v)}
- 			\If{(i.visited == false) $\land$ canProgress(v, i)}
- 				\State \Call{DFS}{G, i, p}
- 			\Else
- 				\State \Return compiler error
- 			\EndIf
- 		\EndFor
-	\Else
- 		\State \Return compiler error
- 	\EndIf
-
- 	\State v.visited = false \Comment{As we backtrack, we reset the visited property so we can come down this node again in different path.}
-
- 	\State p -= v.productions \Comment{As we backtrack, we remove the productions of the node from the set of productions.}
- \EndFunction
- \end{algorithmic}
-
-\end{algorithm}
-
-The worst case complexity of this algorithm is $O(n!)$ where $n$ is the number of nodes.
-
-\textit{Complexity Proof.} Assume a DAG has $n$ nodes. There are at most $n-1$ nodes adjacent to the root node. Each node adjacent to the root has at most $n-2$ nodes adjacent to it. This pattern continues until paths end in a sink. Thus the number of paths can be represented as $(n-1)(n-2)...1$ or $(n-1)!$.
-
-Fortunately, this worse case performance is rarely ever achieved. Only the most dense pipeline graphs, where a node at each level is connected to every other possible node has this kind of performance. Packet processing graphs are typically more sparse because edges (branches) only occur when determining what the next header is. These graphs are generally not very deep either as packets tend to have a very small number of headers.
-
 \section{Identifiers} \label{guide:identifiers}
 
 An \textit{identifier} is an arbitrarily long sequence of characters. Supported characters include uppercase Latin letters (\texttt{A - Z}), lowercase Latin letters (\texttt{a - z}), digits (\texttt{0 - 9}), and underscores (\_). A valid identifier must begin with a non-digit character. Identifiers are case sensitive. The grammar of identifiers is as follows:
@@ -223,7 +127,7 @@ The scope of a parameter declared in a \grd{function}{declaration} (see \ref{gui
 
 \subsection{Table Scope} \label{guide:table_scope}
 
-A name is said to be in table scope if its scope is within the \grd{table}{initializer} of a \grd{table}{declaration} (see \ref{guide:tables}). The scope of field names declared by a \grd{key}{declaration} within \grdd{key}{declaration}{sequence} and field names listed in the \grd{requires}{clause} is the \grd{table}{initializer}.
+A name is said to be in table scope if its scope is within the \grd{table}{initializer} of a \grd{table}{declaration} (see \ref{guide:tables}). The scope of field names declared by a \grd{key}{declaration} within \grdd{key}{declaration}{sequence} and field names listed in the \grd{requires}{specifier} is the \grd{table}{initializer}.
 
 The field name refers to the \textit{last} extraction made with that field name. This entity may vary during runtime depending on the path through the pipeline which a packet took. Because of requirement satisfaction (see \ref{guide:requirements}), it is always guaranteed that an entity with that name exists.
 
@@ -263,7 +167,7 @@ exact_table t1(eth.type) { }
 
 \subsection{Event Scope} \label{guide:event_scope}
 
-The scope of names declared in the \grd{block}{statement} of an \grd{event}{declaration} follow regular block scope semantics (see \ref{guide:block_scope}). The scope of field names given by the \grd{requires}{clause} is also that \grd{block}{statement}.
+The scope of names declared in the \grd{block}{statement} of an \grd{event}{declaration} follow regular block scope semantics (see \ref{guide:block_scope}). The scope of field names given by the \grd{requires}{specifier} is also that \grd{block}{statement}.
 
 \subsection{Layout Scope} \label{guide:layout_scope}
 
@@ -719,7 +623,7 @@ The context is used to maintain a positional index, known as the \textit{view in
 
 If the view is statically-sized, the shift shall be implicitly emitted as code by the compiler by using the layout rule. This is known as an \textit{implicit advance}.
 
-If the view is dynamically-sized, the length of the shift must be explicitly quantified using the \texttt{\color{blue}advance} clause attached to either a \texttt{goto} (see \ref{guide:goto}) or \texttt{decode} action (see \ref{guide:decode_action}). This is known as an \textit{explicit advance}.
+If the view is dynamically-sized, the length of the shift must be explicitly quantified using the \texttt{\color{blue}advance} specifier attached to either a \texttt{goto} (see \ref{guide:goto}) or \texttt{decode} action (see \ref{guide:decode_action}). This is known as an \textit{explicit advance}.
 
 \section{Extract Declaration} \label{guide:extract}
 
@@ -849,7 +753,7 @@ decoder d2(l2) {
 
 When using the extraction later in the program, either name may be used. The field declaration named by \texttt{N1} shall have the same type as the field declaration named by \texttt{N2}. 
 
-Both names are added to the decoder's productions (see \ref{guide:requirements}) for constraints checking. The names \texttt{N1} and \texttt{N2} may be used as field names in either key declarations or requires clauses in tables and events later in the pipeline. 
+Both names are added to the decoder's productions (see \ref{guide:requirements}) for constraints checking. The names \texttt{N1} and \texttt{N2} may be used as field names in either key declarations or requires specifiers in tables and events later in the pipeline. 
 
 The extractions which \texttt{N1} can refer to are a subset of the extractions \texttt{N2} can refer to. The aliased name naturally can refer to extractions which are from a different kind of field than the original name. To demonstrate this, the following revision is made to the prior example:
 
@@ -909,7 +813,7 @@ Table declarations have the following form:
 \begin{grammar}
 <table-declaration> ::=
 "table" <table-name> "(" <key-declaration-sequence> ")"
-[ <requires-clause> ] <table-initializer>
+[ <requires-specifier> ] <table-initializer>
 
 <key-declaration> ::=
 <layout-id> "." <field-id>
@@ -917,7 +821,7 @@ Table declarations have the following form:
 \alt "in_port"
 \alt "in\_phys\_port"
 
-<requires-clause> ::=
+<requires-specifier> ::=
 "requires" "(" <field-name-sequence> ")"
 
 <table-initializer> ::= "{" [ <flow-declaration-list> ] "}"
@@ -939,9 +843,9 @@ If tables with those properties already exist, the runtime system provides the S
 
 The table's \textit{key fields} are a set of one or more fields which together compose a \textit{key}. A table's key is given by \grdd{key}{declaration}{sequence} in the grammar. Each \grd{key}{declaration} shall be a valid field name, or be the keywords \texttt{in\_port} or \texttt{in\_phys\_port}. The type of \grd{key}{declaration} shall be the type of the field, or shall be port type (see \ref{guide:port_type}) in the case of \texttt{in\_port} or \texttt{in\_phys\_port}.
 
-The \grd{requires}{clause} is optional. A field name here may also be a \grd{key}{declaration}. This is redundant and does not change semantics. Field names given by \grdd{key}{declaration}{sequence} are implicitly required.
+The \grd{requires}{specifier} is optional. A field name here may also be a \grd{key}{declaration}. This is redundant and does not change semantics. Field names given by \grdd{key}{declaration}{sequence} are implicitly required.
 
-Names in \grdd{key}{declaration}{sequence} and \grd{requires}{clause} are valid inside \grd{table}{initializer} based on table scope semantics (see \ref{guide:table_scope}).
+Names in \grdd{key}{declaration}{sequence} and \grd{requires}{specifier} are valid inside \grd{table}{initializer} based on table scope semantics (see \ref{guide:table_scope}).
 
 Each table has a set of \textit{flow entries} declared in Steve using a \grd{flow}{declaration} of the following form:
 
@@ -986,7 +890,7 @@ An event declaration has the following form:
 \begin{minip}
 \begin{grammar}
 <event-declaration> ::=
-\textit{event} <event-name> [ <requires-clause> ]
+\textit{event} <event-name> [ <requires-specifier> ]
 <block-statement>
 \end{grammar}
 \end{minip}
@@ -1140,9 +1044,9 @@ A field access expression may only occur within the body of a decoder declaratio
 \begin{itemize}
 \item In a decoder declaration if and only if an extract declaration (see \ref{guide:extract}) extracts a field with the same field name before the field access expression's use.
 
-\item In a flow declaration if and only if the table containing the flow uses the same field name as a key, or lists it in its requires clause.
+\item In a flow declaration if and only if the table containing the flow uses the same field name as a key, or lists it in its requires specifier.
 
-\item In an event declaration if and only if the same field name is in its requires clause.
+\item In an event declaration if and only if the same field name is in its requires specifier.
 \end{itemize}
 
 If the type of the extraction is \texttt{T}, then the type of a field access expression referring to that extraction shall be \texttt{T\&}. When the value of that field is required, then a reference-to-value conversion (see \ref{guide:reftoval_conv}) is applied to the field access expression.
@@ -1638,15 +1542,15 @@ The decode action is a stage transitioning action. It transitions the context (s
 \begin{minip}
 \begin{grammar}
 <decode-action> ::=
-"decode" <decoder-id> [<advance-clause>] ";"
+"decode" <decoder-id> [<advance-specifier>] ";"
 
-<advance-clause> ::= "advance" <expression>
+<advance-specifier> ::= "advance" <expression>
 \end{grammar}
 \end{minip}
 
 A decode action transfers control of the context it is operating on to the decoder named by \grd{decoder}{id}. The semantics of transferring control are similar to calling a function and passing the context as a parameter. If a decode action appears within the body of a decoder (see \ref{guide:decoder}), then a view advance (see \ref{guide:decoder_view}) is applied before the decode action transfers control to the next stage.
 
-A decode action may optionally have an \grd{advance}{clause}, if and only if it occurs within a decoder. Given a decode action of the form \texttt{decode d1 advance E1}, the type of \texttt{E1} shall be unsigned integer. The result of E1 (in bytes) shall be added to the view index. The reason the shift is by bytes and not by bits is because generally speaking, headers are byte aligned.
+A decode action may optionally have an \grd{advance}{specifier}, if and only if it occurs within a decoder. Given a decode action of the form \texttt{decode d1 advance E1}, the type of \texttt{E1} shall be unsigned integer. The result of E1 (in bytes) shall be added to the view index. The reason the shift is by bytes and not by bits is because generally speaking, headers are byte aligned.
 
 \section{Goto Action} \label{guide:goto}
 
@@ -1655,9 +1559,9 @@ The goto action is a stage transition action, similar to the decode action. A go
 \begin{minip}
 \begin{grammar}
 <goto-action> ::=
-"goto" <table-id> [<advance-clause>] ";"
+"goto" <table-id> [<advance-specifier>] ";"
 
-<advance-clause> ::= "advance" <expression>
+<advance-specifier> ::= "advance" <expression>
 \end{grammar}
 \end{minip}
 
@@ -1665,7 +1569,7 @@ A goto action transfers control of the context it is operating on to the table m
 
 If a goto action appears within the body of a decoder (see \ref{guide:decoder}), then a view advance (see \ref{guide:decoder_view}) is applied before transferring to the table matching stage.
 
-A goto action may optionally have an \grd{advance}{clause}, if and only if it occurs with the body of a decoder. Given a goto action of the form \texttt{goto d1 advance E1}, the type of \texttt{E1} shall be unsigned integer. The result of E1 (in bytes) shall be added to the view index.
+A goto action may optionally have an \grd{advance}{specifier}, if and only if it occurs with the body of a decoder. Given a goto action of the form \texttt{goto d1 advance E1}, the type of \texttt{E1} shall be unsigned integer. The result of E1 (in bytes) shall be added to the view index.
 
 \section{Output Action} \label{guide:output}
 
