@@ -10,38 +10,66 @@ than conventional switches.
 Much of the work on the development of technologies for SDN is targeted at or 
 inspired by OpenFlow: a specification describing the general architecture of SDN 
 switches and the protocol that allows them to be remotely observed and controlled 
-\cite{openflow_spec}. The key parts of the OpenFlow switch architecture are a packet 
-processing pipeline, an external controller which sends and receives
-OpenFlow messages, and ports.
+\cite{openflow_spec}. 
 
-However, SDN standards like OpenFlow are not the limit of what programmable
-network functions can become. OpenFlow artificially constrains the evolution
-of SDN with their protocol-dependent model, messages, and switch structure.
+The key parts of the OpenFlow switch architecture, depicted in Figure \ref{fg:openflow_switch}, are a packet 
+processing pipeline, an external software controller which sends and receives
+OpenFlow messages, and ports. 
 
-Research into Steve and Freeflow used OpenFlow as a guide post for what an abstract
+\begin{figure}[ht]
+\centering
+\includegraphics[scale=.5]{openflow}
+\caption{The openflow switch architecture is made up of ports, a pipeline,
+and an external controller which uses OpenFlow messages to communicate. (Image Source: \cite{openflow_spec})}
+\label{fg:openflow_switch}
+\end{figure}
+
+This is the architecture that most SDN researchers and vendors have focused on.
+Though OpenFlow is widely accepted and has driven the majority of SDN research,
+it has its flaws.
+OpenFlow's model places too much emphasis on the external software controller
+and not enough focus on data plane elements (pipeline and ports).
+Additionally, OpenFlow artificially constrains SDN evolution with its
+unscalable, protocol-dependent pipeline model, instruction set, and message format.
+
+Research into Steve used OpenFlow as a guide post for what an abstract
 packet processing machine might look like and what language features may be
 necessary to support such a machine. However, by no means did this research
 strictly adhere to OpenFlow principles or semantics.
-Steve and Freeflow, differ from OpenFlow concepts in a number of key ways.
 
-Steve is protocol independent, whereas OpenFlow specifies a limited set of
-support fields known as OXM fields.
+The primary concept Steve takes from OpenFlow is the pipeline processing model.
+An OpenFlow pipeline is defined as a sequence
+of one or more \textit{flow tables} and a \textit{group table} which handle
+packet lookups, decision making, and forwarding.
+
+The Steve pipeline has one key difference.
+Steve's pipeline is protocol independent, whereas OpenFlow specifies a limited set of
+supported protocol fields known as OXM fields.
 Because Steve is protocol independent, its
-pipeline model may contain a series of programmable decoders in between flow tables. 
-OpenFlow does not say anything about packet decoding in its
-specification as such behaviors are expected to be performed by specialized hardware
-before pipeline processing. 
-Steve does not currently support OpenFlow group tables.
+pipeline model must contain a series of programmable decoders to extract fields
+from user-specified header structures. 
+OpenFlow does not mention decoding because
+implementation is usually left to the vendor.
+For protocol dependent architectures, this is
+usually done with specialized hardware.
 
-The abstract SDN switch proposed by OpenFlow is not completely adopted by
-the Freeflow runtime. Specifically, the remote OpenFlow controller was
-removed from the Freeflow switch model. It is not desirable to remote configure
-a switch for basic reactive programs. Sending messages to a controller through
-a wire is a prohibitively high-latency operation.
-Instead of communicating with a remote controller via messages, Freeflow uses an 
-internal (non-distributed) controller which executes Steve event handlers. 
-However, Steve is still capable of decoding OpenFlow messages like any other protocol
-if there is a need for a distributed controller.
+Additionally, Steve does away with OpenFlow controllers. 
+Steve focuses on network functions that do not require distributed control.
+Though the OpenFlow model provides
+the benefit of supporting distributed control, sending messages
+over a network is simply too slow.
+Therefore, Steve chooses to leverage the power of the control plane which
+resides on the same switch as the data plane.
+
+%The abstract SDN switch proposed by OpenFlow is not completely adopted by
+%the Freeflow runtime. Specifically, the remote OpenFlow controller was
+%removed from the Freeflow switch model. It is not desirable to remote configure
+%a switch for basic reactive programs. Sending messages to a controller through
+%a wire is a prohibitively high-latency operation.
+%Instead of communicating with a remote controller via messages, Freeflow uses an 
+%internal (non-distributed) controller which executes Steve event handlers. 
+%However, Steve is still capable of decoding OpenFlow messages like any other protocol
+%if there is a need for a distributed controller.
 
 %An OpenFlow pipeline is defined as a sequence
 %of one or more \textit{flow tables} and a \textit{group table} which handle
@@ -75,56 +103,75 @@ if there is a need for a distributed controller.
 
 \section{Early Steve Work}
 
-Cassey, et al, provided much of the early Steve language work into programmatic
-analysis of packet headers \cite{wripe}. Steve ensures the semantic constraints,
+Once people decided that programmable switch components were valuable,
+they needed languages to program their controllers and data planes.
+However, due to the sensitive nature of network applications, the program must be provably safe.
+
+Early research into the Steve language focused on the correctness of packet
+header definitions, safe packet access, and pipeline definitions.
+Casey, et al, described the semantic constraints,
 structural constraints (including buffer and view abstractions used by decoders), and 
-safe access properties described by Cassey, et al. Steve also takes the idea
-of full program analysis and applies it to pipeline stages to ensure requirement
-constraints are not violated.
+safe access properties needed when working with packet buffers.
+The Arbiter Framework was an early language implementation that checked the correctness of data paths (pipelines) and ensured that they did not violate the 
+capabilities of switches they ran on.
+\cite{arbiter}.
 
-The Arbiter Framework was an early language implementation that allow for the
-specification of data and control plane components. Arbiter used axiomatic 
-programming concepts to ensure safe data path configuration by verifying that 
-protocol definitions are not violated by the decoders which handle them
-\cite{noproto1}.
+\section{SDN Programming Languages}
 
-\section{Languages for Programmable Data Planes} \label{rel:p4}
+Many other projects have tackles the idea of an SDN programming language.
+These languages may be further categorized into languages that program or configure
+data plane elements, and languages which program the control plane or controller.
 
-P4 is another protocol oblivious (independent) language for pipeline specification
+Languages which target the data plane all have the common idea of a pipeline.
+These languages typically provide syntax packet decoding rules, table configuration,
+and packet manipulation.
+Controller languages tend to focus more on high-level, distributed control
+of networks, designing network topology, and setting up forwarding policies
+for an entire network.
+
+Steve is unique in that it provides features for programming the data plane
+and defines the reactive elements (i.e. event handlers) of the controller. However, since Steve
+does not work with distributed control, it shares very little similarity with 
+controller programming languages.
+
+\subsection{SDN Data Plane Programming and Configuration Languages} \label{rel:p4}
+
+P4 is the most popular protocol oblivious (independent) language for pipeline specification
  \cite{p4_spec, p4_spec2, p42014}.
-P4 specifies a pipeline of parsers (equivalent to Steve decoders) followed
+P4 specifies a pipeline of programmable parsers (equivalent to Steve decoders) followed
 by a series of match+action
 tables (equivalent to flow tables). Parsing state is stored in a data structure
 called a ``parsed representation.''
 
-Huawei's, Protocol-Oblivious Forwarding (POF) \cite{pof_fis, pof, pof_impl} provides a
+Huawei's Protocol-Oblivious Forwarding (POF) \cite{pof_fis, pof, pof_impl} provides a
 low-level, assembly-like, instruction set for POF SDN switches. 
 The POF programming model uses metadata as a ``scratch pad'' for parsing fields,
 requiring that the programmer represent fields as generic \textit{\{offset, length\}} pairs, 
-known as "search keys". POF switches also use a pipeline of tables, however,
-a table extracts the fields it needs to match on from the metadata or packet buffer.
-When performing table matching, a programmer specifies
-an array of search keys needed by the table.
+known as "search keys". The POF pipeline is a series of match tables which are also
+responsible for decoding the fields they match on.
 
 NetASM is an intermediate representation language for programmable data planes
 \cite{shahbaz2015netasm}. It aims to solve the same issues as POF, but also provides a language that is target/device independent.
 
-Steve's high-level pipeline specification syntax is similar to P4.
-However, the underlying abstract pipeline model is closer to that of POF.
-Steve decoders are placed between tables so that fields are only decoded as they are
-needed similar to how POF tables extract their own fields.
-Additionally, Steve supports partial decode of headers like POF to improve decoder
-performance.
-P4 fully parses all headers before table matching which Steve considers wasteful.
+Steve is inspired by parts of P4 and POF, but also attempts to
+fill in their weaknesses. 
+Steve's pipeline specification syntax is similar to P4.
+P4 high-level, abstract syntax is easy to write and understand. 
+In contrast POF's instruction set (POF-FIS) \cite{pof_fis} is too
+concrete, difficult to comprehend, and has no additional language
+abstractions to ensure program safety.
+POF search keys are particularly error prone because its not easy
+for a programmer count field offsets manually.
 
-Steve uses a high-level language for pipeline specification because
-the POF instruction set is difficult to write and
-has no high-level language safety guarantees (such as a type and constraints system) 
-layered on top of it.
-POF's search keys require precise bit-offset and length values which are also too
-difficult for a programmer to write.
-Instead, Steve relies on the compiler to generate similarly efficient instructions
-so that the programmer does not have to.
+However, Steve's abstract pipeline model is closer to POF's.
+Steve decoders are placed between tables so fields are only decoded
+as needed. This is similar to how POF tables extract their own fields.
+Similarly, Steve uses POF's search key format for representing extracted fields, but the compiler generates the keys rather than the programmer.
+The benefit of POF's decoding model is full control over what is or is not
+extracted. P4 extracts all header fields up-front, which is wastes 
+valuable processing time if those fields are not needed.
+
+
 
 
 %Essentially, fields only get extracted as they are needed, right before matching
@@ -208,48 +255,31 @@ so that the programmer does not have to.
 %POF also supports certain actions and table matching methods that Steve does not
 %currently support.
 
-\section{SDN Controller Programming Languages} \label{rel:frenetic}
+\subsection{Data Plane Programming Libraries}
+\label{rel:odp}
+
+Data Plane Development Kit (DPDK) by Intel are software libraries in C for improving packet processing speeds on Intel processors and NICs \cite{dpdk_webpage}. DPDK provides a single platform (Intel processors) for performing all packet processing tasks, thus eliminating the need for specialized hardware.
+
+Open Data Plane (ODP) is an open source API in C for developing data plane applications \cite{odp_webpage}. ODP provides application portability by providing a common set of APIs across multiple platforms and instruction set architectures.
+
+\subsection{SDN Controller Programming Languages} \label{rel:frenetic}
 
 The Frenetic project has produced a family of network programming
-languages. The Frenetic language is a declarative language, embedded in Python,
-that uses SQL-like queries to classify packets and a library for describing
-packet forwarding policies over a collection of network switches
-\cite{foster2011frenetic, foster2013frenetic}. This language is designed to
-abstract away the difficulties of programming a centralized SDN controller. Its
-sister project, Pyretic, does the same with some divergence in how forwarding
-policies are expressed \cite{modularpyretic}.
-
-NetCore is a network programming language for expressing forwarding policies and
-generating classifiers from those policies \cite{monsanto2012netcore}. These
-classifiers then get installed on switches. NetKAT is a language, inspired by
-NetCore, for expressing packet processing functions and reasoning about a
-network using Kleene Algebra \cite{kozen2014netkat, anderson2014netkat}. NetKAT
-attempts to prove the correctness of its network programs through mathematical theory.
+languages. Frenetic \cite{foster2011frenetic, foster2013frenetic} and Pyretic \cite{modularpyretic} are sister languages
+that use SQL-like queries to classify packets and support a library for describing
+packet forwarding policies over a collection of network switches. The goal is to
+abstract away the difficulties of programming a centralized SDN controller.
+NetCore is similarly a language for
+generating classifiers from those policies \cite{monsanto2012netcore}. 
+NetKAT does is similar to NetCore except it uses Kleene algebra \cite{kozen2014netkat, anderson2014netkat} to prove the correctness of its policies.
 
 \section{Packet Parsers and Header Specifications}
 
-Some early DSLs focused on binary header specification languages that are similar to 
-those used by Steve and P4 \cite{binpac, packet_types, datascript}.
-
-Gibb, et al. described the design principles of different kinds of packet parsers 
-\cite{parser2013gibb}. Steve decoders fit into the non-streaming programmable parsers 
-described in this paper. 
-
-The Kangaroo packet parser design tries to solve the problem of designing high performance and flexible packet parsers \cite{kangaroo}. Kangaroo can "compile" parser instructions from parse graphs. Kangaroo can analyze these graphs and generate "lookahead" parsers which can parse several headers at once.
-
-The BSD packet filter (BPF) supports a low-level instruction set for parsing packets and defining packet filtering rules \cite{bpf1993mccanne}. It is most commonly used for network monitoring tools.
-
-\section{Data Plane Programming Libraries}
-\label{rel:odp}
-
-Data Plane Development Kit (DPDK) by Intel is a set of software libraries for improving packet processing speeds on Intel processors and NICs \cite{dpdk_webpage}. DPDK attempts to provide a single platform (Intel processors) for performing all packet processing tasks, thus eliminating the need for specialized hardware.
-
-Open Data Plane (ODP) is an open source API in C for developing data plane applications \cite{odp_webpage}. ODP provides application portability by providing a common set of APIs across multiple platforms and instruction set architectures such as ARM, MIPS, x86, and proprietary hardware.
-
-\section{Open VSwitch}
-\label{rel:vswitch}
-
-Open vSwitch is an SDN virtual, software switch which supports programmatic extensions \cite{ovs_webpage, ovs2009extending, ovs2013}. Open vSwitch was designed to work in virtual environments and runs on the hypervisor. It provides a high-level command line interface for re-configuring switches \cite{ovs_man_page}.
+Steve requires that a user specify the structure of their header.
+Some early DSLs focused on binary header specification languages which inspired Steve syntax \cite{binpac, packet_types, datascript}.
+Gibb, et al. described the design principles for parsing fields using header specifications
+\cite{parser2013gibb}. Steve decoders may be described as a non-streaming programmable parsers. 
+Some other examples of programmable packet parsers are Kangaroo \cite{kangaroo} and Berkley Packet Filter \cite{bpf1993mccanne}.
 
 \section{Freeflow}
 \label{rel:freeflow}
@@ -259,5 +289,11 @@ by Flowgrammable \cite{freeflow_software}. The Freeflow virtual machine (FFVM)
 provides a programmable, protocol oblivious, software data plane that 
 supports multi-tenancy. Steve is
 designed to generate code targeting the FFVM runtime environment. A Freeflow data 
-plane loads Steve applications which control the logic behind its packet processing 
-pipeline.
+plane loads Steve applications which act as its control plane and programs its packet processing pipeline.
+
+\section{Open vSwitch}
+\label{rel:vswitch}
+
+Open vSwitch is another SDN virtual, software switch which supports programmatic extensions \cite{ovs_man_page, ovs2009extending, ovs2013}. Open vSwitch was designed to work in virtual environments and runs on the hypervisor. It provides a high-level command line interface for re-configuring switches \cite{ovs_man_page}.
+
+

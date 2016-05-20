@@ -14,33 +14,38 @@
 
 % FIXME: Use this sentence in your abstract.
 
-The Internet is nowadays ubiquitous with everyday life. In the last twenty years,
-the industry has rapidly evolved to incorporate all kinds of new Internet services:
+The Internet is nowadays ubiquitous with everyday life. In the last twenty
+years,
+the industry has rapidly evolved to incorporate all kinds of new Internet
+services:
 cloud services, web services, Internet of Things, etc. As the world grows
 more reliant on services provided over a network, so must the network evolve.
 
 Modern routers and switches provide the backbone for the Internet.
 These modern devices implement two fundamental components in their firmware: the
-\emph{data plane} and the \emph{control plane}.
+\emph{data plane} and the \emph{control plane}. A control plane can be thought of as the brains of a network device, whereas the
+data plane is the brawn.
 
-The data plane is responsible for moving packets between ports.
+The data plane is responsible for processing packet content and and moving them across the right ports.
 It makes fast forwarding decisions by using lookup tables to determine
 where a packet is sent. When it does
 not know how to handle a packet, it sends it to the control plane.
 
 A control plane manages its data plane.
 It is responsible for installing forwarding logic for a network device and is
-capable of learning new forwarding behaviors over time.
+capable of learning new forwarding behaviors in response to unexpected packets.
 It does this by modifying the lookup tables used by the data plane.
-Together, the control and data plane implement \emph{network functions}, i.e. switching, NAT, firewall, etc.
+Together, the control and data plane implement \emph{network functions}, i.e.
+switching, NAT, firewall, etc.
 
-This model continues to be the most popular model for switch development.
+This model continues to be the most popular for switch development.
 However,
 this conventional type of networking has become too rigid, unscalable, and
 proprietary to support evolving technologies. 
 
 Defining network functionality in firmware is inherently inflexible.
-Firmware is architecture-dependent, difficult to write, and challenging to update
+Firmware is architecture-dependent, difficult to write, and challenging to
+update
 regularly.
 Conventional switches are unscalable because they must deal with most or all
 common protocol headers.
@@ -57,43 +62,54 @@ This new paradigm
 is called \textit{software-defined networking} (SDN). The Open Network
 Foundation (ONF) defines SDN as the ``separation of the network control
 plane from the forwarding [data] plane'' \cite{onf_sdn_def}.
-The control plane is removed from the firmware.
-Instead, it is implemented in regular software which can manage
-multiple data planes at once.
-Software control planes, also known as \emph{controllers}, communicate with their 
-data planes over the network using messages.
-The most widely adopted standard for this communication is OpenFlow \cite{openflow_spec}.
+Either of these components may then be implemented in regular software.
+The goal of SDN architectures is to provide highly programmable, scalable, and 
+efficient network functions.
 
-This software control plane gives programmers the ability to
-provide network functions in software rather than proprietary hardware.
-Any programmer can write regular software for common operating
+Control planes implemented in software, also known as software \emph{controllers},  provide a number of benefits.
+They may be easily swapped out with a new software controller any time 
+the behavior of the networking device must change.
+It is also easier to write other software applications that interface with the controller.
+One of the more interesting differences is that
+the software controller may be run on any machine, completely separate from its data plane.
+It may then perform distributed control over multiple data planes by communicating via network messages.
+The most widely adopted standard for this communication is OpenFlow
+\cite{openflow_spec}.
+Because the software controller may be run on any machine,
+any programmer can write regular software for common operating
 systems and processors to control the behavior of their networking device.
 
 The software control plane is only the first step. The next
-step is the \emph{programmable data plane}. 
+step is the \emph{programmable data plane} which may be implemented
+in either specialized hardware or software. 
 A programmable data plane provides
-two key benefits that the software control plane cannot: low-latency, customizable packet processing and \emph{protocol independence}.
+two key benefits that the software control plane cannot: low-latency,
+customizable packet processing and \emph{protocol independence}.
 
 %In the control and data plane relationship,
-%the control plane is smart but slow, while the data plane is fast yet dumb. That is,
+%the control plane is smart but slow, while the data plane is fast yet dumb.
+%That is,
 %the control plane can perform general purpose computing but communicating with
-%it has high latency. The data plane, on the other hand, is the fast path for packet processing.
+%it has high latency. The data plane, on the other hand, is the fast path for
+%packet processing.
 %It has very limited computing power, but can process packets at a low latency.
 %As programmable data planes evolve and support more flexible instruction sets,
 %communicating with the control plane becomes less necessary.
 
 The software control plane supports general purpose computing using heavyweight
-processors, however, general purpose computing is slow and communicating
+processors. However, general purpose computing is slow and communicating
 with the control plane over a network using messages is even slower.
 Data planes, on the other hand, can process packets incredibly fast since
 they are designed for this single role, but do not necessarily support
 the full range of general purpose operations.
-If data planes could support more kinds of computation, then they can rely less on
+If data planes could support more kinds of computation, then they can rely less
+on
 slow control planes, and delegate only under the more extreme circumstances.
 
-Protocol independence means that a networking device is not required to support
-a suite of well-known protocols (ethernet, IPv4, TCP, etc) by default.
-Rather than relying on specialized hardware or firmware tailored towards parsing/decoding
+Protocol independence means that a networking device is not required, by default, to support
+a suite of well-known protocols (ethernet, IPv4, TCP, etc).
+Rather than relying on specialized hardware or firmware tailored towards
+parsing/decoding
 these protocols, the data plane supports processors
 and generic instructions that can be used to decode and operate on
 any header and field.
@@ -104,22 +120,28 @@ can adapt to new headers easily.
 In order to pursue programmable SDN devices, there must be a language to write
 programs that process packets and define network functions. 
 A number of language solutions arise here.
-Some attempt to solve this problem by providing APIs for existing programming languages (specifically C).
+Some attempt to solve this problem by providing APIs for existing programming
+languages (specifically C).
 Others attempt to produce domain-specific languages (DSLs) for SDN devices.
-The focus of this thesis is one such DSL, \emph{Steve}, a language for the safe and
+The focus of this thesis is one such DSL, \emph{Steve}, a language for the safe
+and
 efficient specification of packet processing and network functions 
-for programmable SDN switches.
+for programmable SDN switches. 
+
 
 % Packet processing and forwarding logic is usually performed using an abstract
-% model known as a \emph{packet processing pipeline} which is a generalization of
+% model known as a \emph{packet processing pipeline} which is a generalization
+%of
 % the pipeline model described by OpenFlow \cite{openflow_spec}.
 %
 % The programmer can customize a switch with customized packet processing
 % applications and forwarding rules. Typically, this is done through an abstract
 % model called a \textit{packet processing pipeline}.
-% The pipeline makes decisions, performs operations, and applies forwarding rules on packets.
+% The pipeline makes decisions, performs operations, and applies forwarding
+%rules on packets.
 %
-% Forwarding rules can handle any header and can be user-defined. It opens the way
+% Forwarding rules can handle any header and can be user-defined. It opens the
+%way
 % to networking applications made for custom protocols and forwarding behaviors.
 % By changing the program which drives the packet processing pipeline, the user
 % can \textit{change the device's behavior without changing the device's
@@ -139,28 +161,30 @@ denial of service attacks, buffer overflows, etc.
 Typical packet processing programs are written in low-level languages, most
 commonly C. These C programs usually work with data plane programming APIs such
 as Open Data Plane (ODP) \cite{odp_webpage} and the Data Plane Programming Kit
-(DPDK) \cite{dpdk_webpage}. Programming network devices in C can be prone
+(DPDK) \cite{dpdk_webpage}. Unfortunately, programming network devices in C can be prone
 to errors stemming from buffer and resource management. 
 These issues are compounded by the fact C is a general
-purpose language not tailored towards packet processing, thus the burden of safety
+purpose language not tailored towards packet processing, thus the burden of
+safety
 is left to the programmer, with no compiler to double check their code.
-Specifically, C programs open the opportunity for:
+Specifically, C programs risks errors such as:
 
 \begin{itemize}
-\item accessing memory outside the bounds of a packet buffer or within a constrained
+\item accessing memory outside the bounds of a packet buffer or within a
+constrained
 region of memory,
 
 \item writing bytes which exceed a constrained subset of the packet
 resulting in a buffer overflow (i.e. writing new bytes into a header field
 but exceeding the size of that field),
 
-\item buffer underflow resulting from not writing enough bytes when modifying
+\item buffer underflow when not writing enough bytes when modifying
 a field,
 
-\item using the value of a field in an operation that is not supported by its
+\item using a field in an operation that is not supported by its
 range of values,
 
-\item non-terminating cycles in program logic (an infinite loop
+\item non-terminating cycles in program logic (infinite loops
 triggered by a single packet),
 
 \item incorrect assumptions about decoding state. That is, a programmer using
@@ -175,36 +199,48 @@ device resources. Specifically, a C programmer must manage:
 data and packet meta data. This opens the opportunity for accidental
 memory leakage.
 
-\item ports. The programmer is responsible for receiving, reading, and forwarding
+\item ports. The programmer is responsible for receiving, reading, and
+forwarding
 through ports. This process should be decoupled from the packet processing logic
-for modularity. A packet processing application should be architecture independent
+for modularity. A packet processing application should be architecture
+independent
 whereas port management is a architecture dependent problem.
 \end{itemize}
 
 % Low-level packet processing code can be very light on easy to understand
 % abstraction and very heavy on gritty implementation details. The programmer
-% should be focusing on high-level abstractions; concepts such as: what fields are
-% needed, what operations must be performed on these fields, conditional decision
+% should be focusing on high-level abstractions; concepts such as: what fields
+%are
+% needed, what operations must be performed on these fields, conditional
+%decision
 % making, packet classification, etc. Instead, they are worried about the many
 % common ailments of writing in low-level code.
 %
-% The programmer must deal with resource allocation and management. They must deal
-% with allocating their own buffers for storing packets and by extension must deal
+% The programmer must deal with resource allocation and management. They must
+%deal
+% with allocating their own buffers for storing packets and by extension must
+%deal
 % with de-allocating those buffers. This type of resource management is prone to
-% accidental memory leakage, especially in C. Memory leakage of gigabytes of data
+% accidental memory leakage, especially in C. Memory leakage of gigabytes of
+%data
 % will quickly bring a system down.
 %
 % The programmer must directly manage ports. They are also responsible for
-% manually receiving, reading, and sending packets on those ports. This is code is
+% manually receiving, reading, and sending packets on those ports. This is code
+%is
 % common to all packet processing applications. The programmer should not be
 % burdened with this kind of common code when writing a packet processor.
 %
 % When working with packet headers, the programmer must manually work with raw
-% arrays of bytes. The burden of decoding fields from byte arrays and interpreting
-% the value of those fields is shifted onto the programmer. Manual decoding can be
+% arrays of bytes. The burden of decoding fields from byte arrays and
+%interpreting
+% the value of those fields is shifted onto the programmer. Manual decoding can
+%be
 % a painful process on its own. It is prone to error, particularly off-by-N
-% errors. When reinterpreting those bytes into header data structures, the result
-% can be disastrous if the bytes are wrong or the data structure is wrong. Moving
+% errors. When reinterpreting those bytes into header data structures, the
+%result
+% can be disastrous if the bytes are wrong or the data structure is wrong.
+%Moving
 % or copying those bytes around is particularly prone to buffer overflows.
 %
 % A number of other common problems come up when working in low-level code.
@@ -214,16 +250,21 @@ whereas port management is a architecture dependent problem.
 %
 % Steve and its runtime, Flowpath, attempt to remedy most of these problems. The
 % objective is to abstract many of these low-level details. Instead, the
-% programmer only focuses on the high-level abstractions. Specifically, the Steve
+% programmer only focuses on the high-level abstractions. Specifically, the
+%Steve
 % language focuses the programmer on writing the packet processing pipeline and
 % makes the grittier details opaque
 
 \section{Motivation: Control and Data Plane Latency}
 
+In addition to tackling the issue of a safe language, 
+Steve also aims to take a new approach towards the troublesome
+control and data plane communication that many other SDN
+approaches have adopted.
 The SDN abstract model using distributed/centralized control
 planes to manage data planes has its flaws.
-As mentioned earlier, communicating with a control plane is slow.
-The trade-off is that it allows for distributed control over an
+As mentioned earlier, communicating with a distributed control plane is slow.
+The trade-off is that it allows for control over an
 entire network.
 
 A non-distributed control plane, on the other hand, has much
@@ -232,17 +273,18 @@ It can exist on the
 same hardware as the data plane and has little communication latency
 because the two processes may communicate directly through an application
 binary interface (ABI).
-A free benefit of this model is that the same programming language may
-be used to define both control and data plane elements.
-
-The Steve programming language allows for the expression of both elements in the
-same source code. 
+This model is considerably more effective for simple network functions.
+Steve targets this model of non-distributed control.
 The programming model for a control and data plane on the same device
 is essentially basic event-driven programming (EDP).
+
 The data plane raises events when it needs something from the control plane.
 The control plane catches these events with special handlers and modifies the
-forwarding logic accordingly. 
-
+forwarding logic accordingly.
+A free benefit of this model is that a single language like Steve may
+be used to define both control and data plane elements for a given 
+device. 
+ 
 \section{The Steve Programming Language}
 
 Steve is a language for writing packet processing applications
@@ -250,12 +292,22 @@ and network functions on SDN devices.
 It is protocol independent, architecture independent, strongly-typed,
 and declarative.
 
-Steve allows programmers to process packets using an abstract model
-known as a \emph{packet processing pipeline} -- a generalization
-of the pipeline defined by OpenFlow \cite{openflow_spec}.
-A packet processing pipeline is a data plane algorithm that
-uses multiple, smaller processing stages to decode packet content and forward packets.
-Steve provides high-level language features for specifying this pipeline.
+Steve provides the abstract mechanisms for defining \emph{packet
+processing pipelines} -- the core component used by a data plane
+to process packet content and make forwarding decisions.
+It also provides the ability to define \emph{event handlers} --
+control plane functions which process unexpected packets and
+modify the data plane when necessary.
+
+\subsection{Packet Processing Pipelines}
+
+The packet processing pipeline is a data plane algorithm that
+uses multiple, smaller processing stages to decode packet content and make
+forwarding decisions.
+The Steve pipeline is a generalization
+of the pipeline model defined by OpenFlow \cite{openflow_spec}.
+Steve provides high-level language features for specifying
+stages in this pipeline and how these stages connect.
 Specifically, Steve allows for the definition of:
 
 \textbf{Header Structures}.
@@ -264,47 +316,56 @@ mechanism known as a \emph{layout}.
 A layout specifies what fields are in a header, the lengths of those fields,
 and types for those fields.
 
-\textbf{Decoders}. Decoders are special functions for extracting fields from a
-packet header. They conform to user-defined layouts, making them flexible enough
+\textbf{Decoders}. Decoders are pipeline stages used to extract 
+fields from a packet header. 
+They conform to user-defined layouts, making them flexible enough
 to deal with any protocol header.
 
 %
 % Steve allows the user to program special functions decoders
-% which are used for decoding and extract fields from a header. Decoders allow the
+% which are used for decoding and extract fields from a header. Decoders allow
+%the
 % user to specify which fields they need. Decoders do not require that a user
-% extract all fields if they do not need those fields. The user is not required to
+% extract all fields if they do not need those fields. The user is not required
+%to
 % manually extract the bytes associated with a field. Instead, the user gives a
 % field name from the header layout they defined, and the language generates the
 % code for them.
 
-\textbf{Flow tables}. 
-In networking, a \emph{flow} is a group of packets from a source to one or more 
-destinations. In order to facilitate these flows, Steve uses the
-\emph{flow table} (an OpenFlow inspired abstraction). 
+\textbf{Flow tables}.
+Flow tables are pipeline stages responsible for the majority of forwarding logic.
+In networking, a \emph{flow} is a group of packets from a source to one 
+or more  destinations. In order to facilitate these flows, Steve uses \emph{flow tables} (an OpenFlow inspired abstraction). 
 A flow table is a dynamic
 decision table which classifies packets into groups (flows) using
 decision rules (known as \emph{flow entries}).
 Packets which are part of the same flow have a common set of \emph{actions}
 applied to them.
-Flow tables are responsible for the majority of forwarding logic.
 
 \textbf{Actions}. Actions provide a way to modify a packet's fields, add/remove
-flow entries from tables, and forward/drop packets. Steve actions are a generalization
+flow entries from tables, and forward/drop packets. Steve actions are a
+generalization
 of OpenFlow's instructions and actions.
 
-\textbf{Pipeline Composition}. A Steve pipeline is a composition of two kinds of stages:
-decoders and flow tables.
-A packet moves through these stages, each of which performs a small amount of processing operations.
-Eventually one of these stages will make a forwarding decision for that packet.
-The language provides a mechanism for connecting these
-stages together in a number of flexible ways.
+\textbf{Pipeline Composition}. A Steve pipeline is a composition of two kinds of
+stages: decoders and flow tables.
+Steve provides languages features for describing how these stages are linked
+together. It also provides safety guarantees on the pipeline.
 
-\textbf{Event handling}. The pipeline may raise events to the control plane when it cannot handle a
-packet. Event handlers may be defined to deal with events such as learning a new
-flow, removing an old flow, etc.
+\subsection{Event Handling and Control}
+
+The pipeline may raise events to the control plane when
+it cannot handle a packet. Steve allows for the definition of
+\emph{event handlers} -- control plane functions which deal
+with these special circumstances.
+Unlike the pipeline, event handlers can execute a wider range of
+operations that are too slow for a data plane such as:
+logging, flow table modification, C library calls, etc.
+
+\subsection{General Purpose Features}
 
 Though Steve is an SDN language, it also supports a number of general purpose
-features with syntax similar to C. 
+features. 
 Steve supports functions, variables, arithmetic, branching, 
 looping and a foreign function interface which may be used to call linked C 
 library functions.
@@ -313,23 +374,27 @@ library functions.
 
 The Steve language provides a type and constraints system to ensure the safety
 of all Steve-defined packet operations and pipelines.
-In addition, Steve uses an optimizing compiler to ensure efficient code generation
+In addition, Steve uses an optimizing compiler to ensure efficient code
+generation
 and a runtime environment to abstract hardware resources (ports, memory, etc).
 
 \subsection{Type Safety}
 
 Steve is a statically-typed language. The compiler performs additional work to
-enforce strict safety guarantees so that runtime checks can be avoided as much as possible.
+enforce strict safety guarantees so that runtime checks can be avoided as much
+as possible.
 
 The Steve type system ensures that operations on header fields are valid and
 well-defined. 
 To reduce errors related to working with fields as byte buffers, Steve allows
-for the representation of fields as arbitrary precision, signed or unsigned integers.
+for the representation of fields as arbitrary precision, signed or unsigned
+integers.
 Implicit integer conversions can be applied to these fields where necessary.
 Conversions prevent field modification from ever underflowing or overflowing.
 
 Steve does not support pointer types, meaning that the programmer is never
-concerned with null or invalid pointer addresses. Instead, Steve supports reference
+concerned with null or invalid pointer addresses. Instead, Steve supports
+reference
 types which are guaranteed to refer to initialized memory.
 
 %\begin{enumerate}
@@ -347,7 +412,8 @@ types which are guaranteed to refer to initialized memory.
 %
 %\item buffer overflow/underflow prevention. 
 %Writing a new value into a header field \textit{never} causes accidental
-%buffer overflows. The Steve compiler uses implicit conversions to guarantee that
+%buffer overflows. The Steve compiler uses implicit conversions to guarantee
+%that
 %the size of the new value fits exactly into the byte width of a field. If the
 %new value is represented in less bytes than the size of field, it gets extended
 %to fit. Values that are too large get truncated.
@@ -407,13 +473,14 @@ processing logic.
 
 %Steve's programmable decoders provide the user the chance at certain
 %optimizations. Steve allows the user to specify exactly which fields from a
-%header they want extracted rather than forcing them to extract the entire thing.
+%header they want extracted rather than forcing them to extract the entire
+%thing.
 
 High-level abstractions tend to produce performance penalties in exchange
 for safety. The Steve compiler tries to reduce this penalty as much as possible.
 The Steve compiler generates LLVM intermediate representation (IR) code
 \cite{llvm_webpage}. The LLVM IR optimizing compiler is able to produce 
-code equivalent to C programs such as:
+code equivalent to C programs. It also provides benefits such as
 function inlining, peephole optimizations, etc.
 
 Steve may also customize the LLVM compiler to produce
@@ -424,16 +491,17 @@ the application. This would be future work.
 
 Freeflow is a virtual machine (VM) that also serves as the Steve runtime
 environment \cite{freeflow_software}.
-The Freeflow virtual machine (FFVM) virtualizes (abstracts) underlying switch hardware. 
+The Freeflow virtual machine (FFVM) virtualizes (abstracts) underlying switch
+hardware. 
 Freeflow is a VM in the similar sense that Java Virtual Machine (JVM) is a VM. 
 It exposes an interoperable ABI that grants access to switch resources,
 allowing programs which target it to be architecture independent.
 
-FFVM may also be treated as a switch implemented in software.
-Steve compiled modules currently target FFVM.
+FFVM may also be considered a software data plane.
+Steve compiles into modules (dynamic link libraries (DLL)) that may be loaded by FFVM.
 A Steve module programs FFVM's data plane pipeline by providing
-flow tables, flow table entries, and packet decoders.
-The module also instantiates FFVM's control plane with the appropriate
+flow table configuration, flow table entries, and packet decoders.
+The module also instantiates the control plane for FFVM with the appropriate
 event handlers.
 
 \section{Thesis Overview}
@@ -450,7 +518,11 @@ they may begin with the Steve tutorial in Chapter \ref{ch:tutorial}.
 This tutorial explains how to write network applications using the
 Steve programming language. Sample networking applications are also presented in
 this chapter. These same samples are presented again in Appendix
-\ref{ap:steve_programs}. 
+\ref{ap:steve_programs}.
+
+Chapter \ref{ch:limits} elaborates on pipeline guarantees and how they are enforced
+as well as providing the proofs. It also provides explanations about other 
+limitations of the language and why they exist.
 
 Chapter \ref{ch:users_guide} serves as a reference
 manual which includes semantic, grammar, and typing rules for the language.
@@ -459,7 +531,8 @@ Steve code example.
 It is not to be read as a typical chapter. Instead, one should 
 treat it like an annotated appendix.
 
-Chapter \ref{ch:flowpath} describes how Steve and its runtime environment, Freeflow,
+Chapter \ref{ch:flowpath} describes how Steve and its runtime environment,
+Freeflow,
 interact with each other and the underlying hardware system.
 
 Chapter \ref{ch:experiments} provides experiments using sample Steve
@@ -471,3 +544,4 @@ Chapter \ref{ch:related} describes similar
 works in the field of SDN and SDN programming languages. It also provides a
 background into SDN and the different approaches Steve takes to other languages
 of its kind.
+
