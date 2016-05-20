@@ -501,7 +501,7 @@ Here, the Steve application decodes a typical packet
 containing ethernet, IPv4, and TCP headers.
 
 \begin{figure}[ht]
-\begin{subfigure}[t]{.45\textwidth}
+\begin{subfigure}[t, scale=0.5]{.45\textwidth}
   \centering
   \includegraphics[width=\linewidth]{view1}
   \caption{The view of the starting decoder, in this case, the ethernet
@@ -510,7 +510,7 @@ header, which is also the beginning of the packet.}
   \label{fg:view1}
 \end{subfigure}%
 \hfill
-\begin{subfigure}[t]{.5\textwidth}
+\begin{subfigure}[t, scale=0.5]{0.45\textwidth}
   \centering
   \includegraphics[width=.8\linewidth]{view2}
   \caption{The beginning of a field is discovered by its relative offset from
@@ -522,19 +522,12 @@ and \texttt{type} is 12 bytes in.}
 
 \begin{subfigure}[t]{.45\textwidth}
   \centering
-  \includegraphics[width=.8\linewidth]{view3}
+  \includegraphics[width=\linewidth]{view3}
   \caption{When a decoder is finished working, it \textit{shifts} the view to
 the next header. The shift moves the beginning of the view by the length of the
 header -- 14 bytes.}
   \label{fg:view3}
 \end{subfigure}%
-\hfill
-\begin{subfigure}[t]{.45\textwidth}
-  \centering
-  \includegraphics[width=.8\linewidth]{view4}
-  \caption{The view shifts again by 20 bytes once the IPv4 decoder finishes.}
-  \label{fg:view4}
-\end{subfigure}
 \caption{A demonstration of the decoding process in action.}
 \label{fg:decoding}
 \end{figure}
@@ -566,8 +559,7 @@ When a decoder finishes, it \textit{shifts} the view index, as seen in Figure
 The view now starts one byte \textit{after} the previous header's final byte. 
 All decoders are responsible for shifting the view in
 preparation for the next decoder. Once the next decoder is reached, its view is
-already on the header it decodes. When this next decoder finishes, it shifts the
-view once again, as seen in Figure \ref{fg:view4}.
+already on the header it decodes.
 
 This process continues until all decoders are finished.
 If at any point a layout is silently ill-defined 
