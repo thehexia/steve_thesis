@@ -143,12 +143,11 @@ In the following example, the name \texttt{x} is valid in the properties block, 
 
 \begin{minip}
 \begin{lstlisting}
-event e1
-{
+event e1 {
 	var x : int = 100;
-	insert
-	[timeout = x] // 'x' is valid here.
-	{ x } -> // 'x' is also valid here.
+	insert into t1
+	{ x } -> // 'x' is valid here.
+	[timeout = x] // 'x' is also valid here.
 	{
 		// Error: The name 'x' is not valid here.
 		set eth.type = x + 1;
@@ -157,8 +156,7 @@ event e1
 		// inside the scope of table 't1', whose key declaration
 		// 'eth.type' makes the field name valid.
 		flood;
-	}
-	into t1;
+	};
 }
 
 exact_table t1(eth.type) { }
@@ -1629,7 +1627,7 @@ Insert action will add a new flow entry into a table. They may also be used to u
 
 \begin{minip}
 \begin{grammar}
-<insert-action> ::= "insert" <flow-declaration> "into" <table-id>
+<insert-action> ::= "insert" "into" <table-id> <flow-declaration> ";"
 \end{grammar}
 \end{minip}
 
@@ -1645,7 +1643,7 @@ A remove action will remove an existing flow entry from a table. They have the f
 
 \begin{minip}
 \begin{grammar}
-<remove-action> ::= "remove" <match-field-sequence> "from" <table-id>
+<remove-action> ::= "remove" "from" <table-id> <match-field-sequence> ";"
 \alt <remove-miss-action>
 \end{grammar}
 \end{minip}
@@ -1656,7 +1654,7 @@ Miss case flow entries may also be removed from a table. Miss case removal has t
 
 \begin{minip}
 \begin{grammar}
-<remove-miss-action> ::= "remove" "miss" "from" <table-id>
+<remove-miss-action> ::= "remove" "from" <table-id> "miss" ";"
 \end{grammar}
 \end{minip}
 

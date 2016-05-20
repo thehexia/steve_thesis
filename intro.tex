@@ -31,8 +31,8 @@ not know how to handle a packet, it sends it to the control plane.
 A control plane manages its data plane.
 It is responsible for installing forwarding logic for a network device and is
 capable of learning new forwarding behaviors over time.
-This forwarding behavior embodies a \emph{network function}, i.e. switching, NAT, firewall, etc.
 It does this by modifying the lookup tables used by the data plane.
+Together, the control and data plane embody a \emph{network function}, i.e. switching, NAT, firewall, etc.
 
 This model continues to be the most popular model for switch development.
 However,
