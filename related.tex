@@ -29,6 +29,8 @@ Though OpenFlow is widely accepted and has driven the majority of SDN research,
 it has its flaws.
 OpenFlow's model places too much emphasis on the external software controller
 and not enough focus on data plane elements (pipeline and ports).
+OpenFlow focuses on non-programmable switch processors, making it too
+constricting for Steve, which targets a programmable data plane.
 Additionally, OpenFlow artificially constrains SDN evolution with its
 unscalable, protocol-dependent pipeline model, instruction set, and message format.
 
@@ -42,7 +44,8 @@ An OpenFlow pipeline is defined as a sequence
 of one or more \textit{flow tables} and a \textit{group table} which handle
 packet lookups, decision making, and forwarding.
 
-The Steve pipeline has one key difference.
+The Steve pipeline has two key difference.
+The first difference is that
 Steve's pipeline is protocol independent, whereas OpenFlow specifies a limited set of
 supported protocol fields known as OXM fields.
 Because Steve is protocol independent, its
@@ -52,6 +55,14 @@ OpenFlow does not mention decoding because
 implementation is usually left to the vendor.
 For protocol dependent architectures, this is
 usually done with specialized hardware.
+
+The second difference are the actions used to modify the packet.
+Steve flattens the instruction+action design of OpenFlow into
+just actions. It also provides action extensions to manipulate flow tables
+which OpenFlow does not. Additionally, Steve does away with the
+strict and limiting action set limitation OpenFlow enforces.
+Instead, Steve allows for any arbitrary list of actions to be applied
+to a packet. 
 
 Additionally, Steve does away with OpenFlow controllers. 
 Steve focuses on network functions that do not require distributed control.

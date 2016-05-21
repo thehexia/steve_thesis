@@ -1,6 +1,6 @@
 \chapter{FUNDAMENTALS OF A STEVE PROGRAM} \label{ch:pipeline_model}
 
-This chapter describes the fundamentals of a Steve program: how it works,
+This chapter describes the fundamentals parts of a Steve program: how it works,
 how its structured, and what algorithms it relies on to process packets.
 Before a programmer can begin writing a Steve program, they must understand
 two important concepts: 
@@ -31,14 +31,17 @@ data plane to modify pipeline behavior or to re-enter special packets.}
 The packet processing pipeline is part of the abstract data plane.
 This is the fundamental algorithm used to process packets and
 make forwarding decisions.
-This will sometimes be referred to as the fast path for packet
-processing. 
-Data plane processing does not have the latency associated
+This will sometimes be referred to as the \emph{fast path} for packet
+processing because
+data plane processing does not have the latency associated
 with requesting processing from the control plane. 
 The abstract pipeline model is discussed in Section \ref{pipeline_desc}.
 
-Event handlers provide hooks into the control plane which defines control
-and logic over the data plane. The control plane uses these event handlers
+The control plane defines control
+and logic over the data plane. 
+Event handlers provide an interface for the data plane to interact with
+the control plane.
+The control plane uses these event handlers
 to process exceptional events raised by the pipeline.
 This typically indicates that the data plane was unable to process a packet
 and is requesting assistance from the control plane.
@@ -99,7 +102,7 @@ Figure \ref{fg:pipeline_model} depicts the abstract pipeline model.
 \begin{figure} [ht] 
 \includegraphics[width=\textwidth]{pipeline}
 \caption{Packets entering the device go through ingress processing.
-Then a pipeline, composed of decoders and tables, decide where the packet
+Then a pipeline composed of decoders and tables decide where the packet
 should be forwarded. Once the decision is made, the packet goes through
 egress processing before being forwarded.} 
 \label{fg:pipeline_model} 
@@ -135,9 +138,9 @@ the runtime system which manages data plane resources described in Chapter
 
 \subsection{Contexts} \label{context_desc}
 
-A context is a data structure used to save and carry
+A \emph{context} is a data structure used to save and carry
 additional metadata and stateful information about a packet between pipeline stages.
-Pipeline stages may use this data structure to memoize things it has learned
+Pipeline stages may use this data structure to memoize things they have learned
 about a packet. Specifically, the context data structure contains:
 
 \begin{itemize} 
@@ -161,20 +164,20 @@ and length of header fields.
 \item A \emph{binding environment} used to memoize the offset
 of protocol headers. 
 
-\item An \emph{action set} that may be written to and is
+\item An \emph{action list} that may be written to and is
 executed during egress processing. 
 \end{itemize}
 
-The two important data structures contained within a context: 
-the \emph{action set} and the \emph{binding environment}.
+The two important data structures contained within a context are 
+the \emph{action list} and the \emph{binding environment}.
 Actions, which are described in Section \ref{action_desc}, are appended
-to the action set using a write action.
+to the action list using a write action.
 These actions are executed during egress processing in the 
 order that they were appended.
 
 A binding environment is a data structure which maps object names to
-corresponding storage location at runtime \cite{compilers1}.
-The storage location of fields is represented using an \emph{\{offset, length\}} pair, where \textit{offset} is the absolute offset of the field.
+corresponding storage locations at runtime \cite{compilers1}.
+The storage location of fields is represented using an \emph{(offset, length)} pair, where \textit{offset} is the absolute offset of the field.
 These mappings are known as \emph{bindings}. Figure \ref{fg:context1} 
 depicts the abstract structure of a binding environment while Figure \ref{fg:context2}
 depicts the contents of a binding environment during the decoding of an IP-in-IP packet.
@@ -183,20 +186,21 @@ depicts the contents of a binding environment during the decoding of an IP-in-IP
 \begin{subfigure}[t]{.45\textwidth}
   \centering
   \includegraphics[width=\linewidth]{context}
-  \caption{A abstract binding environment example.}
+  \caption{An abstract example of a binding environment.}
   \label{fg:context1}
 \end{subfigure}
 \hfill
 \begin{subfigure}[t]{.45\textwidth}
   \centering
   \includegraphics[width=\linewidth]{context_concrete}
-  \caption{The contents of an environment when decoding an IP-in-IP packet.}
+  \caption{The contents of an environment when decoding an IP-in-IP packet. The header order in this example is Ethernet, IPv4, encapsulated IPv4, etc. Offset and length are given in bits (though implementations
+  may choose to use bytes as the unit of measure).}
   \label{fg:context2}
 \end{subfigure}
 
 
 \caption{The Steve binding environment maps field names to stacks of
-  \emph{\{offset, length\}} pairs. This allows multiple fields of the same
+  \emph{(offset, length)} pairs. This allows multiple fields of the same
   name to be extracted and also supports fields being rebound with new names.}
 \label{fg:ContextEnv}
 \end{figure}
@@ -257,70 +261,50 @@ more information than is necessary for certain network functions.
 %action during runtime.} \label{fg:ContextEnvWorking} 
 %\end{figure}
 %
-%The \emph{action set} is the other major data structure contained within the
-%context. An action set in Steve is a sequence of \emph{actions}. Actions are
-%written to the action set for \emph{deferred execution}
+%The \emph{action list} is the other major data structure contained within the
+%context. An action list in Steve is a sequence of \emph{actions}. Actions are
+%written to the action list for \emph{deferred execution}
 %through the course of pipeline processing. These actions are executed in the
 %order with which they were written once the
 %packet completes pipeline processing, during the egress processing phase.
 
-\subsection{Decoding Stages} \label{decoder_desc}
+\subsection{Decoder Stages} \label{decoder_desc}
 
 A packet is a chunk of raw uninterpreted binary data.
 In order to make meaningful decisions, the program needs to
 recover protocol headers whose fields contain the control
 information needed to forward the packet.
 Decoders are responsible for determining which
-groups of bits form a header, and which subsets of that grouping form fields. 
+groups of bits are a header, and which subsets of that header form fields. 
 The decoder then extracts those fields for usage by later stages.
 Since a packet is composed of a sequence of headers, those headers and fields
 may be extracted by a series of decoders linked together in a Steve pipeline.
 
-Steve decoders are capable of extracting only a subset of fields
-which form a header. 
-These extracted fields are stored as \emph{\{offset, length\}} pairs in
+A decoder operates on exactly one header.
+It knows where fields are in that header by conforming to a header \emph{layout}.
+Layouts allow Steve programmers to specify the structure of a
+protocol header: what fields it contains, the length of those
+fields, and the order of those fields.
+The layout used by a decoder is known as its \emph{layout rule}.
+
+Extracted fields are stored as \emph{(offset, length)} pairs in
 the context binding environment. 
 This format of decoding was inspired by work done in Protocol-Oblivious Forwarding 
 (POF) \cite{pof, pof_fis, pof_impl}.
 However, Steve does not require the programmer to specify these pairs manually.
-Instead, the compiler generates them automatically using user-specified header
-structures called \emph{layouts} (discussed in Tutorial Section \ref{tut:layout}).
+The pairs are compiler generated using information from a
+decoder's layout rule.
 
-Extracting a subset of fields from a header is known as a \emph{partial decode}.
-In some packet processing languages like P4 \cite{p4_spec, p4_spec2}, all
-relevant headers have all their fields extracted before any pipeline processing
-is done. 
-This is known as a full decode.
-The issue is that full decodes are inherently wasteful.
-Only certain fields and headers within a packet are ever really needed for a
-forwarding decision.
-Extracting any other fields is a waste of valuable processing time.
-Due to the way Steve memoizes extracted fields, it is also wastes space.
-Efficiency is important when trying
-to achieve software processing rates comparable to hardware line rate 
-(10Gbps to 40 Gbps).
+\subsection{How Decoder's Safely Extract Fields} \label{tut:extract_how}
 
-Additionally, not all headers need to be decoded. For
-example, if a networking application only needs to forward using MAC addresses,
-there is no reason to waste time extracting fields from IPv4 or IPv6 headers,
-and so on. It is up to the programmer to express how deep they wish to look into
-a packet.
-
-That being said, Steve also supports the full decode as well. It may be desirable to
-some programmers to do this in certain scenarios, thus the language does not
-favor one paradigm over another.
-
-\subsection{How Decoder's Extract Fields} \label{tut:extract_how}
-
-The Steve language ensures that decoders have constrained
+Steve ensures that decoders have constrained
 access to a subset of contiguous bytes in a packet buffer.
-This is known as its \emph{view} of the packet.
+This is known as a decoder's \emph{view} of the packet.
 
 A decoder's view begins where the header it decodes begins, and ends
 (implicitly) where that header ends. 
-This constrained region is enforced by the definition of its layout rule. 
-That is, a decoder only knows about bytes up to (and including the final field in
-its layout rule and cannot know about or access any fields past that point.
+This constrained region is enforced by the decoder's layout rule. 
+That is, a decoder only knows about bytes up to and including the final field given in a layout and cannot know about or access any fields past that point.
 
 A packet's context maintains the beginning of the current view using
 a \emph{view index}. Once a decoder is finished executing, it is
@@ -330,15 +314,15 @@ first byte of the next header.
 Figure \ref{fg:decoding} demonstrates how decoders extract fields and
 how this view mechanism is applied on an actual packet instance. 
 Here, the Steve application decodes a typical packet 
-containing ethernet, IPv4, and TCP headers.
+containing ethernet, IPv4, and UDP headers.
 
 \begin{figure}[ht]
 \begin{subfigure}[t, scale=0.5]{.45\textwidth}
   \centering
   \includegraphics[width=\linewidth]{view1}
-  \caption{The view of the starting decoder, in this case, the ethernet
-decoder. The beginning of the view is the beginning of the ethernet
-header, which is also the beginning of the packet.}
+  \caption{The view of the first (Ethernet) decoder. 
+  The beginning of the view is the beginning of the Ethernet
+  header, which is also the beginning of the packet.}
   \label{fg:view1}
 \end{subfigure}%
 \hfill
@@ -346,9 +330,7 @@ header, which is also the beginning of the packet.}
   \centering
   \includegraphics[width=.8\linewidth]{view2}
   \caption{The beginning of a field is discovered by its relative offset from
-the beginning of the view. The end is determined by the field's length. The
-field \texttt{dst} is 0 bytes from the beginning, \texttt{src} is 6 bytes in,
-and \texttt{type} is 12 bytes in.}
+the beginning of the view. The end is determined by the field's length. The \texttt{dst} field has an offset of 0 and a length of 48 bits, 	\texttt{src} has an offset of 48 bits and a length of 48 bits, and \texttt{type} has an offset of 96 bits and a length of 16 bits.}
   \label{fg:view2}
 \end{subfigure}
 
@@ -356,7 +338,7 @@ and \texttt{type} is 12 bytes in.}
   \centering
   \includegraphics[width=\linewidth]{view3}
   \caption{When a decoder is finished working, it \textit{shifts} the view to
-the next header. The shift moves the beginning of the view by the length of the
+the next header. The shift moves the view index by the length of the current
 header -- 14 bytes.}
   \label{fg:view3}
 \end{subfigure}%
@@ -366,14 +348,14 @@ header -- 14 bytes.}
 
  
 The view index always starts at the beginning of the packet.
-In Figure \ref{fg:view1}, the first header is ethernet.
-In Figure \ref{fg:view2}, the three fields of the ethernet header
+In Figure \ref{fg:view1}, the first header is Ethernet.
+In Figure \ref{fg:view2}, the three fields of the Ethernet header
 are extracted.
 
 When the compiler generates \textit{(offset, length)} pairs,
-the offset value is relative to the view index. That is, the
-absolute offset of the field in the packet is the view index plus 
-the relative offset in the pair.
+the \emph{offset} value is relative to the view index. The
+absolute offset of the field is calculated using view index plus
+the relative offset.
 The absolute offset and length are saved in the context binding environment.
 In Figure \ref{fg:view2}, the pairs \textit{(0, 48)} (\texttt{ethernet.dst}),
 \textit{(48, 48)} (\texttt{ethernet.src}), and \textit{(96, 16)} 
@@ -399,9 +381,38 @@ If at any point a layout is silently ill-defined
 to extract a field which is past the bounds of the packet, the packet
 is immediately dropped before the extraction completes.
 
+\subsection{Partial and Full Decodes}
+
+Steve provides full control over which fields get decoded
+from a header. The entire header does not have to be decoded.
+Steve allows for the extraction of only a subset of fields from a header. 
+This is known as a \emph{partial decode}.
+In some packet processing languages like P4 \cite{p4_spec, p4_spec2}, all
+relevant headers have all their fields extracted before any pipeline processing
+is done. 
+This is known as a \emph{full decode}.
+The issue is that full decodes are inherently wasteful.
+Only certain fields and headers within a packet are ever really needed for a
+forwarding decision.
+Extracting any other fields is a waste of valuable processing time.
+Due to the way Steve memoizes extracted fields, it also wastes space.
+Efficiency is important when trying
+to achieve software processing rates comparable to hardware line rate 
+(10Gbps to 40 Gbps).
+
+Not all headers need to be decoded either. For
+example, if a networking application only needs to forward using MAC addresses,
+there is no reason to waste time extracting fields from IPv4 or IPv6 headers,
+and so on. It is up to the programmer to express how deep they wish to look into
+a packet.
+
+That being said, Steve supports the full decode as well. It may be desirable to
+some programmers to do this in certain scenarios, thus the language does not
+favor one paradigm over another.
 
 \subsection{Table Stages} \label{table_desc}
 
+Tables stages are used by the pipeline to make forwarding decisions.
 A network \emph{flow} is a series of packets from a source to a set of one or
 more destinations.
 Table stages use the mechanism known as \emph{flow tables} to establish these
@@ -452,11 +463,12 @@ composed of \emph{match fields}, a \emph{priority}, a set of
 
 For each key field, each flow entry has a corresponding value for that
 key field, known as a
-\emph{match field}, such that every flow entry in the table is uniquely
-identified by its match fields and its priority.
+\emph{match field}. Each flow entry in the table must be uniquely
+identifiable by its match fields and its priority.
 Priority is an extra field used to
-unambiguously execute exactly one flow entry if multiple flow entry matches are
-found. The highest priority flow entry is always executed. 
+unambiguously execute exactly one flow entry if a packet matches
+multiple flow entries.
+The highest priority flow entry is always executed.
 In this example, the first flow entry's match fields are
 10.10.1.0 (IP destination) and 80 (TCP port destination), and its priority is 1.
 
@@ -481,8 +493,7 @@ wildcard.
 The mechanic of table matching is also analogous to that of relational or SQL
 tables (which coincidentally can be used to implement decision tables). In fact,
 Frenetic, another SDN language, uses SQL-inspired syntax to
-classify packets \cite{foster2011frenetic, foster2013frenetic}. If we make this
-comparison, a flow table is analogous to a relational table, the concept of a
+classify packets \cite{foster2011frenetic, foster2013frenetic}. In this comparison, a flow table is analogous to a relational table, the concept of a
 key is the same for both, and a flow entry is analogous to a tuple in a SQL
 table. Each packet and its fields "queries" the table for flow entries with
 matching keys.
@@ -521,9 +532,9 @@ If the entry does not exist, nothing is done.
 \item \textbf{Set.} This is used to modify a field in the packet.
 
 \item \textbf{Write.} Write action allows actions to be appended to the context's
-action set. Only set and output actions may be written.
+action list. Only set and output actions may be written.
 
-\item \textbf{Clear.} The clear action removes all actions from the action set.
+\item \textbf{Clear.} The clear action removes all actions from the action list.
 
 \end{itemize}
 
@@ -590,7 +601,7 @@ Pipeline processing completes when a pipeline stage has finished executing
 without sending the packet to a new stage. At this point the packet leaves the
 pipeline and enters egress processing.
 
-First, all actions written the context's action set are executed. Then the data
+First, all actions written the context's action list are executed. Then the data
 plane will check the egress port field in the context. If this has been set,
 then the data plane will queue the packet up to be forwarded through that port.
 Otherwise, the packet is dropped. The context is then destroyed.
@@ -600,7 +611,7 @@ Otherwise, the packet is dropped. The context is then destroyed.
 Event handlers serve as hooks into the switch's control plane. 
 As depicted in Figure \ref{fg:abstract_switch}, when a pipeline
 cannot deal with a packet, it raises an event which is 
-handled by an event handler executed by a controller in the control plane.
+handled by an event handler executed in the control plane.
 This event handler takes a copy of the context which raised the
 event as an argument and performs some processing.
 Event handlers may then choose to make calls back into the data plane's
@@ -619,5 +630,5 @@ Steve compiles into LLVM IR which is then optimized and compiled
 again into a dynamic link library (DLL).
 This DLL is loaded by the
 Freeflow runtime environment described in Chapter \ref{ch:flowpath}.
-Steve provides both pipeline and control elements for the SDN switch
-running Freeflow.
+Steve programs the Freeflow pipeline and acts as its software control
+plane.
