@@ -12,8 +12,6 @@
 
 % FIXME: Use \emph to emphasize terms, not boldface.
 
-% FIXME: Use this sentence in your abstract.
-
 The Internet is nowadays ubiquitous with everyday life. In the last twenty
 years,
 the industry has rapidly evolved to incorporate all kinds of new Internet
@@ -287,7 +285,8 @@ device.
  
 \section{The Steve Programming Language}
 
-Steve is a language for writing packet processing applications
+The Steve programming language was designed to solve the problem of safe and efficient programming of SDN devices.
+Steve is used for writing packet processing applications
 and network functions on SDN devices.
 It is protocol independent, architecture independent, strongly-typed,
 and declarative.
@@ -487,26 +486,32 @@ Steve may also customize the LLVM compiler to produce
 specialized instructions that are optimized for the architecture running
 the application. This would be future work.
 
-\section{Contributions: Modules For Freeflow Switches}
+\section{Contribution: Modules For Freeflow Switches}
+
+In order to confirm that our system works, the Steve compiler builds modules (dynamic link libraries (DLL))
+loaded by the Freeflow virtual machine (FFVM). The compiler currently targets an x86 architecture,
+but can be adapted to target other platforms as well.
 
 Freeflow is a virtual machine (VM) that also serves as the Steve runtime
 environment \cite{freeflow_software}.
-The Freeflow virtual machine (FFVM) virtualizes (abstracts) underlying switch
+FFVM virtualizes (abstracts) underlying switch
 hardware. 
 Freeflow is a VM in the similar sense that Java Virtual Machine (JVM) is a VM. 
 It exposes an interoperable ABI that grants access to switch resources,
 allowing programs which target it to be architecture independent.
 
 FFVM may also be considered a software data plane.
-Steve compiles into modules (dynamic link libraries (DLL)) that may be loaded by FFVM.
-A Steve module programs FFVM's data plane pipeline by providing
+A Steve module is designed to program FFVM's data plane pipeline by providing
 flow table configuration, flow table entries, and packet decoders.
 The module also instantiates the control plane for FFVM with the appropriate
 event handlers.
 
 \section{Thesis Overview}
 
-This thesis is organized as follows.
+This thesis is organized as follows. Chapter \ref{ch:related} describes similar
+works in the field of SDN and SDN programming languages. It also provides a
+background into SDN and the different approaches Steve takes to other languages
+of its kind.
 
 Chapter \ref{ch:pipeline_model} describes the components of Steve programs
 and pipelines. It provides many of the abstract concepts a programmer must
@@ -540,8 +545,7 @@ applications. Pcap files are run through Steve applications to measure the data
 rate and raw packet rate that each application is capable of running at on a
 Linux machine.
 
-Chapter \ref{ch:related} describes similar
-works in the field of SDN and SDN programming languages. It also provides a
-background into SDN and the different approaches Steve takes to other languages
-of its kind.
+Chapter \ref{ch:conclusion} details future work for Steve and provides concluding remarks about the project.
+
+
 

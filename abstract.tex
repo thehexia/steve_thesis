@@ -1,5 +1,18 @@
 \begin{abstract}
+Software-defined networking (SDN) was created to bypass the limitations of conventional network switches.
+SDN aims to make the control plane and data plane components of a switch programmable
+rather than relying on built-in hardware and firmware.
+Network functions such as switching, firewalls, and NAT can be defined in software that can be quickly loaded by the
+SDN switch to change its behavior.
+We present \emph{Steve}, a domain-specific language (DSL) for writing efficient programs for SDN devices.
+Steve provides high-level language features for expressing protocol structure, decoding rules,
+forwarding decision making, packet manipulation, and a reactive non-distributed control plane.
 
-Steve is a domain-specific programming language tailored toward writing \emph{packet processing pipeline} applications for software-defined networking (SDN) devices.
-
+Steve solves three problems in SDN language development: protocol independence, program safety, and efficiency.
+To these ends, we have developed an optimizing compiler that ensures safety through a specialized type and constraints system.
+Steve compiled applications target Freeflow, a protocol independent virtual data plane designed to abstract the underlying hardware of an SDN switch.
+To prove that Steve is expressive enough to write network functions,
+we present four Steve programs: a MAC learning switch, a IPv4 learning switch, a firewall, and a full-duplex wire.
+These applications were run on a Freeflow instance with a Linux x86 machine and had performance between 1 and 3 Mpps which is
+impressive for non-specialized hardware execution.
 \end{abstract}

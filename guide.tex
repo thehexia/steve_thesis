@@ -1,8 +1,10 @@
 \chapter{The Steve Reference Guide} \label{ch:users_guide}
 
 This chapter serves as a reference manual for Steve programmers. It provides detailed descriptions of Steve language semantics: how features work, type checking, grammar, conventional and illegal uses, etc. It also describes how pipeline safety guarantees are enforced, what constitutes a legal pipeline, and potential pitfalls a programmer might fall into when writing a pipeline.
-
 There is an expectation that the user has read the Tutorial and has a basic understanding of Steve.
+
+This chapter serves as more of an annotated appendix rather than an actual chapter. It should be used as a reference rather than being read
+through. 
 
 \section{Identifiers} \label{guide:identifiers}
 
@@ -110,8 +112,7 @@ For example, in the following example, the name \texttt{i} is declared twice. Th
 \begin{minip}
 \begin{lstlisting}
 var i : int = 0;
-def f() -> int
-{
+def f() -> int {
 	var i : int = 1;
 	var j : int = 2 + i;
 	return j; // Result here shall be 3.
@@ -647,72 +648,6 @@ decoder eth_d(eth) {
 \end{lstlisting}
 \end{minip}
 
-\subsection{Determining the Location and Length of Extracted Fields}
-
-An extract declaration produces an extraction by executing a set of instructions on a packet which saves the extraction's \textit{location} and \textit{length} to the context's header environment (see \ref{context_desc}, \ref{guide:context}). Information gathered from the \grd{field}{name} and layout rule is used to calculate these two values. This process is completely opaque to the user, and is described below.
-
-\begin{enumerate}
-\item Discover the field declaration $f$ referred to by \grd{field}{name}. The length of the extracted field is calculated by a function $len(f)$. The result of $len(f)$ is the \textit{size} of an object of $f$'s type.
-
-\item The \grd{field}{name} has the form \texttt{E1.E2} where \texttt{E1} is the \textit{container} and \texttt{E2} is the \textit{contained field}. The set $P$ is the set of all field declarations preceding $f$ in its containing layout declaration. The function used to calculate the \textit{relative offset} of $f$ is given as $rel(E1, E2)$ and is defined as:
-
-\begin{enumerate}
-
-\item If \texttt{E1} is a \grd{layout}{id}, then the $rel(E1, E2) = \sum_{x \in P}{} len(x)$.
-
-\item If \texttt{E1} is a \grd{field}{name}, and \texttt{E1} has the form \texttt{E1c.E1f}, then $rel(E1, E2) = rel(E1c, E1f) + \sum_{x \in P}{} len(x)$
-
-\end{enumerate}
-
-\item Given a field name of the form \texttt{E1.E2}, and the current view index (see \ref{guide:decoder_view}), $i$, the \textit{absolute offset} of the field being extracted is this $i + rel(E1, E2)$.
-
-\item The location of an extracted field is its absolute offset, that is, the number of bytes it is away from the beginning of the packet.
-\end{enumerate}
-
-The following example demonstrates how each calculation is made. Two layouts, \texttt{L} and \texttt{LN}, and a decoder, \texttt{D}, are provided. \texttt{L} has three fields: \texttt{a}, \texttt{b}, and \texttt{c}.  \texttt{LN} has two fields: \texttt{d} and \texttt{f}. Field \texttt{L.c} has layout type \texttt{LN} and is thus a nested layout. \texttt{D} decodes \texttt{L} and extracts \texttt{L.a} and \texttt{L.c.f}.
-
-\begin{minip}
-\begin{lstlisting}
-layout L {
-	a : uint;
-	b : uint;
-	c : LN;
-}
-
-layout LN {
-	d : uint(8);
-	f : uint(16);
-}
-
-decoder D(L) {
-	extract L.a;
-	extract L.c.f;
-	// ...
-}
-\end{lstlisting}
-\end{minip}
-
-The first extract declaration is \texttt{extract L.a}. The type of \texttt{a} is \texttt{uint} (32 bit unsigned integer by default). The result of $len(a)$ is 32 bits or 4 bytes. The relative offset of \texttt{a} in \texttt{L} is the sum of the lengths of all field declaration which precede it. In this case, no fields precede it, thus its relative offset is 0.
-
-The second extract declaration is \texttt{extract L.c.f}. This is the case of the nested layout. The value of $len(f)$ is 16 bits or 2 bytes. The relative offset of \texttt{f} is the sum of the length of all field declaration which precede it in \texttt{LN} (8 bits or 1 byte), plus the relative offset of \texttt{c} in \texttt{L} (64 bits or 8 bytes). Thus, the relative offset for \texttt{L.c.f} is $64+8=72$ bits or 9 bytes.
-
-Assuming the beginning of the current view for \texttt{D} is 14 bytes past the beginning of the packet. The \textit{absolute offset} for \texttt{L.a} would be 14 bytes. The absolute offset for \texttt{L.c.f} would be $14+9$ or 23 bytes.
-
-\subsection{Extracting the Same Field More Than Once}
-
-A decoder is only ever looking at one header of a packet at once. Using an extract declaration with the same field name more than once in the same decoder will result in the same instance of that field being extracted multiple times, which is completely redundant. Though legal, this should be avoided in most cases. For example: 
-
-\begin{minip}
-\begin{lstlisting}
-decoder d1(L1) {
-	var x : int = 0; 	
-	while (x < 5) {
-		extract L1.f1;
-	}
-}
-\end{lstlisting}
-\end{minip}
-
 \subsection{Rebind Declaration} \label{guide:rebind}
 
 At certain times, it may be convenient to extract a certain field, but \textit{alias} that field with a different name than the original. This can be done with the \textit{extract-as} or \textit{rebind} declaration. A rebind declaration has the following form:
@@ -725,83 +660,7 @@ At certain times, it may be convenient to extract a certain field, but \textit{a
 \end{minip}
 
 The rebind declaration has the form \texttt{extract N1 as N2} where \texttt{N1} and \texttt{N2} are field names.
-
-\texttt{N1} is the \textit{original field name} and must refer to a field in the layout rule. \texttt{N2} is the \textit{alias field name} and may refer to any valid field. For example:
-
-\begin{minip}
-\begin{lstlisting}
-layout L1 {
-	a : uint(16);
-	b : uint(24);
-}
-
-layout L2 {
-	c : uint(16);
-	d : uint(32);
-}
-
-decoder d2(l2) {
-	// Legal. L2.c has the same type as L1.a
-	extract L2.c as L1.a;
-	// Error: Illegal. Mismatched types.
-	extract L2.d as L1.b;
-} 
-\end{lstlisting}
-\end{minip}
-
-When using the extraction later in the program, either name may be used. The field declaration named by \texttt{N1} shall have the same type as the field declaration named by \texttt{N2}. 
-
-Both names are added to the decoder's productions (see \ref{guide:requirements}) for constraints checking. The names \texttt{N1} and \texttt{N2} may be used as field names in either key declarations or requires specifiers in tables and events later in the pipeline. 
-
-The extractions which \texttt{N1} can refer to are a subset of the extractions \texttt{N2} can refer to. The aliased name naturally can refer to extractions which are from a different kind of field than the original name. To demonstrate this, the following revision is made to the prior example:
-
-\begin{minip}
-\begin{lstlisting}
-decoder D1(L1) {
-	extract L1.a;
-	if (L1.a == 0)
-		goto T1;
-	
-	decode d2;
-}
-
-decoder D2(L2) {
-	extract L2.c as L1.a;
-	// Valid usage of L2.c.
-	var i : uint(16) = L2.c;
-	// Valid usage of L1.a to refer to the same extraction.
-	var j = uint(16) = L1.a;
-
-	set L2.c = 1;
-	goto T1;
-}
-
-// Key field L1.a will refer to the last extraction of L1.a.
-// If D1 sends the packet to T1, then it will be the L1.a field.
-// 
-// If D2 sends the packet to T1, then L1.a shall refer to an
-// extraction of L2.c instead.
-exact_table T1(L1.a) {
-	{ 0 } -> { drop; }
-	{ 1 } -> { flood; }
-}
-\end{lstlisting}
-\end{minip}
-
-This example presents decoders \texttt{D1} and \texttt{D2}. If a packet is sent directly to table \texttt{T1} from decoder \texttt{D1}, the value of the last extraction of \texttt{L1.a} will be \texttt{0} (based on the \texttt{if} condition). In this scenario, the packet is dropped. 
-
-However, if the packet is sent from decoder \texttt{D2}, the field \texttt{L2.c} has been aliased as \texttt{L1.a}. The field \texttt{L2.c} has its value set to \texttt{1}. \texttt{L1.a} refers to the same value as L2.c because of the rebinding, therefore, the value of L1.a is also \texttt{1}.
-When the packet is matched against \texttt{T1}'s flow entries, the packet shall be flooded.
-
-Supposing table \texttt{T1} from the prior example were replaced with the following version of \texttt{T1}, then the \texttt{goto T1} action in decoder \texttt{D1} would actually produce a compiler error for violating requirements satisfaction (see \ref{guide:requirements}). 
-
-\begin{minip}
-\begin{lstlisting}
-exact_table T1(L2.c) { ... }
-\end{lstlisting}
-\end{minip}
-
-This version of \texttt{T1} uses \texttt{L2.c} as a key field. However, \texttt{L1.a} is not the same field as \texttt{L2.c} and has not been aliased as such.
+\texttt{N1} is the \textit{original field name} and must refer to a field in the layout rule. \texttt{N2} is the \textit{alias field name} and may refer to any valid field. The types of \texttt{N1} and \texttt{N2} must be the same.
 
 \section{Table and Flow Declarations} \label{guide:tables}
 
