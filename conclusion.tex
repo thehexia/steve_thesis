@@ -1,0 +1,28 @@
+\chapter{ Conclusion} \label{ch:conclusion}
+
+\section{Future Work}
+
+Steve is far from a complete and mature language. It is still missing key components that other languages of its kind already support. Dynamically-sized fields, group tables, alternative table matching patterns (prefix, wildcard, etc), pushing and popping headers, packet construction, etc.
+
+Dynamically-sized fields are a particularly interesting problem that has not been solved in the Steve language. It is also urgently necessary to support common things such as IPv4 options.
+
+Pushing and popping headers as well as packet construction is another major feature. This would allow Steve to become more than purely a packet processing language. The Steve programmer could hypothetically create new packets as a reactive response to certain network traffic.
+
+Explicit port discovery is one of the major features not yet supported by Steve. Additionally, Steve has no way of learning networking information, such as the IP or MAC address, of the device it runs on.
+
+Portability is another major issue that has yet to be addressed. Steve code generation may need to be modified to deal with certain, very specific architectures. The current assumption is this will rarely happen, as LLVM already supports a wide range of architectures. However, it is possible that Steve programs may want to take advantage of certain architecture specific acceleration.
+
+Dealing with distributed control is not addressed in this paper. Though Steve focuses on programming a non-distributed SDN switch, it is not impossible for a Steve program to deal with distributed control either. Since OpenFlow protocol can be treated as just another header,
+it is possible for the non-distributed control plane to take actions based on OpenFlow packets received by the switch. Alternatively, it may be possible to expand language features for Steve to allow for writing distributed control event handlers.
+
+\section{Conclusion}
+
+Being able to program every component of a network switch is a powerful thing. Just by changing out a program, the entire behavior of the device can change. This is an incredibly powerful thing. It allows enterprises to quickly reconfigure their entire network setup at little to no cost. It also expands the possibilities of how the Internet may one day evolve. As SDN aims to make switches more like general purpose computers, the Internet may too evolve into something better.
+
+With that being said, SDN devices are far from being commonplace. As it stands, SDN is still trades speed for flexibility, making enterprises hesitant to adopt it. 
+
+Steve and Freeflow are just infant steps towards this potential future. This system addresses what a protocol independent, architecture independent, SDN programming environment looks like. By providing a programming language that is high-level and logically safe, programmers
+can get past worrying about vulnerabilities and instead focus on behavior.
+Because Steve targets a runtime environment that virtualizes underlying hardware, the programmer does not have to worry about the architecture he is programming on either.
+
+The next steps for this research would be to deploy this environment on real SDN switches and test the performance. After that, the language compiler and runtime will have to adapt to portability concerns. As SDN is still in its infancy, this work will change to reflect future advances in technology. Will this type of programming ever take off and become universally adopted? Only the future can answer that.

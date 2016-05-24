@@ -242,7 +242,7 @@ Decoders use layout information to reason about extracting fields.
 %network. The header \textit{exists} whereas a layout helps the Steve application
 %\textit{understand} it.
 
-A \emph{layout declaration} (\ref{guide:layout}) is used to write a layout.
+A \emph{layout declaration} (see \ref{guide:layout}) is used to write a layout.
 The simplest example to begin with is the Ethernet frame header \cite{eth_std}.
 The corresponding layout would look like the following.  
 
@@ -316,8 +316,8 @@ class types (or record types). \textit{Layouts are not the same concept as
 classes.} Layouts are much stricter.
 
 First, \textit{the types of fields are restricted}. Fields may only
-have two types: integer (\ref{guide:integer_type}) and layout
-(\ref{guide:layout_type}). There may be varying kinds of integer (e.g.
+have two types: integer (see \ref{guide:integer_type}) and layout
+(see \ref{guide:layout_type}). There may be varying kinds of integer (e.g.
 precisions, signed, unsigned, etc.), but the precision of each integer must also
 be \textit{byte-aligned}, that is, a multiple of 8.
 
@@ -414,7 +414,7 @@ are located in a header and how long they are.
 
 \subsection{The Basic Decoder Form} \label{tut:basic_decoder}
 
-A decoder is written using a \textit{decoder declaration} (\ref{guide:decoder}).
+A decoder is written using a \textit{decoder declaration} (see \ref{guide:decoder}).
 The most common decoder written is likely the ethernet decoder. The following
 is the basic form of an ethernet decoder.
 
@@ -444,7 +444,7 @@ likely be the root of almost all pipelines.
 
 \subsection{Extractions} \label{tut:decoder_extract}
 
-An \textit{extract declaration} (\ref{guide:extract}) in the decoder's body
+An \textit{extract declaration} (see \ref{guide:extract}) in the decoder's body
 instructs it to extract the given field. Extracted fields, or \emph{extractions},
 for short, may then be used by the program as a variable.
 The following example expands the body of the \texttt{eth\_d} decoder 
@@ -460,7 +460,7 @@ decoder start eth_d(ethernet) {
 \end{lstlisting}
 \end{codepage}
 
-Each extract declaration gives a \emph{field name} (\ref{guide:field_name}) 
+Each extract declaration gives a \emph{field name} (see \ref{guide:field_name}) 
 which tells the decoder which field is being extracted. 
 In this example, there are
 two such extract declarations which instruct the decoder to extract
@@ -481,7 +481,7 @@ It obviously make no sense to extract a field not in the header.
 Once a field has been extracted, getting its value is similar to using
 it as variable.
 To get the value of an extraction
-the \textit{field access expression} (\ref{guide:field_access_expr}) is used.
+the \textit{field access expression} (see \ref{guide:field_access_expr}) is used.
 A field access expression is essentially a field name being used where
 an expression is expected. This is similar to using a variable name
 in an expression to represent the value of the variable.
@@ -544,7 +544,7 @@ decoder ipv4_d(ipv4) {
 \end{codepage}
 
 This example presents a solution for recovering non-byte aligned
-fields. A bitwise-AND (\ref{guide:bitwise_expr}) is used on \texttt{ipv4.version\_ihl}
+fields. A bitwise-AND (see \ref{guide:bitwise_expr}) is used on \texttt{ipv4.version\_ihl}
 with \texttt{0x0f} to recover the \texttt{ihl} field. The 
 \texttt{ipv4.version\_ihl} is left-shift by 4 bits to get the \texttt{version} field.
 
@@ -621,17 +621,17 @@ decoders which have not extracted that field. A decoder focuses on exactly one
 header and has no knowledge of previous headers or extractions.
 
 Field access expressions cannot be assigned to like a variable. To modify the
-value of a field, a \texttt{set} action must be used instead.
+value of a field, a \texttt{set} action (see \ref{tut:set_action}) must be used instead.
 
 \subsection{Moving to Other Stages} \label{tut:decoder_next}
 
 Once the current stage has finished its work, the programmer may decide
 to send the packet to another pipeline stage.
-Chapter \ref{ch:pipeline_model} describes that decoding and
+Section \ref{pipeline_comp_desc} describes that decoding and
 table matching stages can be chained together in a number of flexible ways.
 Any stage may move a packet to a new decoder or a new table.
 
-To move to another decoding stage, the \texttt{decode} action (\ref{guide:decode_action})
+To move to another decoding stage, the \texttt{decode} action (see \ref{tut:decode_action})
 is used. The following example bridges the ethernet and IPv4 decoders
 declared in earlier examples. Extract declarations are elided for
 brevity.
@@ -653,7 +653,7 @@ decoder ipv4_d(ipv4) { ... }
 The \texttt{match} statement is used to check if \texttt{ethernet.type} is equal to
 \texttt{0x800}. If it is, then it confirms the next header is IPv4 and the \texttt{decode} action moves the packet to the IPv4 decoder.
 
-To transition to a table matching stage, a \texttt{goto} action (\ref{guide:goto}) (not
+To transition to a table matching stage, a \texttt{goto} action (see \ref{tut:goto_action}) (not
 to be confused with a C-like \texttt{goto}) is used.
 
 \begin{codepage}
@@ -662,13 +662,14 @@ decoder ipv4_d(ipv4) {
   // ...
   var ihl : uint(8) = (ipv4.version_ihl & 0x0f) * 4;
   // Advance specifier shifts the view by N bytes.
-  goto t1 advance ihl; // t1 names a table.
+  goto tcp_filter advance ihl; // tcp_filter names a table.
 }
 \end{lstlisting}
 \end{codepage}
 
 In this example, the \texttt{goto} action sends the packet to a hypothetical table
-named \texttt{t1}. Details about writing tables follows in Section \ref{tut:table}. The most important thing to notice from this example is the
+named \texttt{tcp\_filter}. Details about writing tables follows in Section \ref{tut:table}. 
+The most important thing to notice from this example is the
 \texttt{advance} specifier.
 
 Section \ref{tut:extract_how} explains that a decoder shifts the
@@ -729,11 +730,14 @@ A table's \textit{key} names a set of fields, known as
 They are the equivalent of decision attributes. 
 The \texttt{tcp\_filter} table only matches on a single field (\texttt{tcp.dst}).
 
+It is important to note that a \texttt{goto} action may only dispatch
+a packet to a table if the key fields have been extracted in prior decoders. This ensures that the key fields actually exist before matching begins. If they have not been extracted, the program is ill-formed.
+
 Flow entries define which packets form flows, and
 what actions are taken on packets belonging to those flows.
 They are the rules of a decision table.
 To write a flow entry, a \textit{flow entry declaration}
-(\ref{guide:tables}) is used.
+(see \ref{guide:tables}) is used.
 The following example presents three flow entries:
 two regular ones followed by a special one known as the \emph{miss case}.
 
@@ -893,10 +897,12 @@ decoders, tables have access to all extractions. The only limitation is that
 field access in the table's flow entries only works on key fields or required fields. For example, the
 following is a valid table.
 
+\begin{codepage}
 \begin{lstlisting}
 exact_table T(in_port, in_phys_port, ethernet.dst, ipv4.dst)
 { ... }
 \end{lstlisting}
+\end{codepage}
 
 \textit{Flow entries can be added and removed from tables using the appropriate
 actions.} This allows decision making on packets to change dynamically during
@@ -922,17 +928,22 @@ The \texttt{decode} action is used to move a packet from the current stage to a
 decoding stage. This action was present throughout a number of examples so far.
 For example:
 
+\begin{codepage}
 \begin{lstlisting}
 decode ipv4_d; // ipv4_d names a decoder
 \end{lstlisting}
+\end{codepage}
+
 
 There is also an optional \texttt{advance} specifier which is used if
 the \textit{view} of the packet must be explicitly shifted by some special
 number of bytes. For example:
 
+\begin{codepage}
 \begin{lstlisting}
 decode udp_d advance (ipv4.version_ihl & 0x0f) * 4;
 \end{lstlisting}
+\end{codepage}
 
 The \texttt{advance} specifier may only be attached if the action is executed by a
 decoder. Only decoders are responsible for view shifts.
@@ -942,17 +953,21 @@ decoder. Only decoders are responsible for view shifts.
 The \texttt{goto} action is used to move a packet from the current stage to a
 table matching stage. For example:
 
+\begin{codepage}
 \begin{lstlisting}
 goto t1; // t1 names a table
 \end{lstlisting}
+\end{codepage}
 
 Similar to the \texttt{decode} action, the \texttt{goto} action also supports an
 optional advance specifier. For example, if the current decoder is for IPv4, and
 the table is named \texttt{t1}, the action would be written as:
 
+\begin{codepage}
 \begin{lstlisting}
 goto t1 advance (ipv4.version_ihl & 0x0f) * 4;
 \end{lstlisting}
+\end{codepage}
 
 The \texttt{advance} specifier may only be attached if the action is executed by a
 decoder. Only decoders are responsible for view shifts.
@@ -1089,11 +1104,13 @@ completes and the packet enters egress processing (described in Section \ref{egr
 
 Only two actions may be written to a packet right now: \texttt{output} and \texttt{set}.
 
+\begin{codepage}
 \begin{lstlisting}
 write set ipv4.ttl = ipv4.ttl - 1;
 
 write output reflow;
 \end{lstlisting}
+\end{codepage}
 
 The written \texttt{output} action has a slightly different semantic from the immediately
 applied \texttt{output} action. When immediately applied, the \texttt{output} action forwards a
@@ -1122,9 +1139,12 @@ A \texttt{raise} action sends a copy of the context to a reserved port called th
 The controller port then offloads the context to the appropriate event handler.
 For example:
 
+\begin{codepage}
 \begin{lstlisting}
 raise learn_event; // learn_event names an event handler 
 \end{lstlisting}
+\end{codepage}
+
 
 Here, \texttt{learn\_event} names an event handler. The context copy
 will be processed by this event handler. The execution of the event
@@ -1222,7 +1242,7 @@ in_phys_port; // The physical ingress port.
 \subsection{Port Variables} \label{tut:declared_ports}
 
 Port variables can be used to \textit{remember} ports for later usage. They are
-written using \textit{port declarations} (\ref{guide:port}).
+written using \textit{port declarations} (see \ref{guide:port}).
 They essentially work as port variables.
 
 \begin{codepage}
@@ -1305,7 +1325,7 @@ write to files through the C standard library, allocate variables, etc., as
 well as execute actions.
 
 To write an event handler, an \textit{event declaration}
-(\ref{guide:event}) is used. The following is a simple example
+(see \ref{guide:event}) is used. The following is a simple example
 of an event handler.
 
 \begin{codepage}

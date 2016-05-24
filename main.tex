@@ -44,7 +44,7 @@
 
 \lstdefinelanguage{steve}
 {
-	morecomment=[l][\color{gray}\textit]{//}
+	morecomment=[l][\color{black}\textit]{//}
 }
 
 \lstset{
@@ -64,7 +64,8 @@ remove, from,
 	    emphstyle={\color{blue}\textbf},
 	    emphstyle=[2]{\color{blue}\textbf},
 	    emphstyle=[3]{\color{red}\textbf},
-	    tabsize=2
+	    tabsize=2,
+	    aboveskip=0em
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -95,7 +96,8 @@ remove, from,
 \setlength{\grammarparsep}{1pt}
 
 \newenvironment{codepage}
-  {\noindent
+  {
+   \noindent
    \begin{minipage}{\textwidth}
    \singlespace
   }
