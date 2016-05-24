@@ -2,6 +2,6 @@
 \contentsline {figure}{\numberline {3.1}{\ignorespaces Steve program entities and how the split between control and data planes. The data plane's pipeline raise events which are handled by event handlers on the control plane. Event handlers make system calls back to the data plane to modify pipeline behavior or to re-enter special packets.\relax }}{22}
 \contentsline {figure}{\numberline {3.2}{\ignorespaces Packets entering the device go through ingress processing. Then a pipeline composed of decoders and tables decide where the packet should be forwarded. Once the decision is made, the packet goes through egress processing before being forwarded.\relax }}{23}
 \contentsline {figure}{\numberline {3.3}{\ignorespaces The Steve binding environment maps field names to stacks of \emph {(offset, length)} pairs. This allows multiple fields of the same name to be extracted and also supports fields being rebound with new names.\relax }}{26}
-\contentsline {figure}{\numberline {3.4}{\ignorespaces A demonstration of the decoding process in action.\relax }}{28}
-\contentsline {figure}{\numberline {3.5}{\ignorespaces Kinds of pipeline composition.\relax }}{35}
-\contentsline {figure}{\numberline {6.1}{\ignorespaces The FFVM architecture. FFVM virtualizes the underlying switch hardware and switch OS. Steve programs are loaded by FFVM and instantiates the data plane's pipeline. The Steve program also serves as the device's controller.\relax }}{101}
+\contentsline {figure}{\numberline {3.4}{\ignorespaces A demonstration of the decoding process in action.\relax }}{29}
+\contentsline {figure}{\numberline {3.5}{\ignorespaces Kinds of pipeline composition.\relax }}{36}
+\contentsline {figure}{\numberline {6.1}{\ignorespaces The FFVM architecture. FFVM virtualizes the underlying switch hardware and switch OS. Steve programs are loaded by FFVM and instantiates the data plane's pipeline. The Steve program also serves as the device's controller.\relax }}{103}
