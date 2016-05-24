@@ -106,7 +106,7 @@ Table \ref{tbl:steve_api} summarizes the application interface.
 \begin{table}[ht]
 \caption{The application interface. All Freeflow loadable applications must provide this interface.}
 \begin{center}
-\begin{tabular}{| p{0.3\linewidth} | p{0.7\linewidth} |}
+\begin{tabular}{| p{0.3\linewidth} | p{0.65\linewidth} |}
 \hline
 Interface Functions & Functionality \\
 
@@ -142,7 +142,7 @@ The driver is responsible for the following operations using the Freeflow runtim
 
 \item \textit{Application loading.} The driver will fetch and link in the Steve application.
 
-\item \textit{Configuration}. After loading, the driver will call the Steve application's \texttt{configure} function described in Table \ref{tbl:steve_api}. Steve will make requests for tables and initial flow entries using the Freeflow API. The Steve application will ask for a table with a certain ID number, maximum flow entry size, and key width. Freeflow will allocate such a table and return a handle to the table back to the Steve application. Once the handle is received, the Steve application will provide initial flow entries to be inserted into the table.
+\item \textit{Configuration}. The driver will call the Steve application's \texttt{configure} function described in Table \ref{tbl:steve_api}. Steve will make requests for tables and initial flow entries using the Freeflow API. The Steve application will ask for a table with a certain ID number, maximum flow entry size, and key width. Freeflow will allocate such a table and return a handle to the table back to the Steve application. Once the handle is received, the Steve application will provide initial flow entries to be inserted into the table.
 
 \item \textit{Ingress processing}. Drivers must perform the ingress processing phase described in Section \ref{ingress_desc}. The driver will handle receiving packets on ports and allocating the context data structures for them.
 

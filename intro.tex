@@ -12,6 +12,8 @@
 
 % FIXME: Use \emph to emphasize terms, not boldface.
 
+\section{Background of Software-Defined Networking}
+
 The Internet is nowadays ubiquitous with everyday life. In the last twenty
 years,
 the industry has rapidly evolved to incorporate all kinds of new Internet
@@ -62,7 +64,7 @@ Foundation (ONF) defines SDN as the ``separation of the network control
 plane from the forwarding [data] plane'' \cite{onf_sdn_def}.
 Either of these components may then be implemented in regular software.
 The goal of SDN architectures is to provide highly programmable, scalable, and 
-efficient network functions.
+efficient network functions in software. That way, a switch can change its behavior just by executing a different piece of software.
 
 Control planes implemented in software, also known as software \emph{controllers},  provide a number of benefits.
 They may be easily swapped out with a new software controller any time 
@@ -114,6 +116,8 @@ any header and field.
 This allows users to support their own protocols in addition to
 supporting well-known protocols. This makes the data plane scalable, that is, it
 can adapt to new headers easily.
+
+\section{Motivation: A Language for Programming SDN Devices}
 
 In order to pursue programmable SDN devices, there must be a language to write
 programs that process packets and define network functions. 
@@ -291,8 +295,8 @@ and network functions on SDN devices.
 It is protocol independent, architecture independent, strongly-typed,
 and declarative.
 
-Steve provides the abstract mechanisms for defining \emph{packet
-processing pipelines} -- the core component used by a data plane
+Steve provides the mechanisms for defining \emph{packet
+processing pipelines}, the core component used by a data plane
 to process packet content and make forwarding decisions.
 It also provides the ability to define \emph{event handlers} --
 control plane functions which process unexpected packets and

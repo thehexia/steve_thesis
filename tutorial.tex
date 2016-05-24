@@ -364,7 +364,7 @@ The following example presents a case where some of these limitations become rel
 \begin{codepage}
 \begin{lstlisting}
 layout ipv4 {
-  version_ihl : uint(8); // Non-byte aligned fields are merged.
+  version_ihl : uint(8); // Non-byte aligned fields are merged
   dscp_ecn    : uint(8); // This is merged, too.
   len         : uint(16);
   id          : uint(16);
@@ -537,7 +537,7 @@ decoder ipv4_d(ipv4) {
   
   var pktlen : uint = ipv4.len; // Variable assignment
   var ihl : uint(8) = ipv4.version_ihl & 0x0f; // Bitwise AND
-  var version : uint(8) = ipv4.version_ihl >> 4; // Right shift
+  var version : uint(8) = ipv4.version_ihl >> 4; // Shift
   // ...
 }
 \end{lstlisting}
@@ -568,7 +568,7 @@ decoder ipv4_d(ipv4) {
   if (ipv4.ttl == 0)
     drop;
   set ipv4.ttl = ipv4.ttl - 1; // Decrement time-to-live
-  // The ttl has changed, so a new checksum must be calculated.
+  // The ttl has changed. A new checksum must be calculated.
   set ipv4.checksum =
     ipv4_checksum(ipv4.version_ihl, ipv4.dscp_ecn, ipv4.len, 
                   ipv4.id, ipv4.fragment, ipv4.ttl, 
@@ -583,7 +583,7 @@ resulting checksum is compared against the current checksum using an \texttt{if}
 statement. If they do not compare equal, then the packet is dropped using the 
 \texttt{drop} action.
 
-Decrementing the time-to-live (\texttt{ipv4.ttl}) is another common operation. 
+Decrementing the time-to-live (\texttt{ipv4.ttl}) is also a common operation. 
 First the time-to-live is checked to see if it is \texttt{0}. If it is, then the 
 packet's lifetime has expired and it will be dropped. If the packet is still 
 valid, the field is decremented using simple subtraction and is set using the 
@@ -1402,7 +1402,7 @@ exact_table learn(ethernet.src) {
 
 The learning table is responsible for observing and learning which
 source MAC addresses map to which port interfaces.
-It will therefore match on \texttt{ethernet.src}. 
+It will thus match on \texttt{ethernet.src}. 
 
 To insert the necessary flow entries, the \texttt{learn} table raises an event
 called \texttt{learn\_mac}. The contents of this event will be presented a little later in this section.
@@ -1464,7 +1464,7 @@ table.
 The second inserted flow entry is where the application
 learns the new MAC address to port mapping.
 
-The \texttt{forward} table matches on \texttt{ethernet.dst}.
+Recall that the \texttt{forward} table matches on \texttt{ethernet.dst}.
 Here, the application inserts a flow entry with the \textit{current} packet's 
 \texttt{ethernet.src} value into \texttt{forward}.
 This means that all \textit{future} packets whose

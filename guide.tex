@@ -134,7 +134,7 @@ The field name refers to the \textit{last} extraction made with that field name.
 
 \subsection{Flow Scope} \label{guide:flow_scope}
 
-A name is said to be in \textit{flow entry scope} if its scope is within the \grd{flow}{body} of a \grd{flow}{declaration} (see \ref{guide:tables}). If a \grd{flow}{declaration} appears within a \grd{table}{initializer}, then all field names whose scope is that \grd{table}{initializer} are valid within the flow entry's body.
+A name is said to be in \textit{flow entry scope} if its scope is within the \grd{flow}{body} of a \grd{flow}{declaration} (see \ref{guide:tables}). If a \grd{flow}{declaration} appears within a \grd{table}{initializer}, then all field names whose scope is \grd{table}{initializer} are valid within the flow entry's body.
 
 If a flow entry is being inserted into a table using the \grd{insert}{action} (see \ref{guide:insert_flow}), then a flow declaration is implicitly generated representing that flow entry. The \grd{flow}{body} of that declaration is treated as if it were within that table's \grd{table}{initializer}. This ensures that the field names valid within that table are valid within the inserted flow entry's body.
 
@@ -704,7 +704,7 @@ The \grd{requires}{specifier} is optional. A field name here may also be a \grd{
 
 Names in \grdd{key}{declaration}{sequence} and \grd{requires}{specifier} are valid inside \grd{table}{initializer} based on table scope semantics (see \ref{guide:table_scope}).
 
-Each table has a set of \textit{flow entries} declared in Steve using a \grd{flow}{declaration} of the following form:
+Each table has a set of \textit{flow entries} declared in Steve using a flow declaration of the following form:
 
 \begin{minip}
 \begin{grammar}
@@ -785,7 +785,7 @@ event event1
 
 Event declarations are subject to meeting the \textit{requirements satisfaction} property (see \ref{guide:requirements}) of pipelines, even though they are not pipeline stages.
 
-The execution of an event handler may happen immediately or asynchronously. The behavior is runtime implementation specific. The user should have no expectations on the order of execution. 
+The execution of an event handler may be immediate or asynchronous. The behavior is runtime implementation specific. The user should have no expectations on the order of execution. 
 
 \section{Port Declaration} \label{guide:port}
 
@@ -800,7 +800,7 @@ A port declaration has the following form:
 \end{grammar}
 \end{minip}
 
-A port declaration may have an optional \grd{port}{initializer}. The \grd{port}{initializer} shall be a \grd{port}{expr} (see \ref{guide:port_expr}). If no initializer is given, the default is a port with identifier 0 (invalid port). Forwarding to the invalid port drops the packet.
+A port declaration may have an optional \grd{port}{initializer} that instantiates it with a port identifier. The \grd{port}{initializer} shall be a \grd{port}{expr} (see \ref{guide:port_expr}). If no initializer is given, the default is a port with identifier 0 (invalid port). Forwarding to the invalid port drops the packet.
 
 \section{Variable Declarations} \label{guide:variables}
 
@@ -836,7 +836,7 @@ A function \texttt{def F(P1 : T1, P2 : T2,..., Pn : Tn) -> T \{...\}} has functi
 
 The body of the function, given by \grd{block}{statement}, is the set of statements that get executed in order upon calling the function.
 
-There may be multiple declarations of a function with the same \grd{function}{name} if and only if:
+There may be multiple declarations of a function with the same name if and only if:
 
 \begin{itemize}
 \item Each function declaration has a different type.
@@ -933,11 +933,10 @@ A port expression is either an identifier which refers to a port declaration, or
 \end{grammar}
 \end{minip} 
 
-The \grdd{input}{port}{expression} shall evaluate to the port which the current packet entered the network on.
+An \grdd{input}{port}{expression} shall evaluate to the packet's ingress port.
+An \grddd{input}{physical}{port}{expression} shall evaluate to the packet's physical ingress port.
 
-The \grddd{input}{physical}{port}{expression} shall evaluate to the physical port which the current packet entered on.
-
-The \grdd{egress}{port}{expression} shall evaluate the egress port property set in a flow entry's properties block (see \ref{guide:tables}). It shall only occur in the body of a flow entry whose egress property has been set.
+An \grdd{egress}{port}{expression} shall evaluate the egress port property set in a flow entry's properties block (see \ref{guide:tables}). It shall only occur in the body of a flow entry whose egress property has been set.
 
 The \grdd{all}{port}{expression} shall evaluate to the all port. The all port is a logical port which represents every port on the system.
 
@@ -1368,7 +1367,7 @@ A return statement returns a value from a function. It has the form:
 \end{grammar}
 \end{minip}
 
-Return statements may only appear within a function body. The \gr{expression} gets evaluated and a copy of its value is returned to the caller. The type of \gr{expression} shall be the same as the function's return type, or there shall exist a conversion sequence to the return type.
+Return statements may only appear within a function body. Executing a return statement shall evaluate \gr{expression} and a copy of its value is returned to the caller. The type of \gr{expression} shall be the same as the function's return type, or there shall exist a conversion sequence to the return type.
 
 \section{Actions} \label{guide:action}
 
@@ -1490,7 +1489,7 @@ Insert action will add a new flow entry into a table. They may also be used to u
 \end{grammar}
 \end{minip}
 
-When an insert action is executed, the flow entry given by \grd{flow}{declaration} is inserted into the table referred to by \grd{table}{id}. Each \grd{match}{field} given in \grdd{match}{field}{sequence} is evaluated. The number and type of each \grd{match}{field} must match the number and type of each \grd{key}{field} in the table. Type conversions may be applied to the types to make them match. 
+The flow entry represented by the \grd{flow}{declaration} is inserted into the table referred to by \grd{table}{id}. Each \grd{match}{field} in \grdd{match}{field}{sequence} is evaluated. The number and type of each \grd{match}{field} must match the number and type of each \grd{key}{field} in the table. Type conversions may be applied to the types to make them match. 
 
 If a flow entry already in that table has the same match fields as the flow entry being inserted, then the prior one is replaced with the new one. All properties of the old flow entry are replaced with the properties of the inserted flow entry. If no properties are given in the inserted flow entry, the properties are the default values (no timeout and no egress port).
 
@@ -1507,7 +1506,7 @@ A remove action will remove an existing flow entry from a table. They have the f
 \end{grammar}
 \end{minip}
 
-When a remove action is executed, each \grd{match}{field} in \grdd{match}{field}{sequence} is evaluated. The table referred to by \gr{table}{id} is searched for all flow entries whose \grd{match}{field}{sequence} is the same. All flow entries found are removed from the table. If none are found, nothing is done.
+Each \grd{match}{field} in \grdd{match}{field}{sequence} is evaluated. The table referred to by \grd{table}{id} is searched for all flow entries with the same match fields. All flow entries found are removed from the table. If none are found, nothing is done.
 
 Miss case flow entries may also be removed from a table. Miss case removal has the form: 
 

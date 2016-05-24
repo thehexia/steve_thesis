@@ -40,10 +40,10 @@ Three measures of performance are used. First, the amount of data processed per 
 \begin{table}
 \caption{Performance metrics after sending 1000 iterations of the smallFlows pcap sample through each application.}
 \begin{center}
-\begin{tabularx}{\linewidth}{| c || c | c | c | }
+\begin{tabularx}{0.9\textwidth}{| c || c | c | c |}
 \hline
 % header row
-Application & Data Rate (Gbps) & Throughput (Gbps) & Processing Speed (Mpps)  \\
+Application & Data Rate (Gbps) & Throughput (Gbps) & Packet Rate (Mpps)  \\
 \hline
 MAC Learning & 10.10 & 10.10 & 1.95  \\
 \hline
@@ -53,7 +53,7 @@ Wire* & 16.36 & 16.36 & 3.17 \\
 \hline
 Firewall & 8.82 & 0.97 & 1.71 \\
 \hline
-\multicolumn{4}{p{\linewidth}}{* Two dummy packets are sent from both ports on the wire to ensure the application learns those ports before processing packets.}
+\multicolumn{4}{p{0.9\textwidth}}{* Two dummy packets are sent from both ports on the wire to ensure the application learns those ports before processing packets.}
 \end{tabularx}
 \end{center}
 \label{tbl:pcap1_stats}
@@ -70,9 +70,9 @@ The most interesting thing to note from Table \ref{tbl:pcap1_stats} is that the 
 \begin{table}
 \caption{Performance metrics after sending 20 iterations of the bigFlows pcap sample through each application.}
 \begin{center}
-\begin{tabularx}{\linewidth}{| c || c | c | c | }
+\begin{tabularx}{0.9\textwidth}{| c || c | c | c | }
 \hline
-Application & Data Rate (Gbps) & Throughput (Gbps) & Processing Speed (Mpps)  \\
+Application & Data Rate (Gbps) & Throughput (Gbps) & Packet Rate (Mpps)  \\
 \hline
 MAC Learning & 6.89 & 6.89 & 1.91  \\
 \hline
@@ -82,7 +82,7 @@ Wire* & 11.42 & 11.42 & 3.18 \\
 \hline
 Firewall & 6.27 & 1.35 & 1.75 \\
 \hline
-\multicolumn{4}{p{\linewidth}}{* Two dummy packets are sent from both ports on the wire to ensure the application learns those ports before processing packets.}
+\multicolumn{4}{p{0.9\textwidth}}{* Two dummy packets are sent from both ports on the wire to ensure the application learns those ports before processing packets.}
 \end{tabularx}
 \end{center}
 \label{tbl:pcap2_stats}
@@ -102,7 +102,7 @@ That is not to say that the size of the packet has no affect. The amount of time
 \begin{center}
 \begin{tabularx}{\linewidth}{| c || c | c | c | }
 \hline
-Application & data rate (Gbps) & Throughput (Gbps) & Processing Speed (Mpps) \\
+Application & data rate (Gbps) & Throughput (Gbps) & Packet Rate (Mpps) \\
 \hline
 MAC Learning & 1.28 & 1.28 & 2.11  \\
 \hline
