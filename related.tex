@@ -177,9 +177,11 @@ for a programmer count field offsets manually.
 However, Steve's abstract pipeline model is closer to POF's.
 Steve decoders are placed between tables so fields are only decoded
 as needed. This is similar to how POF tables extract their own fields.
-Similarly, Steve uses POF's search key format for representing extracted fields, but the compiler generates the keys rather than the programmer.
+Similarly, Steve uses POF's search key format for representing extracted fields, but the compiler generates the keys rather than the programmer. Steve adopts the POF decoding model.
 The benefit of POF's decoding model is full control over what is or is not
-extracted. P4 extracts all header fields up-front, which is wastes 
+extracted. 
+That is, it allows the programmer to only decode a subset of fields within the header.
+P4, on the other hand, extracts all header fields up-front, which is wastes 
 valuable processing time if those fields are not needed.
 
 
