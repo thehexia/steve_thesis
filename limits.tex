@@ -53,10 +53,17 @@ progress property holds true because there are a finite number of nodes in the g
 
 \subsection{Requirements Satisfaction} \label{guide:requirements}
 
-\textit{Requirement Satisfaction} ensures that field access can only be done on fields that have first been extracted by a decoder. This prevents accidental access of fields that have not been discovered or that do not exist. The Steve compiler enforces this
+\textit{Requirement Satisfaction} ensures that field access can only be done on fields that have first been extracted by a decoder. This prevents accidental access of fields that have not been discovered or that do not exist. For example, consider the pipeline graph in Figure \ref{fig:bad_graph} which demonstrates an ill-formed pipeline where a field is required but not extracted.
+
+\begin{figure}[ht]
+\includegraphics[width=0.85\textwidth]{bad_graph}
+\caption{An ill-formed pipeline. Table \texttt{T1} requires fields A, B, and C. However, in the path from \texttt{D1} to \texttt{D2} to \texttt{T1}, field C has not been extracted.}
+\label{fig:bad_graph}
+\end{figure}
+
+The Steve compiler enforces this
 property rather than asking the Steve programmer to check for it.
 It avoids runtime checks and reduces the opportunity for programmer error.
-
 To enforce this property, 
 every node in a pipeline graph is associated with a set of \textit{productions} and \textit{requirements}.
 
@@ -168,7 +175,7 @@ The only language which actually supports user-defined DSTs, Rust, only allows i
 very limited circumstance \cite{rust_dst_std}.
 
 Allocating a single object of dynamically-sized type on the stack is not actually a difficult thing to achieve. 
-It is done by allocating memory by modifying the stack pointer using
+It is done by allocating memory by modifying the stack pointer using the intrinsic
 \texttt{alloca}. 
 Allocating DSTs on the heap is, of course, what dynamic allocation was made for, but
 it is also expensive nor does it help when reinterpreting existing packet memory.
@@ -192,9 +199,7 @@ The \texttt{options} member has a length predicated on the value
 of another member in the object. In order to produce an object of type \texttt{Ipv4},
 first the memory for the object must be allocated. Then the value of \texttt{ihl}
 has to be evaluated. Then the memory for that object has to be \emph{extended}
-using \texttt{alloca}. This is possible because \texttt{options} is the last member in the class. Though tricky, this is still possible. This is
-roughly what the Rust programming language allows.
-
+using \texttt{alloca}. This is possible because \texttt{options} is the last member in the class. Though tricky, this is still possible and roughly what the Rust does.
 However, now consider what happens when the DST member is \emph{not} at the end
 of the class, but rather the middle. For example:
 
@@ -291,12 +296,8 @@ A decoder is only ever looking at one header of a packet at once. Using an extra
 
 \begin{minip}
 \begin{lstlisting}
-decoder d1(L1) {
-	var x : int = 0; 	
-	while (x < 5) {
-		extract L1.f1;
-	}
-}
+while (x < 5)
+	extract L1.f1;
 \end{lstlisting}
 \end{minip}
 
@@ -312,7 +313,6 @@ More commonly it is used to rename fields so that they may be reinterpreted as o
 frame has a VLAN tag. The ethertype field of the VLAN tag is what 
 actually informs the switch what Layer 3 protocol is encapsulated
 by Ethernet. 
-
 To write a rebind, a rebind declaration (\ref{guide:rebind}) is used.
 So for example:
 
@@ -328,7 +328,11 @@ layout vlan {
   tci : uint(16);
   ethertype : uint(16);
 }
+\end{lstlisting}
+\end{codepage}
 
+\begin{codepage}
+\begin{lstlisting}
 decoder start eth_d(ethernet) {
 	extract ethernet.type;
 	match(ethernet.type) {
@@ -364,12 +368,6 @@ Assume that \texttt{vlan.ethertype} has a value of \texttt{0x86dd}.
 When \texttt{vlan\_d} sends the packet to \texttt{ethtable}, it will
 match the flow entry whose match field is \texttt{0x86dd}. Because of
 the rebind \texttt{ethernet.type} refers to the extracted \texttt{vlan.ethertype}.
-
-\subsection{Byte Ordering}
-
-Steve applications automatically convert fields from network byte order
-to the native order of the machine used to compile the application.
-It should be noted that this conversion is applied consistently across all kinds of fields. If the field was not in network byte order, this may actually produce unexpected results.
 
 %The extractions which \texttt{N1} can refer to are a subset of the extractions \texttt{N2} can refer to. The aliased name naturally can refer to extractions which are from a different kind of field than the original name. To demonstrate this, the following revision is made to the prior example:
 %

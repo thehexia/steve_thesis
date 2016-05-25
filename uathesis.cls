@@ -216,7 +216,7 @@
            }
 
 %% Signature Page
- 
+
 \newcommand{\@uasigline}[2]{%
   \parbox[t]{\linewidth}{%
     \renewcommand{\baselinestretch}{1.00}\large\normalsize\vspace{3.00em}%
@@ -627,7 +627,7 @@
   \else
     \clearpage
   \fi
-  \pagestyle{thesis}% 
+  \pagestyle{thesis}%
   \global\@topnum\z@%
   \@afterindentfalse%
   \secdef\@chapter\@schapter}
@@ -748,4 +748,3 @@
 \pagestyle{emthesis}
 
 \endinput
-

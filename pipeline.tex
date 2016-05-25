@@ -398,6 +398,12 @@ preparation for the next decoder. Once the next decoder is reached, its view is
 already on the header it decodes.
 This process continues until all decoders are finished.
 
+\subsection{Byte Ordering}
+
+Steve applications automatically convert fields from network byte order
+to the native order of the machine used to compile the application.
+It should be noted that this conversion is applied consistently across all kinds of fields. If the field was not in network byte order, this may actually produce unexpected results
+
 \subsection{Partial and Full Decodes}
 
 Steve provides full control over which fields get decoded
@@ -456,9 +462,9 @@ destination port.}
 % beginning of flows.
 1 & 10.1.1.0 & 80 & Set IP Dest. equal to 192.168.1.30. Output to port 1. \\
 \hline
-1 & 192.168.1.31 & 23 & Drop packet. \\
+1 & 192.168.1.31 & 23 & Output port 2. \\
 \hline
-1 & 192.168.1.32 & 443 & Output port 2. \\
+0 & \multicolumn{2}{|c|}{Miss case} & Drop packet. \\
 \hline
 ... & ... & ... & ... \\
 \hline

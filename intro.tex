@@ -19,101 +19,120 @@ services:
 cloud services, web services, Internet of Things, etc. As the world grows
 more reliant on services provided over a network, so must the network evolve.
 
-Modern routers and switches provide the backbone for the Internet.
-These modern devices implement two fundamental components in their firmware: the
-\emph{data plane} and the \emph{control plane}. A control plane can be thought of as the brains of a network device, whereas the
-data plane is the brawn.
+The backbone of all networks is the \emph{switch}. The term switch here is not used to specifically mean a Layer 2 forwarding device. but rather to mean any device capable of making forwarding decisions across multiple layers of the OSI stack \cite{osi_model}. The term switch thus incorporates bridges, routers, content switches, etc.
+Unfortunately, modern switches suffer from a number of issues which make them difficult to use with evolving technologies.
 
-The data plane is responsible for processing packet content and and moving them across the right ports.
-It makes fast forwarding decisions by using lookup tables to determine
-where a packet is sent. When it does
-not know how to handle a packet, it sends it to the control plane.
+Switches are rigid both in firmware and in hardware.
+They cannot be easily, if ever, reconfigured to meet new needs.
+A device that was built to be a router will likely always be a router. If it did not support load or content balancing to start with, it likely never will due to hardware limitations.
+There is a strong desire in the industry to have switching hardware which can be easily reconfigured or reprogrammed to meet new, arbitrary needs.
 
-A control plane manages its data plane.
-It is responsible for installing forwarding logic for a network device and is
-capable of learning new forwarding behaviors in response to unexpected packets.
-It does this by modifying the lookup tables used by the data plane.
-Together, the control and data plane implement \emph{network functions}, i.e.
-switching, NAT, firewall, etc.
+This inflexibility prevents network applications . 
+%Intelligence implies that a machine or program is capable of performing a myriad of general purpose computations which one might find on normal CPU. 
+%Consider a router for example. These machines are said to be intelligent because of the algorithms they use to route traffic across multiple networks. They may even support intelligent load and content balancing. But are they really intelligent compared to what modern computers are capable of? 
+%
+%Of course not. Modern devices use specialized hardware to process network traffic at maximum speeds, but as a trade-off, they lose the ability to perform general purpose computation that would support implementing intelligent network functions. Why is this so important?
+%
+%Network traffic can carry data which is completely inaccessible to many modern switches because they are incapable of processing everything. Consider how powerful it would be if any application could be installed on a network switch.
 
-This model continues to be the most popular for switch development.
-However,
-this conventional type of networking has become too rigid, unscalable, and
-proprietary to support evolving technologies. 
 
-Defining network functionality in firmware is inherently inflexible.
-Firmware is architecture-dependent, difficult to write, and challenging to
-update
-regularly.
-Conventional switches are unscalable because they must deal with most or all
-common protocol headers.
-With dozens of common protocols now, and potentially dozens more in the future,
-it becomes evident that this model cannot last forever.
-Additionally, many devices are black boxes,
-only exposing an interface designed by the vendor,
-making them difficult to customize for enterprises with special needs.
-By extension, these black box devices force any network functions
-defined over them to be extremely architecture dependent.
-Due to these issues and others, a new paradigm for networking was created. 
 
-This new paradigm
-is called \textit{software-defined networking} (SDN). The Open Network
-Foundation (ONF) defines SDN as the ``separation of the network control
-plane from the forwarding [data] plane'' \cite{onf_sdn_def}.
-Either of these components may then be implemented in regular software.
-The goal of SDN architectures is to provide highly programmable, scalable, and 
-efficient network functions in software. That way, a switch can change its behavior just by executing a different piece of software.
 
-The control plane is implemented in regular software with a program called a \emph{controller} which provides several benefits.
-They may be easily swapped out with a new software controller any time 
-the behavior of the networking device must change.
-It is also easier to write other software applications that interface with the controller.
-One of the more interesting differences is that
-the software controller may be run on any machine, completely separate from its data plane.
-It may then perform distributed control over multiple data planes by communicating via network messages.
-The most widely adopted standard for this communication is OpenFlow
-\cite{openflow_spec}.
-Because the software controller may be run on any machine,
-any programmer can write regular software for common operating
-systems and processors to control the behavior of their networking device.
-
-The software control plane is only the first step. The next
-step is the \emph{programmable data plane} which may be implemented
-in either specialized hardware or software. 
-A programmable data plane provides
-two key benefits that the software control plane cannot: low-latency,
-customizable packet processing and \emph{protocol independence}.
-
-%In the control and data plane relationship,
-%the control plane is smart but slow, while the data plane is fast yet dumb.
-%That is,
-%the control plane can perform general purpose computing but communicating with
-%it has high latency. The data plane, on the other hand, is the fast path for
-%packet processing.
-%It has very limited computing power, but can process packets at a low latency.
-%As programmable data planes evolve and support more flexible instruction sets,
-%communicating with the control plane becomes less necessary.
-
-The software control plane supports general purpose computing using heavyweight
-processors. However, general purpose computing is slow and communicating
-with the control plane over a network using messages is even slower.
-Data planes, on the other hand, can process packets incredibly fast since
-they are designed for this single role, but do not necessarily support
-the full range of general purpose operations.
-If data planes could support more kinds of computation, then they can rely less
-on
-slow control planes, and delegate only under the more extreme circumstances.
-
-Protocol independence means that a networking device is not required, by default, to support
-a suite of well-known protocols (ethernet, IPv4, TCP, etc).
-Rather than relying on specialized hardware or firmware tailored towards
-parsing/decoding
-these protocols, the data plane supports processors
-and generic instructions that can be used to decode and operate on
-any header and field.
-This allows users to support their own protocols in addition to
-supporting well-known protocols. This makes the data plane scalable, that is, it
-can adapt to new headers easily.
+%Modern routers and switches provide the backbone for the Internet.
+%These modern devices implement two fundamental components in their firmware: the
+%\emph{data plane} and the \emph{control plane}. A control plane can be thought of as the brains of a network device, whereas the
+%data plane is the brawn.
+%
+%The data plane is responsible for processing packet content and and moving them across the right ports.
+%It makes fast forwarding decisions by using lookup tables to determine
+%where a packet is sent. When it does
+%not know how to handle a packet, it sends it to the control plane.
+%
+%A control plane manages its data plane.
+%It is responsible for installing forwarding logic for a network device and is
+%capable of learning new forwarding behaviors in response to unexpected packets.
+%It does this by modifying the lookup tables used by the data plane.
+%Together, the control and data plane implement \emph{network functions}, i.e.
+%switching, NAT, firewall, etc.
+%
+%This model continues to be the most popular for switch development.
+%However,
+%this conventional type of networking has become too rigid, unscalable, and
+%proprietary to support evolving technologies. 
+%
+%Defining network functionality in firmware is inherently inflexible.
+%Firmware is architecture-dependent, difficult to write, and challenging to
+%update
+%regularly.
+%Conventional switches are unscalable because they must deal with most or all
+%common protocol headers.
+%With dozens of common protocols now, and potentially dozens more in the future,
+%it becomes evident that this model cannot last forever.
+%Additionally, many devices are black boxes,
+%only exposing an interface designed by the vendor,
+%making them difficult to customize for enterprises with special needs.
+%By extension, these black box devices force any network functions
+%defined over them to be extremely architecture dependent.
+%Due to these issues and others, a new paradigm for networking was created. 
+%
+%This new paradigm
+%is called \textit{software-defined networking} (SDN). The Open Network
+%Foundation (ONF) defines SDN as the ``separation of the network control
+%plane from the forwarding [data] plane'' \cite{onf_sdn_def}.
+%Either of these components may then be implemented in regular software.
+%The goal of SDN architectures is to provide highly programmable, scalable, and 
+%efficient network functions in software. That way, a switch can change its behavior just by executing a different piece of software.
+%
+%The control plane is implemented in regular software with a program called a \emph{controller} which provides several benefits.
+%They may be easily swapped out with a new software controller any time 
+%the behavior of the networking device must change.
+%It is also easier to write other software applications that interface with the controller.
+%One of the more interesting differences is that
+%the software controller may be run on any machine, completely separate from its data plane.
+%It may then perform distributed control over multiple data planes by communicating via network messages.
+%The most widely adopted standard for this communication is OpenFlow
+%\cite{openflow_spec}.
+%Because the software controller may be run on any machine,
+%any programmer can write regular software for common operating
+%systems and processors to control the behavior of their networking device.
+%
+%The software control plane is only the first step. The next
+%step is the \emph{programmable data plane} which may be implemented
+%in either specialized hardware or software. 
+%A programmable data plane provides
+%two key benefits that the software control plane cannot: low-latency,
+%customizable packet processing and \emph{protocol independence}.
+%
+%%In the control and data plane relationship,
+%%the control plane is smart but slow, while the data plane is fast yet dumb.
+%%That is,
+%%the control plane can perform general purpose computing but communicating with
+%%it has high latency. The data plane, on the other hand, is the fast path for
+%%packet processing.
+%%It has very limited computing power, but can process packets at a low latency.
+%%As programmable data planes evolve and support more flexible instruction sets,
+%%communicating with the control plane becomes less necessary.
+%
+%The software control plane supports general purpose computing using heavyweight
+%processors. However, general purpose computing is slow and communicating
+%with the control plane over a network using messages is even slower.
+%Data planes, on the other hand, can process packets incredibly fast since
+%they are designed for this single role, but do not necessarily support
+%the full range of general purpose operations.
+%If data planes could support more kinds of computation, then they can rely less
+%on
+%slow control planes, and delegate only under the more extreme circumstances.
+%
+%Protocol independence means that a networking device is not required, by default, to support
+%a suite of well-known protocols (ethernet, IPv4, TCP, etc).
+%Rather than relying on specialized hardware or firmware tailored towards
+%parsing/decoding
+%these protocols, the data plane supports processors
+%and generic instructions that can be used to decode and operate on
+%any header and field.
+%This allows users to support their own protocols in addition to
+%supporting well-known protocols. This makes the data plane scalable, that is, it
+%can adapt to new headers easily.
 
 \section{Motivation: A Language for Programming SDN Devices}
 
@@ -123,33 +142,12 @@ A number of language solutions arise here.
 Some attempt to solve this problem by providing APIs for existing programming
 languages (specifically C).
 Others attempt to produce domain-specific languages (DSLs) for SDN devices.
+
 The focus of this thesis is one such DSL, \emph{Steve}, a language for the safe
 and
 efficient specification of packet processing and network functions 
-for programmable SDN switches. 
-
-
-% Packet processing and forwarding logic is usually performed using an abstract
-% model known as a \emph{packet processing pipeline} which is a generalization
-%of
-% the pipeline model described by OpenFlow \cite{openflow_spec}.
-%
-% The programmer can customize a switch with customized packet processing
-% applications and forwarding rules. Typically, this is done through an abstract
-% model called a \textit{packet processing pipeline}.
-% The pipeline makes decisions, performs operations, and applies forwarding
-%rules on packets.
-%
-% Forwarding rules can handle any header and can be user-defined. It opens the
-%way
-% to networking applications made for custom protocols and forwarding behaviors.
-% By changing the program which drives the packet processing pipeline, the user
-% can \textit{change the device's behavior without changing the device's
-% hardware}. The same device can go from being a repeating hub to a MAC learning
-% switch to a router just by running a different program on it.
-
-
-\section{Motivation: Issues with Low-level Languages}
+for programmable SDN switches. DSL provide one key benefit that low-level
+languages cannot: safety.
 
 A network program must be safe to execute more than anything else.
 Network programs, especially those running on high-traffic devices, must not
@@ -288,7 +286,7 @@ device.
 \section{The Steve Programming Language}
 
 The Steve programming language was designed to solve the problem of safe and efficient programming of SDN devices.
-Steve is used for writing packet processing applications
+Steve is used for writing applications that define packet processing
 and network functions on SDN devices.
 It is protocol independent, architecture independent, strongly-typed,
 and declarative.
@@ -490,7 +488,7 @@ the application. This would be future work.
 
 \section{Contribution: Modules For Freeflow Switches}
 
-In order to confirm that our system works, the Steve compiler builds modules (dynamic link libraries (DLL))
+In order to validate that our language abstractions work, the Steve compiler builds modules (dynamic link libraries (DLL))
 loaded by the Freeflow virtual machine (FFVM). The compiler currently targets an x86 architecture,
 but can be adapted to target other platforms as well.
 
@@ -515,32 +513,23 @@ works in the field of SDN and SDN programming languages. It also provides a
 background into SDN and the different approaches Steve takes to other languages
 of its kind.
 
-Chapter \ref{ch:pipeline_model} describes the components of Steve programs
-and pipelines. It provides many of the abstract concepts a programmer must
-understand about packet processing before they can begin writing a Steve
-program.
+Chapter \ref{ch:pipeline_model} describes the components of Steve abstract machine. It explains the abstract model for packet processing pipelines and event handling.
 
-Once a programmer understands the fundamentals of the pipeline processing model,
-they may begin with the Steve tutorial in Chapter \ref{ch:tutorial}.
-This tutorial explains how to write network applications using the
-Steve programming language. Sample networking applications are also presented in
+Chapter \ref{ch:tutorial} describes the Steve programming language and how it is used to writing network functions.
+Sample networking applications are also presented in
 this chapter. These same samples are presented again in Appendix
 \ref{ap:steve_programs}.
 
-Chapter \ref{ch:limits} elaborates on pipeline guarantees and how they are enforced
+Chapter \ref{ch:limits} elaborates on pipeline safety guarantees and how they are enforced
 as well as providing the proofs. It also provides explanations about other 
 limitations of the language and why they exist.
 
-Chapter \ref{ch:users_guide} serves as a reference
+Appendix \ref{ch:users_guide} serves as a reference
 manual which includes semantic, grammar, and typing rules for the language.
 This reference manual may be helpful to refer to when confused about a
 Steve code example.
-It is not to be read as a typical chapter. Instead, one should 
-treat it like an annotated appendix.
 
-Chapter \ref{ch:flowpath} describes how Steve and its runtime environment,
-Freeflow,
-interact with each other and the underlying hardware system.
+Chapter \ref{ch:flowpath} describes the interface which must be exposed by the switch or software running the switch. To validate this approach, this chapter also summarizes Freeflow, a virtual data plane which exposes this interface to Steve \cite{freeflow_software}. It also describes the interface which a Steve application exposes to the switch.
 
 Chapter \ref{ch:experiments} provides experiments using sample Steve
 applications. Pcap files are run through Steve applications to measure the data
@@ -548,6 +537,3 @@ rate and raw packet rate that each application is capable of running at on a
 Linux machine.
 
 Chapter \ref{ch:conclusion} details future work for Steve and provides concluding remarks about the project.
-
-
-
