@@ -20,14 +20,75 @@ cloud services, web services, Internet of Things, etc. As the world grows
 more reliant on services provided over a network, so must the network evolve.
 
 The backbone of all networks is the \emph{switch}. The term switch here is not used to specifically mean a Layer 2 forwarding device. but rather to mean any device capable of making forwarding decisions across multiple layers of the OSI stack \cite{osi_model}. The term switch thus incorporates bridges, routers, content switches, etc.
-Unfortunately, modern switches suffer from a number of issues which make them difficult to use with evolving technologies.
+Unfortunately, modern switches suffer from a number of issues which make them difficult to use in an industry where networks are so essential.
 
-Switches are rigid both in firmware and in hardware.
-They cannot be easily, if ever, reconfigured to meet new needs.
-A device that was built to be a router will likely always be a router. If it did not support load or content balancing to start with, it likely never will due to hardware limitations.
-There is a strong desire in the industry to have switching hardware which can be easily reconfigured or reprogrammed to meet new, arbitrary needs.
+Conventional switches are complex and unscalable because many of these devices are designed to deal only with very specific sets of well-known protocols and use cases. A router, for example, may be reconfigured with new forwarding rules, but it will never be anything other than a router. The behavior simply cannot change, making these devices very rigid.
+Though these devices can be reconfigured, network administrators are often forced to do so through clunky command line interfaces. Additionally, because they may only be reconfigured within a limited use case, they cannot easily adapt to dynamic changes in network traffic and load.
 
-This inflexibility prevents network applications . 
+In order to bypass this inflexibility, it must be possible to implement network functions (routing, firewalls, NAT, etc) through intelligent networking applications written in software.
+These intelligent applications must be capable of automatically adapting to changing network conditions by modifying switch behavior to optimize forwarding decisions, throughput, resource consumption, etc.
+There must also exist a switch which is capable of installing and running this software.
+There is a strong desire in the industry to have such switches to meet constantly changing needs in ways that a network administrator could not.
+
+This is the promise of \emph{software-defined networking} (SDN). 
+SDN modifies two major elements of a conventional network switch: the data plane and the control plane. The \emph{data plane}, sometimes called the \emph{forwarding plane}, is the element which is responsible for forwarding packets between ports on the device. The control plane is the element which learns and configures the forwarding logic used by the data plane. It is also capable of processing packets which the data plane cannot.
+
+The Open Network
+Foundation (ONF) defines SDN as the ``separation of the network control
+plane from the forwarding [data] plane'' \cite{onf_sdn_def}.
+Either of these components may then be implemented in regular software.
+The goal of SDN architectures is to provide highly programmable, scalable, and 
+efficient network functions in software.
+
+The conventional control plane is replaced by a software application known as a \emph{controller} (software control plane).
+This controller then serves as the intelligent network application which manages the switch's behavior. Alternatively, it may serve as an interface so that multiple network applications may manage the switch.
+One of the more interesting differences is that
+the software controller may be run on any machine, completely separate from its data plane.
+It may then perform distributed control over multiple data planes by communicating via network messages.
+The most widely adopted standard for this communication is OpenFlow
+\cite{openflow_spec}.
+Because the software controller may be run on any machine,
+any programmer can write regular software for common operating
+systems and processors to control the behavior of their networking device.
+
+The software control plane is only the first step. The next
+step is the \emph{programmable data plane} which may be implemented
+in either specialized hardware or software. 
+A programmable data plane provides
+two key benefits that the software control plane cannot: low-latency,
+customizable packet processing and \emph{protocol independence}.
+
+%In the control and data plane relationship,
+%the control plane is smart but slow, while the data plane is fast yet dumb.
+%That is,
+%the control plane can perform general purpose computing but communicating with
+%it has high latency. The data plane, on the other hand, is the fast path for
+%packet processing.
+%It has very limited computing power, but can process packets at a low latency.
+%As programmable data planes evolve and support more flexible instruction sets,
+%communicating with the control plane becomes less necessary.
+
+The software control plane supports general purpose computing using heavyweight
+processors. However, general purpose computing is slow and communicating
+with the control plane over a network using messages is even slower.
+Data planes, on the other hand, can process packets incredibly fast since
+they are designed for this single role, but do not necessarily support
+the full range of general purpose operations.
+If data planes could support more kinds of computation, then they can rely less
+on
+slow control planes, and delegate only under the more extreme circumstances.
+
+Protocol independence means that a networking device is not required, by default, to support
+a suite of well-known protocols (ethernet, IPv4, TCP, etc).
+Rather than relying on specialized hardware or firmware tailored towards
+parsing/decoding
+these protocols, the data plane supports processors
+and generic instructions that can be used to decode and operate on
+any header and field.
+This allows users to support their own protocols in addition to
+supporting well-known protocols. This makes the data plane scalable, that is, it
+can adapt to new headers easily.
+
 %Intelligence implies that a machine or program is capable of performing a myriad of general purpose computations which one might find on normal CPU. 
 %Consider a router for example. These machines are said to be intelligent because of the algorithms they use to route traffic across multiple networks. They may even support intelligent load and content balancing. But are they really intelligent compared to what modern computers are capable of? 
 %
@@ -76,63 +137,7 @@ This inflexibility prevents network applications .
 %Due to these issues and others, a new paradigm for networking was created. 
 %
 %This new paradigm
-%is called \textit{software-defined networking} (SDN). The Open Network
-%Foundation (ONF) defines SDN as the ``separation of the network control
-%plane from the forwarding [data] plane'' \cite{onf_sdn_def}.
-%Either of these components may then be implemented in regular software.
-%The goal of SDN architectures is to provide highly programmable, scalable, and 
-%efficient network functions in software. That way, a switch can change its behavior just by executing a different piece of software.
-%
-%The control plane is implemented in regular software with a program called a \emph{controller} which provides several benefits.
-%They may be easily swapped out with a new software controller any time 
-%the behavior of the networking device must change.
-%It is also easier to write other software applications that interface with the controller.
-%One of the more interesting differences is that
-%the software controller may be run on any machine, completely separate from its data plane.
-%It may then perform distributed control over multiple data planes by communicating via network messages.
-%The most widely adopted standard for this communication is OpenFlow
-%\cite{openflow_spec}.
-%Because the software controller may be run on any machine,
-%any programmer can write regular software for common operating
-%systems and processors to control the behavior of their networking device.
-%
-%The software control plane is only the first step. The next
-%step is the \emph{programmable data plane} which may be implemented
-%in either specialized hardware or software. 
-%A programmable data plane provides
-%two key benefits that the software control plane cannot: low-latency,
-%customizable packet processing and \emph{protocol independence}.
-%
-%%In the control and data plane relationship,
-%%the control plane is smart but slow, while the data plane is fast yet dumb.
-%%That is,
-%%the control plane can perform general purpose computing but communicating with
-%%it has high latency. The data plane, on the other hand, is the fast path for
-%%packet processing.
-%%It has very limited computing power, but can process packets at a low latency.
-%%As programmable data planes evolve and support more flexible instruction sets,
-%%communicating with the control plane becomes less necessary.
-%
-%The software control plane supports general purpose computing using heavyweight
-%processors. However, general purpose computing is slow and communicating
-%with the control plane over a network using messages is even slower.
-%Data planes, on the other hand, can process packets incredibly fast since
-%they are designed for this single role, but do not necessarily support
-%the full range of general purpose operations.
-%If data planes could support more kinds of computation, then they can rely less
-%on
-%slow control planes, and delegate only under the more extreme circumstances.
-%
-%Protocol independence means that a networking device is not required, by default, to support
-%a suite of well-known protocols (ethernet, IPv4, TCP, etc).
-%Rather than relying on specialized hardware or firmware tailored towards
-%parsing/decoding
-%these protocols, the data plane supports processors
-%and generic instructions that can be used to decode and operate on
-%any header and field.
-%This allows users to support their own protocols in addition to
-%supporting well-known protocols. This makes the data plane scalable, that is, it
-%can adapt to new headers easily.
+%is called \textit{software-defined networking} (SDN). 
 
 \section{Motivation: A Language for Programming SDN Devices}
 
