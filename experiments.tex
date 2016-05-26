@@ -1,6 +1,6 @@
 \chapter{Experiments} \label{ch:experiments}
 
-This chapter summarizes performance experiments performed on compiled Steve applications. These experiments were performed using \textit{Fakeflow}, a Freeflow data plane emulator. Fakeflow is largely equivalent to a single-threaded implementation of Freeflow with the exception of ports. Fakeflow removes the overhead of sending and receiving from ports. Instead, Fakeflow reads packets from pcap files to emulate receiving from ports and forwarded packets do not get sent anywhere (equivalent to simply dropping the packet).
+In order to validate that Steve applications are not incredibly slow, performance experiments done on compiled Steve applications. These experiments were performed using \textit{Fakeflow}, a Freeflow data plane emulator. Fakeflow is largely equivalent to a single-threaded implementation of Freeflow with the exception of ports. Fakeflow removes the overhead of sending and receiving from ports. Instead, Fakeflow reads packets from pcap files to emulate receiving from ports and forwarded packets do not get sent anywhere (equivalent to simply dropping the packet). This approach is taken because the speed at which the virtual data plane outputs packets varies largely with implementation. The goal of this chapter is to focus only on the performance of the application.
 
 \section{Data Sets} \label{exp:use_cases}
 
@@ -30,28 +30,30 @@ The samples are relatively diverse, having varying packet sizes, packet count, a
 
 This section provides experimental performance results for four applications from Appendix \ref{ap:steve_programs}: the MAC learning switch, the IPv4 learning switch, the basic wire, and the basic packet filter/stateless firewall. The timeout property for flow entries in all examples were removed so flow entries last indefinitely. Tests were run on an Intel(R) Core(TM) i3-2130 CPU with a speed of 3.40GHz.
 
-The Freeflow emulator was configured to have a fixed number of ports. The ingress port for each packet was randomly assigned amongst these ports. There were five ports configured (except for the wire which naturally has two ports) for each experiment. Table \ref{tbl:pcap1_stats} through Table \ref{tbl:pcap3_stats} summarize the results of running the same pcap sample a certain number of iterations through each application. Packets are sent through the pipeline at maximum rate rather than at their original rate. Each experiment is repeated five times and the resulting average is given.
+The Freeflow emulator was configured to have a fixed number of ports. The ingress port for each packet was randomly assigned amongst these ports. For each experiment, there were five ingress ports (except for the wire which naturally has two ports). 
 
-Three measures of performance are used. First, the amount of data processed per second, known as \textit{data rate}, is given as gigabits per second (Gbps). Second, the amount of data forwarded per second, known as \textit{throughput}, is given as Gbps. Throughput is always less than or equal to data rate. Lastly, the amount of packets processed per second (ignoring the size of data in those packets), called \textit{packet processing rate}, is given in millions-of-packets-per-second (Mpps).
+Table \ref{tbl:pcap1_stats} through Table \ref{tbl:pcap3_stats} summarize the results of running the same pcap sample a certain number of iterations through each application. The number of iterations chosen for each sample are such that approximately 90 million packets of each sample are sent through each use case. Packets are sent through the pipeline at maximum rate rather than at their original rate. Each experiment is repeated five times and the resulting averages for each measure are given.
+
+Three measures of performance are used. First, the amount of data processed per second, known as \textit{data rate}, is given as gigabits per second (Gbps). Second, the amount of data (that would be) forwarded per second, known as \textit{throughput}, is given as Gbps. Throughput is always less than or equal to data rate. Lastly, the amount of packets processed per second (ignoring the size of data in those packets), called \textit{packet processing rate}, is given in millions-of-packets-per-second (Mpps).
 
 % % % % % % % % % %
 % smallFlows
 % % % % % % % % % %
 \begin{table}
-\caption{Performance metrics after sending 1000 iterations of the smallFlows pcap sample through each application.}
+\caption{Performance metrics after sending 6380 iterations of the smallFlows pcap sample through each application.}
 \begin{center}
 \begin{tabularx}{0.9\textwidth}{| c || c | c | c |}
 \hline
 % header row
 Application & Data Rate (Gbps) & Throughput (Gbps) & Packet Rate (Mpps)  \\
 \hline
-MAC Learning & 10.10 & 10.10 & 1.95  \\
+MAC Learning & 10.10 & 10.10 & 1.96  \\
 \hline
-IPv4 Learning & 7.99 & 7.99 & 1.55  \\
+IPv4 Learning & 8.15 & 8.15 & 1.58  \\
 \hline 
-Wire* & 16.36 & 16.36 & 3.17 \\
+Wire* & 16.41 & 16.41 & 3.17 \\
 \hline
-Firewall & 8.82 & 0.97 & 1.71 \\
+Firewall & 8.47 & 0.94 & 1.64 \\
 \hline
 \multicolumn{4}{p{0.9\textwidth}}{* Two dummy packets are sent from both ports on the wire to ensure the application learns those ports before processing packets.}
 \end{tabularx}
@@ -62,25 +64,25 @@ Firewall & 8.82 & 0.97 & 1.71 \\
 
 Table \ref{tbl:pcap1_stats} shows the performance of each application using Sample 1. Sample 1 has the largest average packet size. Results here are largely predictable. The wire application is fastest in terms of data rate, having no headers or fields to process. The MAC learning switch performs the next fastest, having to only process the ethernet header. The IPv4 learning application is naturally slower as it must process the ethernet and IPv4 headers.
 
-The most interesting thing to note from Table \ref{tbl:pcap1_stats} is that the firewall application, which is both an IPv4 switch and a packet filter, processes packets \textit{faster} than the IPv4 switch. However, the firewall's throughput is significantly lower. This is because packet's which do not match the filtering rules get prematurely dropped. This reduces the overall time the application spends learning (i.e. inserting flow entries) and forwarding. Learning is of course, the most expensive operation a pipeline can perform (see Table \ref{tbl:action_stats}).
+The most interesting thing to note from Table \ref{tbl:pcap1_stats} is that the firewall application, which is both an IPv4 switch and a packet filter, processes packets \textit{faster} than the IPv4 switch. However, the firewall's throughput is significantly lower. This is because packet's which do not match the filtering rules get dropped before learning and forwarding happens. Only approximately 83\% of packets in Sample 1 used port 80 or 443, so 17\% of packets get prematurely dropped. This reduces the overall time the firewall spends learning (i.e. inserting flow entries) compared to the IPv4 switch. Learning is of course, the most expensive operation a pipeline can perform (see Table \ref{tbl:action_stats}).
 
 % % % % % % % % % %
 % Big flows
 % % % % % % % % % %
 \begin{table}
-\caption{Performance metrics after sending 20 iterations of the bigFlows pcap sample through each application.}
+\caption{Performance metrics after sending 114 iterations of the bigFlows pcap sample through each application.}
 \begin{center}
 \begin{tabularx}{0.9\textwidth}{| c || c | c | c | }
 \hline
 Application & Data Rate (Gbps) & Throughput (Gbps) & Packet Rate (Mpps)  \\
 \hline
-MAC Learning & 6.89 & 6.89 & 1.91  \\
+MAC Learning & 7.07 & 7.07 & 1.97  \\
 \hline
-IPv4 Learning & 5.44 & 5.44 & 1.51  \\
+IPv4 Learning & 5.77 & 5.77 & 1.61  \\
 \hline 
-Wire* & 11.42 & 11.42 & 3.18 \\
+Wire* & 12.07 & 12.07 & 3.36 \\
 \hline
-Firewall & 6.27 & 1.35 & 1.75 \\
+Firewall & 6.29 & 1.35 & 1.75 \\
 \hline
 \multicolumn{4}{p{0.9\textwidth}}{* Two dummy packets are sent from both ports on the wire to ensure the application learns those ports before processing packets.}
 \end{tabularx}
@@ -88,11 +90,22 @@ Firewall & 6.27 & 1.35 & 1.75 \\
 \label{tbl:pcap2_stats}
 \end{table}
 
-Table \ref{tbl:pcap2_stats}, which uses Sample 2, largely shows the same patterns. One thing to note is the amount of \textit{data} processed per second is \textit{lower}, yet the difference in \textit{packets} processed per second negligible when compared to Table \ref{tbl:pcap1_stats}. This is to be expected. Packet sizes in Sample 2 are on average 197 bytes smaller than Sample 1, a difference of about 35.98\%. The time it takes to process a packet is bound by the number of headers processed and actions taken on a given packet not by the actual size of the packet. This is because payloads, which typically make up most of a packet's size, are disregarded. Thus, the length of the packet does not severely affect how many packets can get processed per second. 
+Table \ref{tbl:pcap2_stats}, which uses Sample 2, largely shows the same patterns. 
+The difference in measures between firewall and IPv4 switch is more exaggerated with this sample because only 51.94\% of packets used port 80 or 443.
 
-Larger payloads can produce a linear increase to data rates without severely affecting packet processing rates. The average difference in data rate between applications in Table \ref{tbl:pcap1_stats} and Table \ref{tbl:pcap2_stats} is about 36.28\%. This roughly corresponds to the difference in packet sizes.
+It is important to note that though the \emph{data} processed per second is \emph{lower} going from Sample 1 to Sample 2, the number of \texttt{packets} process per second is actually slightly higher.
 
-That is not to say that the size of the packet has no affect. The amount of time it takes to allocate the buffer used to store a packet has a cost. Table \ref{tbl:pcap3_stats} uses Sample 3, which has a significantly smaller average packet size. packet processing rates for all applications improved here due to the smaller packet size. However, data rates and throughput severely suffered.
+This is explained by two reasons. The first reason, which explains the lower data rate, is that the time it takes to process a packet is more strongly affected by the number of headers processed and actions taken. The size of the packet only has a very small impact comparatively.
+This is because payloads, which typically make up most of a packet's size, are disregarded by the application.
+
+Packet sizes in Sample 2 are on average 197 bytes (or about 30.50\%) smaller than Sample 1. The data rate for from Table \ref{tbl:pcap1_stats} to Table \ref{tbl:pcap2_stats} is approximately 27.86\% slower. This roughly corresponds to the decrease in packet sizes.
+
+The second reason explains why there is an increase in packet processing rate -- the amount of time it takes to allocate the buffer used to store a packet has a cost.
+Smaller packets mean slight improvements in packet rate. However, this cost is small when compared to loses in data rate.
+The largest increase in packet rate is 6.00\% with wire. The conclusion can be drawn that the benefit of larger packets producing higher data rates far outweigh the loss in packet rate.
+
+Table \ref{tbl:pcap3_stats} uses Sample 3, which has a significantly smaller average packet size than other samples. 
+Packet processing rates for all applications improved here due to the smaller packet size. However, data rates and throughput severely suffered.
 
 % % % % % % % % % %
 % 4SICS flows
@@ -102,21 +115,24 @@ That is not to say that the size of the packet has no affect. The amount of time
 \begin{center}
 \begin{tabularx}{\linewidth}{| c || c | c | c | }
 \hline
-Application & data rate (Gbps) & Throughput (Gbps) & Packet Rate (Mpps) \\
+Application & Data Rate (Gbps) & Throughput (Gbps) & Packet Rate (Mpps) \\
 \hline
-MAC Learning & 1.28 & 1.28 & 2.11  \\
+MAC Learning & 1.30 & 1.30 & 2.14  \\
 \hline
-IPv4 Learning & 1.02 & 1.01 & 1.67  \\
+IPv4 Learning & 1.07 & 1.06 & 1.76  \\
 \hline 
-Wire* & 2.29 & 2.29 & 3.77 \\
+Wire* & 2.28 & 2.28 & 3.75 \\
 \hline
-Firewall & 1.29 & 0.04 & 2.12 \\
+Firewall & 1.25 & 0.04 & 2.06 \\
 \hline
 \multicolumn{4}{p{\linewidth}}{* Two dummy packets are sent from both ports on the wire to ensure the application learns those ports before processing packets.}
 \end{tabularx}
 \end{center}
 \label{tbl:pcap3_stats}
 \end{table}
+
+When compared against Sample 1, Sample 3 is 87.77\% smaller. On average, when applications were 86.34\% slower when Sample 3 was run through compared to Sample 1.
+The largest increase in packet processing rate was only 16.12\%, with the high increase again being wire at 25.62\%. This reinforces again that gains in data rate from larger packet sizes grow faster than gains in packet processing rates from smaller packet sizes.
 
 
 \section{Partial vs. Full Decodes} \label{exp:decode_comparison}
@@ -132,13 +148,13 @@ Table \ref{tbl:firewall_cmp} summarizes the difference between partial and full 
 \begin{center}
 \begin{tabularx}{\linewidth}{| c || c | c | c | c | X | c |}
 \hline
-Sample & Partial (Mpps) & Full (Mpps) & \% TCP & \% UDP & Approx. Difference (\# packets) & \% Difference \\
+Sample & Partial (Mpps) & Full (Mpps) & \% TCP & \% UDP & Approx. Difference (\# packets) & Percentage Diff. \\
 \hline
-1 & 1.71 & 1.56 & 96.12\% & 3.67\% & 150,000 & 9.17\% \\
+1 & 1.64 & 1.56 & 96.12\% & 3.67\% & 80,000 & 5.00\% \\
 \hline
-2 & 1.75 & 1.60 & 80.22\% & 19.45\% & 150,000 & 8.96\% \\
+2 & 1.75 & 1.63 & 80.22\% & 19.45\% & 120,000 & 7.10\% \\
 \hline
-3 & 2.12 & 1.90 & 95.25\% & 3.68\% & 220,000 & 10.95\% \\ 
+3 & 2.06 & 1.91 & 95.25\% & 3.68\% & 150,000 & 7.56\% \\ 
 \hline
 \end{tabularx}
 \end{center}
@@ -146,7 +162,7 @@ Sample & Partial (Mpps) & Full (Mpps) & \% TCP & \% UDP & Approx. Difference (\#
 \end{table}
 
 
-Table \ref{tbl:firewall_cmp} shows that a partial decode produces a non-negligible difference in performance with the average improvement between the three samples being about 9.7\%. This is only for a simple three header packet. For more complex header structures, gains from partial decodes would become more and more substantial.
+Table \ref{tbl:firewall_cmp} shows the percentage difference between full and partial decodes. A partial decode produces a non-negligible difference in performance with the average percentage difference between the three samples being about 6.55\%. This is only for a simple three header packet. For more complex header structures, gains from partial decodes would become more and more substantial.
 
 
 \section{Performance of Operations} \label{exp:action_performance}
@@ -187,3 +203,4 @@ As mentioned in earlier sections, inserting and removing flow entries are the mo
 It is also worth noting that writing actions to an action list is more expensive than one might anticipate (being slightly slower than even table matching). This may be a result of the current implementation dynamically allocating memory to store the action.
 
 The goto action (which also invokes table matching) is also relatively expensive compared to other operations. It is for this reason that users should strive to reduce the number of table matches as much as possible. The developers of POF came to a similar conclusion \cite{pof_impl} . They suggest using as few tables as possible. Multiple tables can be combined into a single table. When appropriate, a user should also consider replacing a table with a conditional statement such as an if statement or match statement in Steve.
+

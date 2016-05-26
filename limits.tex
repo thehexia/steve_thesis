@@ -328,11 +328,7 @@ layout vlan {
   tci : uint(16);
   ethertype : uint(16);
 }
-\end{lstlisting}
-\end{codepage}
 
-\begin{codepage}
-\begin{lstlisting}
 decoder start eth_d(ethernet) {
 	extract ethernet.type;
 	match(ethernet.type) {

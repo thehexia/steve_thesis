@@ -294,19 +294,20 @@ Gibb, et al. described the design principles for parsing fields using header spe
 \cite{parser2013gibb}. Steve decoders may be described as a non-streaming programmable parsers. 
 Some other examples of programmable packet parsers are Kangaroo \cite{kangaroo} and Berkley Packet Filter \cite{bpf1993mccanne}.
 
-\section{Freeflow}
+\section{Software Switches}
 \label{rel:freeflow}
 
+There exist a number of software switches which can be used to emulate or abstract SDN switch hardware.
 Freeflow is an SDN software switch architecture developed
 by Flowgrammable \cite{freeflow_software}. The Freeflow virtual machine (FFVM) 
 provides a programmable, protocol oblivious, software data plane that 
 supports multi-tenancy. Steve is
 designed to generate code targeting the FFVM runtime environment. A Freeflow data 
 plane loads Steve applications which act as its control plane and programs its packet processing pipeline.
-
-\section{Open vSwitch}
-\label{rel:vswitch}
+P4 can similarly target a software switch called behavioral-model v2 (bmv2) \cite{bmv2_software}. 
 
 Open vSwitch is another SDN virtual, software switch which supports programmatic extensions \cite{ovs_man_page, ovs2009extending, ovs2013}. Open vSwitch was designed to work in virtual environments and runs on the hypervisor. It provides a high-level command line interface for re-configuring switches \cite{ovs_man_page}.
+
+
 
 

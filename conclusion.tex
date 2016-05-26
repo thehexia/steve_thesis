@@ -1,12 +1,24 @@
 \chapter{ Conclusion} \label{ch:conclusion}
 
+\section{Discussion}
+
+\subsection{Pipeline Limitations}
+
+Because Steve focuses on being safe over everything else, the language enforces very strict rules about pipeline composition; specifically, that pipelines cannot have cycles. It is possible to loosen this restriction so that pipelines may have cycles, but only between decoders. This is useful for recursively decoding an indeterminate number of headers of the same kind (like VLAN). This would not cause an infinite cycle because the view would eventually shift off the end of the packet causing it to be dropped.
+
+\subsection{Switch ABI}
+
+
+
+\subsection{Performance}
+
+For a software switch, the performance is actually impressive. 
+
 \section{Future Work}
 
 Steve is far from a complete and mature language. It is still missing key components that other languages of its kind already support. Dynamically-sized fields, group tables, alternative table matching patterns (prefix, wildcard, etc), pushing and popping headers, packet construction, etc.
 
-Dynamically-sized fields are a particularly interesting problem that has not been solved in the Steve language. It is also urgently necessary to support common things such as IPv4 options.
-
-Pushing and popping headers as well as packet construction is another major feature. This would allow Steve to become more than purely a packet processing language. The Steve programmer could hypothetically create new packets as a reactive response to certain network traffic.
+Pushing and popping headers as well as packet construction are important. This would allow Steve to become more than purely a packet processing language. The Steve programmer could hypothetically create new packets as a reactive response to certain network traffic.
 
 Explicit port discovery is one of the major features not yet supported by Steve. Additionally, Steve has no way of learning networking information, such as the IP or MAC address, of the device it runs on.
 
