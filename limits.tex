@@ -159,18 +159,14 @@ to ensure safety at runtime.
 
 \section{Why Objects of Layout Type can not Exist.} \label{guide:no_dst}
 
-Objects created from layouts cannot be done in Steve for two reasons:
-
-\begin{enumerate}
-\item Steve does not currently support creating new packets or pushing new headers. 
+Objects created from layouts cannot be done in Steve for two reasons.
+First, Steve does not currently support creating new packets or pushing new headers. 
 It can only processing existing ones. 
 Objects of layout type are not strictly necessary without this ability.
-
-\item There are a number of concerns related to construction objects whose
+Second, there are a number of concerns related to construction objects whose
 types are dynamically sized.
-\end{enumerate}
 
-Allocating objects of dynamically-sized types (DST) on the stack produce a number of concerns which really have not been solved by any language.
+Allocating objects of dynamically-sized types (DST) on the stack produce a number of concerns which have not been solved.
 The only language which actually supports user-defined DSTs, Rust, only allows it under 
 very limited circumstance \cite{rust_dst_std}.
 
@@ -178,8 +174,7 @@ Allocating a single object of dynamically-sized type on the stack is not actuall
 It is done by allocating memory by modifying the stack pointer using the intrinsic
 \texttt{alloca}. 
 Allocating DSTs on the heap is, of course, what dynamic allocation was made for, but
-it is also expensive nor does it help when reinterpreting existing packet memory.
-
+it is expensive and does not help when reinterpreting existing packet memory.
 Now consider what happens when this DST object appears at the end of a class/record
 type. For example:
 
@@ -318,17 +313,6 @@ So for example:
 
 \begin{codepage}
 \begin{lstlisting}
-layout ethernet {
-  dst  : uint(48);
-  src  : uint(48);
-  type : uint(16);
-}
-
-layout vlan {
-  tci : uint(16);
-  ethertype : uint(16);
-}
-
 decoder start eth_d(ethernet) {
 	extract ethernet.type;
 	match(ethernet.type) {
