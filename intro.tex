@@ -20,12 +20,13 @@ cloud services, web services, Internet of Things, etc. As the world grows
 more reliant on services provided over a network, so must the communication network evolve.
 
 The backbone of all networks is the \emph{switch}. The term switch here is not used to specifically mean a Layer 2 forwarding device. but rather to mean any device capable of making forwarding decisions across multiple layers of the OSI stack \cite{osi_model}. The term switch thus incorporates bridges, routers, hardware firewalls, etc.
-Unfortunately, modern switches suffer from a number of issues which make them difficult to use in an industry where networks are becoming increasingly complex.
+Unfortunately, modern switches suffer from a number of issues which make them difficult to use in an industry where networks are becoming increasingly elaborate.
 
 Conventional switches are complex and unscalable because they are only designed to deal with very specific sets of well-known protocols and use cases. A router, for example, may be reconfigured with new forwarding rules, but it will never be anything other than a router. The behavior is difficult if not impossible to change, making these devices very rigid.
-Even when reconfigured, network administrators are often forced to do so through clunky, vendor-imposed command line interfaces. Because they may only be reconfigured within a limited use case, they cannot easily adapt to dynamic changes in network traffic and load.
+Because they may only be reconfigured within a limited use case, they cannot easily adapt to dynamic changes in network traffic and load.
+Even when reconfigured, network administrators are often forced to do so through clunky, vendor-imposed command line interfaces. 
 
-This model cannot last forever. Future networks will require that network flows be directed in increasingly complex ways.
+This model cannot last forever. Future networks will require that network flows be directed in increasingly complex ways. More protocols and information will be carried on packets than ever before, and the modern switch model simply is simply not flexible enough.
 In order to bypass this inflexibility, it must be possible to implement network functions (routing, firewalls, NAT, etc) through intelligent networking applications in software.
 These applications must be capable of automatically adapting to changing network conditions by modifying switch behavior to optimize forwarding decisions, throughput, resource consumption, etc.
 There must also exist a switch which is capable of installing and running this software.
@@ -42,8 +43,7 @@ efficient network functions in software.
 
 The conventional control plane is replaced by a software application known as a \emph{controller} (software control plane).
 This controller then serves as the intelligent network application which manages the switch's behavior. Alternatively, it may serve as an interface so that multiple network applications may manage the switch.
-One of the more interesting differences is that
-the software controller may be run on any machine, completely separate from its data plane.
+This software controller may be run on any machine, completely separate from its switch and data plane.
 It may then perform distributed control over multiple data planes by communicating via network messages.
 The most widely adopted standard for this communication is OpenFlow
 \cite{openflow_spec}.
@@ -51,9 +51,7 @@ Because the software controller may be run on any machine,
 any programmer can write regular software for common operating
 systems and processors to control the behavior of their networking device.
 
-The software control plane is only the first step. The next
-step is the \emph{programmable data plane} which may be implemented
-in either specialized hardware or software. 
+The \emph{programmable data plane} remains on the device and may be implemented with specialized hardware. Alternatively, the data plane may be implemented in software that virtualizes underlying switch hardware.
 A programmable data plane provides
 two key benefits that the software control plane cannot: low-latency,
 customizable packet processing and \emph{protocol independence}.
@@ -68,15 +66,15 @@ customizable packet processing and \emph{protocol independence}.
 %As programmable data planes evolve and support more flexible instruction sets,
 %communicating with the control plane becomes less necessary.
 
-The software control plane supports general purpose computing using heavyweight
-processors. However, general purpose computing is slow and communicating
-with the control plane over a network using messages is even slower.
-Data planes, on the other hand, can process packets incredibly fast since
-they are designed for this single role, but do not necessarily support
-the full range of general purpose operations.
-If data planes could support more kinds of computation, then they can rely less
-on
-slow control planes, and delegate only under the more extreme circumstances.
+%The software control plane supports general purpose computing using heavyweight
+%processors. However, general purpose computing is slow and communicating
+%with the control plane over a network using messages is even slower.
+%Data planes, on the other hand, can process packets incredibly fast since
+%they are designed for this single role, but do not necessarily support
+%the full range of general purpose operations.
+%If data planes could support more kinds of computation, then they can rely less
+%on
+%slow control planes, and delegate only under the more extreme circumstances.
 
 Protocol independence means that a networking device is not required, by default, to support
 a suite of well-known protocols (ethernet, IPv4, TCP, etc).
@@ -258,15 +256,13 @@ whereas port management is a architecture dependent problem.
 % language focuses the programmer on writing the packet processing pipeline and
 % makes the grittier details opaque
 
-\section{Motivation: Control and Data Plane Latency}
+\section{Motivation: Programming a Single Network Device}
 
-In addition to tackling the issue of a safe language, 
-Steve also aims to take a new approach towards the troublesome
-control and data plane communication that many other SDN
-approaches have adopted.
-The SDN abstract model using distributed/centralized control
-planes to manage data planes has its flaws.
-As mentioned earlier, communicating with a distributed control plane is slow.
+Steve focuses on the language features required for programming a single device. There must be a well-designed abstract machine for programming network applications on one switch before expanding to incorporate distributed control.
+
+There are flaws in distributed control that a single device does not have to deal with.
+Specifically, communicating with a distributed control plane is slow.
+The switch has to send messages over a network, the controller must process the message, then send more messages back to modify switch behavior. This latency is unnecessary
 The trade-off is that it allows for control over an
 entire network.
 
@@ -274,10 +270,9 @@ A non-distributed control plane, on the other hand, has much
 better performance.
 It can exist on the
 same hardware as the data plane and has little communication latency
-because the two processes may communicate directly through an application
+because the two elements may communicate directly through an application
 binary interface (ABI).
 This model is considerably more effective for simple network functions.
-Steve targets this model of non-distributed control.
 The programming model for a control and data plane on the same device
 is essentially basic event-driven programming (EDP).
 
@@ -396,10 +391,10 @@ integers.
 Implicit integer conversions can be applied to these fields where necessary.
 Conversions prevent field modification from ever underflowing or overflowing.
 
-Steve does not support pointer types, meaning that the programmer is never
-concerned with null or invalid pointer addresses. Instead, Steve supports
-reference
-types which are guaranteed to refer to initialized memory.
+%Steve does not support pointer types, meaning that the programmer is never
+%concerned with null or invalid pointer addresses. Instead, Steve supports
+%reference
+%types which are guaranteed to refer to initialized memory.
 
 %\begin{enumerate}
 %\item the representation of fields as
