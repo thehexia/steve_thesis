@@ -293,7 +293,7 @@ device.
 The Steve programming language was designed to solve the problem of safe and efficient programming of SDN devices.
 Steve is used for writing applications that define packet processing
 and network functions on SDN devices.
-It is protocol independent, architecture independent, strongly-typed,
+It is protocol independent, strongly-typed,
 and declarative.
 
 Steve provides the mechanisms for defining \emph{packet
@@ -499,11 +499,9 @@ but can be adapted to target other platforms as well.
 
 Freeflow is a virtual machine (VM) that also serves as the Steve runtime
 environment \cite{freeflow_software}.
-FFVM virtualizes (abstracts) underlying switch
-hardware. 
-Freeflow is a VM in the similar sense that Java Virtual Machine (JVM) is a VM. 
-It exposes an interoperable ABI that grants access to switch resources,
-allowing programs which target it to be architecture independent.
+FFVM abstracts underlying switch
+hardware and services and exposes them through an interoperable ABI.
+Freeflow is a VM in the similar sense that Java Virtual Machine (JVM) is a VM. Targeting the VM ABI allows high-level applications to avoid generating architecture dependent code and optimizations.
 
 FFVM may also be considered a software data plane.
 A Steve module is designed to program FFVM's data plane pipeline by providing
