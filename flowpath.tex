@@ -6,7 +6,7 @@ so that the application does not have to know about the underlying switch archit
 The Steve application also provides an interface so that the switch may use it to configure its pipeline and to access it as a controller.
 The topic of this chapter will be describing these two interfaces.
 
-To validate that this approach works, Steve targets a software data plane called Freeflow Virtual Machine (FFVM). FFVM is programmable and protocol independent. The FFVM runtime provides the ABI which Steve uses to manipulate the switch. FFVM virtualizes switch hardware as depicted in Figure \ref{fig:architecture}. Note that, though Steve targets FFVM, it could also directly target any software or hardware that exposed the same ABI.
+To validate that this approach works, Steve targets a software data plane called Freeflow Virtual Machine (FFVM) \cite{freeflow_software}. FFVM is programmable and protocol independent. FFVM provides the runtime environment which exposes the ABI that Steve uses to manipulate the switch. FFVM virtualizes switch hardware as depicted in Figure \ref{fig:architecture}. Note that, though Steve targets FFVM, it could also directly target any software or hardware that exposed the same ABI.
 
 %
 %The Freeflow Virtual Machine (FFVM) is a software data plane that is programmable and protocol independent \cite{freeflow_software}. Freeflow provides a runtime environment (FFRT) for networking applications. FFRT is designed to abstract underlying hardware such as ports, memory, and flow tables. It exposes these resources through an interoperable ABI which can be used by almost any language. 

@@ -1,31 +1,50 @@
 \chapter{ Conclusion} \label{ch:conclusion}
 
+The goal of this research was to present a safe and efficient language for writing network applications for SDN switches. Though other languages already exist, Steve sought to improve upon them. First, Steve provides strict compile-time safety guarantees of user-defined packet processing pipelines.
+Steve's type and constraints system make it almost impossible to write a network application which invokes undefined behavior.
+Secondly, the Steve language expands past the basic pipeline specification of most languages and allows the programmer to define protocol independent control plane event handling as well.
+
 \section{Discussion}
 
-\subsection{Pipeline Limitations}
+\subsection{Language Use Cases}
 
-Because Steve focuses on being safe over everything else, the language enforces very strict rules about pipeline composition; specifically, that pipelines cannot have cycles. It is possible to loosen this restriction so that pipelines may have cycles, but only between decoders. This is useful for recursively decoding an indeterminate number of headers of the same kind (like VLAN). This would not cause an infinite cycle because the view would eventually shift off the end of the packet causing it to be dropped.
+As we are not network programming specialists, we were never completely sure of which language features were needed to support rich network applications. We chose to use OpenFlow as our guide post of what was, at minimum, required. From there, we expanded on it from other languages such as POF and P4 \cite{pof, p42014, p4_spec}. Steve may expand as the need for new use cases grow.
 
-\subsection{Switch ABI}
+\subsection{Portability}
 
+Portability is another major issue closely related to use cases. We do not own the SDN hardware capable of running Steve due to cost. We are also unaware of how many SDN switches are actually fully capable of all the Steve features. At the time of writing, these devices are rather exotic and lack standardization.
 
+First the virtual machine, Freeflow \cite{freeflow_software} or some alternative software, would have to be ported to the target device to expose the ABI which Steve depends on. Then the Steve compiler would have to be rewritten to target the appropriate processor architecture. We suspect this is rare because LLVM already supports the most common ones.
 
-\subsection{Performance}
+\subsection{Runtime ABI}
 
-For a software switch, the performance is actually impressive. 
+The runtime ABI is designed to alleviate issues with compiling to other platforms.
+As long as there is the ABI exposes functions, Steve can be compiled to target them. The advantage is that the runtime environment worries about managing hardware acceleration, optimization, etc., rather than the compiled Steve application. In future work, we believe it is possible to provide optimized resources (such as TCAM memory) to the application opaquely through the runtime ABI.
+
+\subsection{Language Safety}
+
+We have proven how Steve enforces pipeline safety, but
+because Steve focuses on being safe over everything else, the language enforces very strict rules about pipeline composition. However, some of these rules can be weakened depending on use cases.
+
+Specifically, the constraint that pipelines cannot have cycles can. It is possible to loosen this restriction so that pipelines may have cycles, but only between decoders. This is useful for recursively decoding an indeterminate number of headers of the same kind (like VLAN). This would not cause an infinite cycle because the view would eventually shift off the end of the packet causing it to be dropped.
+
+The requirement satisfaction property and decoder view mechanism must always be in place. These two features enforce constraints proposed by early Steve work \cite{wripe}. However, checking requirements is expensive, potentially $O(n!)$, especially for larger programs. It may be necessary to look into a better algorithm or to restructure the language in a way that does not require every path in the pipeline be checked.
+
+%\subsection{Performance}
+%
+%For a software switch, the performance is actually impressive. 
 
 \section{Future Work}
 
 Steve is far from a complete and mature language. It is still missing key components that other languages of its kind already support. Dynamically-sized fields, group tables, alternative table matching patterns (prefix, wildcard, etc), pushing and popping headers, packet construction, etc.
 
-Pushing and popping headers as well as packet construction are important. This would allow Steve to become more than purely a packet processing language. The Steve programmer could hypothetically create new packets as a reactive response to certain network traffic.
+Pushing and popping headers as well as packet construction are the most interesting. This would allow Steve to become more than purely a packet processing language. The Steve programmer could hypothetically create new packets as a reactive response to certain network traffic.
 
-Explicit port discovery is one of the major features not yet supported by Steve. Additionally, Steve has no way of learning networking information, such as the IP or MAC address, of the device it runs on.
-
-Portability is another major issue that has yet to be addressed. Steve code generation may need to be modified to deal with certain, very specific architectures. The current assumption is this will rarely happen, as LLVM already supports a wide range of architectures. However, it is possible that Steve programs may want to take advantage of certain architecture specific acceleration.
+Device introspection, that is, the ability of the application to learn things about the switch is missing.
+It may be useful for an application to search for a specific port, or to learn about the device's MAC and IP addresses.
 
 Dealing with distributed control is not addressed in this paper. Though Steve focuses on programming a non-distributed SDN switch, it is not impossible for a Steve program to deal with distributed control either. Since OpenFlow protocol can be treated as just another header,
-it is possible for the non-distributed control plane to take actions based on OpenFlow packets received by the switch. Alternatively, it may be possible to expand language features for Steve to allow for writing distributed control event handlers.
+it is possible for the non-distributed control plane to take actions based on OpenFlow packets received by the switch. 
 
 \section{Conclusion}
 

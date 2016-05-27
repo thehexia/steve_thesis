@@ -4,10 +4,10 @@ This chapter discusses the safety guarantees enforced in individual stages
 and the pipeline as whole. It will also expand upon the limitations
 briefly mentioned in the tutorial from Chapter \ref{ch:tutorial}.
 
-\section{Pipeline Guarantees} \label{guide:pipeline_checking}
+\section{Pipeline Guarantees and Constraints} \label{guide:pipeline_checking}
 
 Steve makes guarantees about the logical correctness and safety of pipeline 
-composition. These guarantees are enforced by ensuring each Steve pipeline has two  properties: \textit{progress} and \textit{requirement satisfaction}. Any 
+composition using a constraints system. These guarantees are enforced by ensuring each Steve pipeline has two  properties: \textit{progress} and \textit{requirement satisfaction}. Any 
 pipeline which does not have these properties is ill-formed. 
 Pipelines that cannot ensure these properties risk crashes or undefined behavior.
 
@@ -36,8 +36,8 @@ considered disconnected from the graph and ignored.
 
 \subsection{Progress} \label{guide:progress}
 
-The \textit{progress} property says that a packet always moves to a later stage in a pipeline and can never move, or risk moving, to a previously visited stage. 
-This prevents packets from infinitely looping between the same stages more than once.
+The \textit{progress} property says that a packet always moves to a later stage in a pipeline and can never move, or risk moving, to a previously visited stage.
+This prevents packets from infinitely looping between the same stages more than once. That is, processing on all packets must terminate.
 Progress is the fundamental nature of the pipeline abstraction. 
 
 To enforce this property, a Steve program is well-formed if and only if the graph representation of the pipeline is a directed acyclic graph (DAG). This property can be easily confirmed using topological sorting.
@@ -105,7 +105,7 @@ satisfaction, it is guaranteed that field has been extracted at least once.
 
 \subsection{Depth First Search Graph Checking} \label{guide:dfs_desc}
 
-In order to produce the most complete error messages, the Steve compiler uses depth-first traversal with backtracking to evaluate all possible paths in a pipeline graph, see Algorithm \ref{alg:dfs}. 
+In order to produce the most complete error messages, the Steve compiler uses depth-first traversal with backtracking to evaluate all possible paths in a pipeline graph (see Algorithm \ref{alg:dfs}). 
 
 As the algorithm traverses a path in the graph, it accumulates a set of productions at each node. At each node, the node's requirements are checked against the accumulating set of productions to confirm the \textit{requirement satisfaction} property holds true. Any node which fails immediately indicates the program is ill-formed and further traversal along that path stops.
 

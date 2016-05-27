@@ -656,5 +656,3 @@ it may execute a wider range of operations supported by general purpose processo
 
 A Steve program compiles into an executable module with multiple entry points
 that may be loaded by a switch. The Steve program expects that a switch exposes a specific interface which provides access to hardware resources. This interface is summarized in Chapter \ref{ch:flowpath}. In turn, Steve provides its own interface which the switch may use to access decoders, configure tables, and communicate with event handlers.
-
-A current concern with Steve is that we do not own the commodity SDN hardware that conforms to this abstract machine as they tend to be too expensive. We are also unaware of common capabilities for these devices as SDN architectures are exotic and differ wildly between vendors. It may be possible that certain elements in the abstract machine (such as functions and memory for contexts) are not supported by some hardware.

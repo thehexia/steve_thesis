@@ -17,18 +17,18 @@ years,
 the industry has rapidly evolved to incorporate all kinds of new Internet
 services:
 cloud services, web services, Internet of Things, etc. As the world grows
-more reliant on services provided over a network, so must the network evolve.
+more reliant on services provided over a network, so must the communication network evolve.
 
-The backbone of all networks is the \emph{switch}. The term switch here is not used to specifically mean a Layer 2 forwarding device. but rather to mean any device capable of making forwarding decisions across multiple layers of the OSI stack \cite{osi_model}. The term switch thus incorporates bridges, routers, content switches, etc.
-Unfortunately, modern switches suffer from a number of issues which make them difficult to use in an industry where networks are so essential.
+The backbone of all networks is the \emph{switch}. The term switch here is not used to specifically mean a Layer 2 forwarding device. but rather to mean any device capable of making forwarding decisions across multiple layers of the OSI stack \cite{osi_model}. The term switch thus incorporates bridges, routers, hardware firewalls, etc.
+Unfortunately, modern switches suffer from a number of issues which make them difficult to use in an industry where networks are becoming increasingly complex.
 
-Conventional switches are complex and unscalable because many of these devices are designed to deal only with very specific sets of well-known protocols and use cases. A router, for example, may be reconfigured with new forwarding rules, but it will never be anything other than a router. The behavior simply cannot change, making these devices very rigid.
-Though these devices can be reconfigured, network administrators are often forced to do so through clunky command line interfaces. Additionally, because they may only be reconfigured within a limited use case, they cannot easily adapt to dynamic changes in network traffic and load.
+Conventional switches are complex and unscalable because they are only designed to deal with very specific sets of well-known protocols and use cases. A router, for example, may be reconfigured with new forwarding rules, but it will never be anything other than a router. The behavior is difficult if not impossible to change, making these devices very rigid.
+Even when reconfigured, network administrators are often forced to do so through clunky, vendor-imposed command line interfaces. Because they may only be reconfigured within a limited use case, they cannot easily adapt to dynamic changes in network traffic and load.
 
-In order to bypass this inflexibility, it must be possible to implement network functions (routing, firewalls, NAT, etc) through intelligent networking applications written in software.
-These intelligent applications must be capable of automatically adapting to changing network conditions by modifying switch behavior to optimize forwarding decisions, throughput, resource consumption, etc.
+This model cannot last forever. Future networks will require that network flows be directed in increasingly complex ways.
+In order to bypass this inflexibility, it must be possible to implement network functions (routing, firewalls, NAT, etc) through intelligent networking applications in software.
+These applications must be capable of automatically adapting to changing network conditions by modifying switch behavior to optimize forwarding decisions, throughput, resource consumption, etc.
 There must also exist a switch which is capable of installing and running this software.
-There is a strong desire in the industry to have such switches to meet constantly changing needs in ways that a network administrator could not.
 
 This is the promise of \emph{software-defined networking} (SDN). 
 SDN modifies two major elements of a conventional network switch: the data plane and the control plane. The \emph{data plane}, sometimes called the \emph{forwarding plane}, is the element which is responsible for forwarding packets between ports on the device. The control plane is the element which learns and configures the forwarding logic used by the data plane. It is also capable of processing packets which the data plane cannot.

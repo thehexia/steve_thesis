@@ -1,6 +1,13 @@
 \chapter{Experiments} \label{ch:experiments}
 
-In order to validate that Steve applications are not incredibly slow, performance experiments done on compiled Steve applications. These experiments were performed using \textit{Fakeflow}, a Freeflow data plane emulator. Fakeflow is largely equivalent to a single-threaded implementation of Freeflow with the exception of ports. Fakeflow removes the overhead of sending and receiving from ports. Instead, Fakeflow reads packets from pcap files to emulate receiving from ports and forwarded packets do not get sent anywhere (equivalent to simply dropping the packet). This approach is taken because the speed at which the virtual data plane outputs packets varies largely with implementation. The goal of this chapter is to focus only on the performance of the application.
+In order to validate that Steve applications are not incredibly slow, performance experiments done on compiled Steve applications. These experiments were performed using \textit{Fakeflow}, a Freeflow data plane emulator. Fakeflow is largely equivalent to a single-threaded implementation of Freeflow with the exception of ports. Fakeflow removes the overhead of sending and receiving from ports. Instead, Fakeflow reads packets from pcap files to emulate receiving from ports and forwarded packets do not get sent anywhere (equivalent to simply dropping the packet). This approach is taken because the speed at which the virtual data plane outputs packets varies largely with implementation. The goal of this chapter is to focus only on the performance of the application, not the switch its running on. 
+Specifically, two questions are evaluated.
+
+\begin{enumerate}
+\item Is the application slow enough to bottleneck the runtime environment? Specifically, is it too slow for Freeflow.
+
+\item Does partial decodes produce measurable gains over full decodes?
+\end{enumerate}
 
 \section{Data Sets} \label{exp:use_cases}
 
@@ -202,5 +209,4 @@ To reiterate the conclusion of Section \ref{exp:decode_comparison}, the average 
 As mentioned in earlier sections, inserting and removing flow entries are the most expensive operations a pipeline can perform. They do notably bottleneck the pipeline and are best performed asynchronously.
 It is also worth noting that writing actions to an action list is more expensive than one might anticipate (being slightly slower than even table matching). This may be a result of the current implementation dynamically allocating memory to store the action.
 
-The goto action (which also invokes table matching) is also relatively expensive compared to other operations. It is for this reason that users should strive to reduce the number of table matches as much as possible. The developers of POF came to a similar conclusion \cite{pof_impl} . They suggest using as few tables as possible. Multiple tables can be combined into a single table. When appropriate, a user should also consider replacing a table with a conditional statement such as an if statement or match statement in Steve.
-
+The goto action (which also invokes table matching) is also relatively expensive compared to other operations. It is for this reason that users should strive to reduce the number of table matches as much as possible. The developers of POF came to a similar conclusion \cite{pof_impl} . They suggest using as few tables as possible. Multiple tables can be combined into a single table. When appropriate, a user should also consider replacing a table with a conditional statement.
