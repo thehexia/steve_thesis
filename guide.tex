@@ -468,9 +468,19 @@ Steve will convert the precision and signed/unsigned-ness of integers where nece
 \begin{enumerate}
 \item If \texttt{T1} is a signed integer and \texttt{T2} is an unsigned integer, then the type of \texttt{E1} is converted to an unsigned integer type with the same precision as \texttt{T1} (the original precision).
 
-\item If the precision of \texttt{T1} is less than the precision of \texttt{T2}, then the type of \texttt{E1} is converted (promoted) to an integer type with the same precision as \texttt{T2}. The extra bits are zero-filled if both are unsigned or sign-extended if both are signed.
+\item If the precision of \texttt{T1} is less than the precision of \texttt{T2}, then the type of \texttt{E1} is converted (promoted) to an integer type with the same precision as \texttt{T2}. The extra high-order bits are zero-filled if both are unsigned or sign-extended if both are signed.
 
-\item If the precision of \texttt{T1} is greater than the precision of \texttt{T2}, then the type of \texttt{E1} is converted (demoted) to an integer type with the same precision as \texttt{T2}. The extra bits are truncated.
+\item If the precision of \texttt{T1} is greater than the precision of \texttt{T2}, then the type of \texttt{E1} is converted (demoted) to an integer type with the same precision as \texttt{T2}. The extra high-order bits are truncated.
+\end{enumerate}
+
+\subsection{Arithmetic Conversions} \label{guide:arith_conv}
+
+In an arithmetic expression (see \ref{guide:mult_expr}, \ref{guide:add_expr}, \ref{guide:bitshift_expr}, \ref{guide:bitwise_expr}), the resulting integer type is decided based on the rules below. Given two operands, \texttt{E1} of type \texttt{T1} and \texttt{E2} of type \texttt{T2}:
+
+\begin{enumerate}
+\item the resulting integer type has the same precision as the largest precision between \texttt{E1} and \texttt{E2}.
+
+\item the resulting integer type is unsigned if either \texttt{T1} or \texttt{T2} are unsigned. Otherwise, it is signed.
 \end{enumerate}
 
 \subsection{Port to Integer Conversions} \label{guide:port_conv}

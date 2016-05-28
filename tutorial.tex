@@ -12,17 +12,17 @@ The Steve Programming Language provides features for
 defining and connecting the pipeline processing stages and event handlers. Together, these components comprise a network function.
 
 Before delving into all the individual components, this chapter will provide one example network function
-written in Steve -- a simple MAC learning switch, also known as a bridge.
+written in Steve -- a simple MAC learning switch (or bridge). This example will provide concrete examples to the abstract machine elements described in Chapter \ref{ch:pipeline_model}.
 Later in Section \ref{tut:examples}, three additional examples will be provided: an IPv4 learning switch,
 a stateless firewall, and a full-duplex wire.
 
-After the first example, this chapter will delve into all the individual pieces of a Steve program with greater detail.
+After the first example, this chapter will delve into all the individual pieces of a Steve program with additional details and use cases.
 Specifically, this chapter will discuss how headers are represented (Section \ref{tut:layout}), how to
 write decoders (Section \ref{tut:decoder}), how to write flow tables (Section \ref{tut:table}), how to apply actions to packets (Section \ref{tut:action}), and how to write event handlers (Section \ref{tut:event}).
 
 Semantics and limitations of Steve will be mentioned throughout this chapter, 
 but only in minor detail. For the complete semantic description of
-Steve, including grammar, typing rules, and other restrictions, see the Reference Guide in Chapter \ref{ch:users_guide}.
+Steve, including grammar, typing rules, and other restrictions, see the Reference Guide in Appendix \ref{ch:users_guide}.
 
 \section{Starting Example} \label{tut:learning_switch}
 
@@ -30,10 +30,9 @@ This section describes from a high-level perspective what snippets of code do. E
 
 The MAC (Ethernet) learning switch forwards packets based on their MAC addresses.
 Every time the switch receives a new Ethernet frame, it uses a lookup table to map the \emph{source}
-MAC address of the frame to the ingress port that it received the frame
-on. 
+MAC address of the frame to the ingress port that received the frame.
 When it gets a new frame, it can check the \emph{destination} MAC address of that frame
-and know which port to forward to using the lookup table.
+and know which port it forwards to using the lookup table.
 If it has not learned that mapping yet, it floods the packet.
 The learning component prevents the switch from having to flood all packets like a hub.
 
@@ -53,8 +52,7 @@ layout ethernet {
 
 The next step is writing a decoder, which is the topic of Section \ref{tut:decoder}.
 Since this application is only concerned with the
-ethernet header, it will need an ethernet decoder. 
-There is no reason to extract \texttt{ethernet.type} because this application does not need to know what the Layer 3 protocol is.
+ethernet header, it will only need an ethernet decoder. 
 
 \begin{codepage}
 \begin{lstlisting}
@@ -66,7 +64,11 @@ decoder start eth_d(ethernet) {
 \end{lstlisting}
 \end{codepage}
 
-After that, the bridge will need flow tables, the topic of Section \ref{tut:table}, for making forwarding decisions.
+The layout rule for this decoder will obviously be \texttt{ethernet}. This decoder chooses to extract the source \texttt{ethernet.src} and destination \texttt{ethernet.dst} MAC addresses.
+There is no reason to extract \texttt{ethernet.type} because this application does not need to know about the Layer 3 protocol.
+
+
+After that, the bridge will need flow tables for making forwarding decisions, which are the topic of Section \ref{tut:table}.
 Specifically the bridge will need two flow tables: a learning table and a forwarding table.
 Using two tables will be typical of almost all learning applications. Both
 tables will start out with nothing but a miss case. After all, before an
@@ -137,7 +139,7 @@ event learn_mac requires(ethernet.src) {
 \end{lstlisting}
 \end{codepage}
 
-Within the body of the event handler, \texttt{ethernet.src} is used like a variable name. All extracted fields can be used this way inside decoders, tables/flow entries, and event handlers under certain circumstances described throughout this chapter.
+Within the body of the event handler, \texttt{ethernet.src} is used like a variable. All extracted fields can be used this way inside decoders, tables/flow entries, and event handlers under certain circumstances described throughout this chapter.
 
 This event handler inserts two flow entries.
 The first flow entry is inserted into
@@ -147,7 +149,11 @@ This entry prevents the same MAC address from raising the
 Instead, the new flow entry sends the packet directly to the \texttt{forward} 
 table.
 
-Note the syntax of each flow entry. The \texttt{\{ \}} before the \texttt{->} is a comma-separated list of match field values for the flow entry. Steve chooses to represent flow entry actions as a lambda closure following the \texttt{->}. The \texttt{\{ \}} following the \texttt{->} is a lambda function which contains actions to execute on packets which match the flow entry. The named list of properties within \texttt{[ ]} is the environment which the lambda function closes over.
+Note the syntax of each flow entry. The \texttt{\{ \}} before the \texttt{->} is a comma-separated list of match field values for the flow entry. Steve chooses to represent flow entry actions as a lambda closure following the \texttt{->}. The \texttt{\{ \}} following the \texttt{->} is a lambda function which contains actions to execute on packets which match the flow entry. The named list of \emph{properties} within \texttt{[ ]} is the environment which the lambda function closes over.
+
+Properties provide additional, stateful information about a flow entry. The \texttt{timeout} property in this first flow entry indicates that the entry will be removed from the table after 60 seconds. Timeouts are included on these flow entries to ensure that the
+mapping is not permanent. This allows the device to update its
+MAC address to port mappings over time if network topology changes.
 
 The second inserted flow entry is where the application
 learns the new MAC address to port mapping.
@@ -161,15 +167,11 @@ will match this inserted flow entry.
 The egress property is set equal to the
 \textit{current} packet's ingress port. The flow entry's body subsequently uses
 \texttt{output egress} to output matched packets to the current packet's ingress port.
-
 To summarize, the second inserted flow entry ensures that all future packets whose
 \texttt{ethernet.dst} field match the current packet's \texttt{ethernet.src}
-field will be forwarded to the current packet's ingress port.
+field will be forwarded to the current packet's ingress port. 
 
-Timeouts are included on these flow entries to ensure that the
-mapping is not permanent. This allows the device to update its
-MAC address to port mappings over time if network topology changes.
-
+That is all the code needed to write a basic MAC learning switch.
 The rest of this chapter will explore all of the smaller components in greater detail. It will also explore some features that are not in this example but are useful for other kinds of network functions.
 
 \section{General Purpose Language Features} \label{tut:gen_purp}
@@ -224,13 +226,14 @@ as follows.
 \begin{codepage}
 \begin{lstlisting}
 var x : int = 10;
+x = 9; // Assign a new value.
 \end{lstlisting}
 \end{codepage}
 
-\subsection{Common Statements} \label{tut:condition}
+\subsection{Conditional and Loop Statements} \label{tut:condition}
 
 Steve supports two conditional statements for decision making: the \texttt{if} statement and the \texttt{match} statement. 
-The \texttt{if} statement is the same as most C-like languages.
+The \texttt{if} statement is the same as C.
 
 A \texttt{match} statement allows for a decision to be made given a number of 
 possible case values. 
@@ -260,7 +263,7 @@ match (x) {
 
 Steve also supports the \texttt{while} loop which is the same as C-like languages. 
 It also supports the \texttt{break} and \texttt{continue} statements for limited
-branching abilities inside a loop. The following is a basic \texttt{while} loop in Steve.
+branching abilities inside a loop. 
 
 \subsection{Functions} \label{tut:function}
 
@@ -275,7 +278,7 @@ The return type follows the \texttt{->} in Steve functions.
 def sum(a : int, b : int) -> int {
   return a + b;
 }
-...
+
 sum(1, 2);
 \end{lstlisting}
 \end{codepage}
@@ -291,7 +294,7 @@ function signature.
 \begin{codepage}
 \begin{lstlisting}
 foreign def puts(input : char[]) -> int;
-// ...
+
 puts("Hello, World.");
 \end{lstlisting}
 \end{codepage}
@@ -401,8 +404,8 @@ they appear as return types. All of the following are considered ill-formed.
 \begin{codepage}
 \begin{lstlisting}
 layout L1 { f1 : uint; f2 : uint(16); }
-var x : L1 = 0;
-def foo(y : L1) -> L1 { ... }
+var x : L1 = 0; // Error.
+def foo(y : L1) -> L1 { ... } // Error.
 \end{lstlisting}
 \end{codepage}
 
@@ -539,17 +542,12 @@ In this example, there are
 two such extract declarations which instruct the decoder to extract
 the fields \texttt{ethernet.dst} and \texttt{ethernet.type}.
 The compiler generates \textit{(offset, length)} pairs 
-denoting the relative offset and length of the field
-from the field names and layout rule. 
-The programmer is never burdened with the process of manually specifying
-which bytes form a field.
+denoting the relative offset and length of the field within the decoder's view using the given field names and layout rule. 
 
-Only field names which refer to fields in the layout rule may be used. For example, it would not be possible to extract \texttt{ipv4.protocol} in the \texttt{eth\_d} decoder. 
-It obviously make no sense to extract a field not in the header. 
-
+Only field names which refer to fields in the layout rule may be used. It obviously make no sense to extract a field not in the header. 
+For example, it would not be possible to extract \texttt{ipv4.protocol} in the \texttt{eth\_d} decoder. 
 
 \subsection{Accessing Extracted Fields} \label{tut:decoder_access}
-
 
 Once a field has been extracted, getting its value is similar to using
 it as variable.
@@ -659,7 +657,7 @@ statement. If they do not compare equal, then the packet is dropped using the
 Decrementing the time-to-live (\texttt{ipv4.ttl}) is also a common operation. 
 First the time-to-live is checked to see if it is \texttt{0}. If it is, then the 
 packet's lifetime has expired and it will be dropped. If the packet is still 
-valid, the field is decremented using simple subtraction and is set using the 
+valid, the field is decremented using simple subtraction and the 
 \texttt{set} action. Because a field has been changed in the IPv4 
 header, the checksum must be recalculated and set with the new checksum.
 
@@ -689,12 +687,11 @@ decoder ipv4_decode(ipv4) {
 
 A field access expression can only be used \textit{after} an extract declaration
 is made for that field since it is impossible to recover the value of a
-field which has not been extracted. By extensions, they cannot be used in
-decoders which have not extracted that field. A decoder focuses on exactly one
+field which has not been extracted. By extensions, they cannot be used inside a
+decoder that has not extracted that field even if a prior decoder extracted that field. A decoder focuses on exactly one
 header and has no knowledge of previous headers or extractions.
-
-Field access expressions cannot be assigned to like a variable. To modify the
-value of a field, a \texttt{set} action (see \ref{tut:set_action}) must be used instead.
+Field access expressions are not the same as variables and may not be assigned to like one. To modify the
+value of a field, a \texttt{set} action must be used instead.
 
 \subsection{Moving to Other Stages} \label{tut:decoder_next}
 
@@ -752,11 +749,10 @@ currently support extracting dynamic length fields, one must still account for
 them. To correctly do this, the \texttt{advance} specifier is applied to
 explicitly shift the view by the given number of \textit{bytes}. 
 Here, the \texttt{ihl} calculation determines the number of bytes in the header.
-
-The \texttt{advance} specifier may appear on both \texttt{goto} and \texttt{decode} actions.
 The assumption is made that all headers are byte-aligned, therefore advancing by
-a number of bytes (rather than bits) is appropriate. An
-\texttt{advance} specifier may only appear in a decoder, as decoders are the only
+a number of bytes (rather than bits) is appropriate. 
+
+The \texttt{advance} specifier may appear on both \texttt{goto} and \texttt{decode} actions. However, it may only appear in a decoder, as decoders are the only
 stage concerned with views.
 
 A stage is \textit{complete} once it executes a \texttt{decode} or \texttt{goto} action, or
@@ -764,14 +760,11 @@ finishes executing without either action being executed.
 These two actions are similar in semantics to a function return
 in that the stage will not execute anything after them.
 If no stage transition happens at all,
-the packet exits the pipeline, which is later described in Section \ref{tut:pipeline_exit}.
+the packet exits the pipeline and enters egress processing which is described later in Section \ref{tut:pipeline_exit}.
 
 \section{Tables} \label{tut:table}
 
-The next stage is the table matching stage. 
-A table stage uses a \emph{flow table} to classify packets into
-groups (or flows) \cite{openflow_spec}. 
-Packets which are a part of the same flow have the same actions applied to them.
+The next stage is the table matching stage which uses the flow table mechanism described in Section \ref{table_desc} to direct network flows. Flow tables are decision tables that are built into the language.
 
 \subsection{The Basic Table} \label{tut:basic_table}
 
@@ -789,24 +782,22 @@ exact_table tcp_filter(tcp.dst) {
 
 Each flow table is comprised of three parts: 
 1) a name (\texttt{tcp\_filter}), 
-2) a \textit{key} (only \texttt{tcp.dst}), and
+2) a \textit{key}, and
 3) a set of \textit{flow entries}. 
 Additionally, there may be three kinds of flow tables: 
 \textit{exact}, \textit{prefix}, and \textit{wildcard}. 
-Each kind uses a different match pattern (discussed later in Section 
-\ref{tut:match_patterns}).
 This is an exact match table (Steve currently only supports exact
 match tables).
 
-A table's \textit{key} names a set of fields, known as
+A table's \textit{key} provides a comma-separated list of field names, known as
 \textit{key fields}, which indicate which protocol fields a table matches on.
 They are the equivalent of decision attributes. 
-The \texttt{tcp\_filter} table only matches on a single field (\texttt{tcp.dst}).
+The \texttt{tcp\_filter} table matches on a single field (\texttt{tcp.dst}).
 
 It is important to note that a \texttt{goto} action may only dispatch
-a packet to a table if the key fields have been extracted in prior decoders. This ensures that the key fields actually exist before matching begins. If they have not been extracted, the program is ill-formed.
+a packet to a table if the key fields have been extracted in prior decoders. This ensures that the key fields actually exist before matching begins. If they have not been extracted, the program is ill-formed. How the compiler checks this is explained in Section \ref{guide:requirements}.
 
-Flow entries define which packets form flows, and
+Flow entries define the criteria for a network flow, and
 what actions are taken on packets belonging to those flows.
 They are the rules of a decision table.
 To write a flow entry, a \textit{flow entry declaration}
@@ -828,7 +819,7 @@ A flow entry declaration has two parts: 1) \textit{match
 fields} and 2) an \textit{action sequence} (also called the body of the entry). 
 Match fields appear as a comma-separated list of expressions 
 in the brace-enclosed block (\{\}) before the \texttt{->}. 
-The first two flow entries have a single match field each: 
+The first two flow entries have a single match field each --
 \texttt{80} and \texttt{443}, respectively.
 
 Match fields are values which correspond to the table's key fields. 
@@ -857,14 +848,6 @@ as \textit{initial flow entries}.
 They get installed when a Steve application is loaded by the runtime.
 Flow entries may also be added to a flow table after it has begun processing packets. 
 An example of adding and removing flow entries can be found in Section \ref{tut:insert_flow_action} and \ref{tut:remove_flow_action}, respectively.
-
-\subsection{Table Match Patterns} \label{tut:match_patterns}
-
-There can be certain match patterns supported by a table: exact, prefix, and wildcard. Steve currently only handles the exact match pattern. The exact match pattern means the value of the packet field must be exactly equal to the value of the match field. A logical-XOR of the two bit-patterns should produce a result equivalent to 0.
-
-Prefix match tables use the longest prefix match algorithm to determine
-matches over a bit pattern.
-Wildcard match tables allow for arbitrary wildcarded bits in a bit pattern.
 
 \subsection{A More Complex Table} \label{tut:complex_table}
 
@@ -907,10 +890,6 @@ If the timeout property is set, the flow entry will be ejected from its table
 after a given number of seconds. This value may be between 1 and 65,535.
 
 The egress property is used to store a reference to a port.
-It is less obvious why this is useful, but it becomes clear later on when
-considering learning applications (see the learning switch example in Section
-\ref{tut:learning_switch}).
-
 The reason this is needed is not immediately obvious without context.
 Suppose a flow entry is being inserted into a table using an
 \texttt{insert} action.
@@ -941,6 +920,8 @@ insert into tcp_filter
 
 The \texttt{output egress} action now unambiguously says to forward all future
 matched packets to the current packet's ingress port.
+This is particularly useful for learning applications such as the MAC learning switch in Section
+\ref{tut:learning_switch}).
 
 \subsection{Flow Entries as Lambda Closures}
 
@@ -1086,7 +1067,7 @@ output flood;
 \end{codepage}
 
 More on ports and how to use the \texttt{output} action with them can
-be found in Section \ref{tut:ports}. The flood port in here is only one
+be found in Section \ref{tut:ports}. The flood port is only one
 of a number of reserved ports which Steve supports.
 
 There are certain implications to the \texttt{output} action forwarding a copy of the packet. 
@@ -1097,7 +1078,7 @@ on the original packet after the \texttt{output} action.
 
 The \textit{original} packet is forwarded after pipeline processing completes,
 during egress processing.
-During egress processing, the context's action list is executed.
+At that point the context's action list is executed.
 Output actions which have been written to the action list modify the
 egress port field in the context when executed.
 This field determines where the original packet gets forwarded.
@@ -1180,7 +1161,8 @@ remove from ip_proto miss;
 A \texttt{set} action can be used to write to any extracted field within a
 packet. 
 The \texttt{set} action is guaranteed to never overflow or underflow when
-writing bytes into the packet buffer. This is ensured through the implicit conversion of integers described in Section \ref{guide:int_conv}.
+writing bytes into the packet buffer.
+The value being written must have the same integer type (specifically precision) as the field being written to. If they mismatch, implicit integer conversion (see \ref{guide:int_conv}) ensures that the value being written gets converted to the correct type.
 
 The time-to-live field from an IPv4 header may be set as follows.
 
@@ -1203,7 +1185,6 @@ The context data structure described in Section \ref{context_desc} keeps an
 \textit{action list}. Actions get written to the action list using the
 \texttt{write} action. Written actions get executed once pipeline processing
 completes and the packet enters egress processing (described in Section \ref{egress_desc}).
-
 Only two actions may be written to a packet right now: \texttt{output} and \texttt{set}.
 
 \begin{codepage}
@@ -1222,7 +1203,7 @@ in the packet context when executed. This field ultimately decides where to forw
 
 \subsection{Clear Action} \label{tut:clear_action}
 
-The \texttt{clear} action removes all actions from the context's action list.
+The \texttt{clear} action removes all actions from the context's action list. If the list is empty, nothing is done.
 
 \begin{codepage}
 \begin{lstlisting}
@@ -1237,20 +1218,18 @@ signal the control plane that an exceptional situation has happened.
 \textit{Event handlers} (described in Section \ref{tut:event}) are used to
 deal with these events.
 
-A \texttt{raise} action sends a copy of the context to a reserved port called the controller port.
+A \texttt{raise} action sends a copy of the context to a reserved port called the controller port that connects to the control plane.
 The controller port then offloads the context to the appropriate event handler.
 For example:
 
 \begin{codepage}
 \begin{lstlisting}
-raise learn_event; // learn_event names an event handler 
+raise log_tcp_port;
 \end{lstlisting}
 \end{codepage}
 
 
-Here, \texttt{learn\_event} names an event handler. The context copy
-will be processed by this event handler. The execution of the event
-handler may be asynchronous. 
+Here, \texttt{log\_tcp\_event} names the event handler which will be executed. Its definition can be found in Section \ref{tut:event}. The execution is asynchronous to the pipeline, meaning the pipeline will not wait for it to complete before executing the next action.
 
 \section{Exiting the Pipeline} \label{tut:pipeline_exit}
 
@@ -1258,15 +1237,13 @@ When a stage is finished without a \texttt{goto} or \texttt{decode}
 action being executing, then the packet has finished pipeline
 processing.
 At this point, the packet exits the pipeline.
-
-Once a packet completes pipeline processing, any actions written to its action set get executed. 
-At this point, the packet goes through egress processing (described in Section
-\ref{egress_desc}).
+The packet goes through egress processing and any actions written to its action list are executed.
 
 The original packet is forwarded based on the egress port field stored
 within the packet context. This field is set when executing an
 output action that has been written to the context's action list
-(see \ref{tut:write_action}) for an example).
+(see \ref{tut:write_action}) for an example). If this field was not set,
+then the packet is implicitly dropped.
 
 \section{Ports} \label{tut:ports}
 
@@ -1277,7 +1254,7 @@ There are two categories of ports to consider when working with Steve:
 
 \subsection {Reserved Ports} \label{tut:reserved_ports}
 
-Reserved ports are ports which are always present on the system. Some ports may
+Reserved ports are named ports which are always present on the system. Some ports may
 be directly forwarded to using the \texttt{output} action. Other reserved ports 
 are forwarded to implicitly by other actions.
 
@@ -1322,14 +1299,14 @@ appropriate event handlers.
 
 \subsection{Non-reserved Ports} \label{tut:regular_ports}
 
-Non-reserved ports are not guaranteed to present on all systems.
+Non-reserved ports are not guaranteed to be present on all systems.
 These ports can be further categorized into \textit{physical} and
 \textit{logical} ports. A physical port is a hardware interface on the system. A
 logical port is a software defined port which may map to multiple physical ports
 and include additional abstractions.
 
 Steve applications currently do not support a way of directly discovering all
-these ports and their capabilities. Steve applications can indirectly "learn"
+these ports and their capabilities. Steve applications can indirectly learn
 about these ports by observing the ingress ports of packets passing
 through the pipeline.
 There are two reserved keywords for getting the logical ingress port and physical ingress port of a packet.
@@ -1371,14 +1348,13 @@ Here, the ingress ports of a packet are saved to port variables \texttt{p1} and 
 
 \section{Events} \label{tut:event}
 
-An \textit{event handler} is a special processing stage executed in the control plane outside the regular
-run-to-completion pipeline. They are special
+An \textit{event handler} is a processing stage executed in the control plane outside the regular
+run-to-completion pipeline. They are
 functions that operate on packet contexts. 
 Event handlers provide an interface for the pipeline to access the control
 plane. Certain slower operations
 are best performed by event handlers. Since they execute asynchronous to the
 data plane's pipeline, they do not bottleneck it.
-
 Specifically, inserting and removing flow entries are best executed inside
 events. These operations are multiple times slower
 than any other actions in Steve.
@@ -1405,8 +1381,7 @@ event log_tcp_port requires(ipv4.dst, tcp.dst) {
 
 This event handler is used to log IP destination addresses and
 TCP destination ports. It is useful for firewall applications.
-
-Event declarations have a \texttt{requires} specifier, just
+Event declarations have a \texttt{requires} specifier
 like tables. An event may only be raised if all fields listed in its
 \texttt{requires} specifier have been extracted.
 
@@ -1471,9 +1446,9 @@ decoder start eth_d(ethernet) {
 \end{lstlisting}
 \end{codepage}
 
-The IPv4 decoder will need to extract all of its fields to calculate a checksum. It will need \texttt{ipv4.src} and \texttt{ipv4.dst} in
-order to learn them. It will need \texttt{ipv4.version\_ihl} to
-correctly advance past the IPv4 header and \texttt{ipv4.ttl} to decrement.
+The IPv4 decoder will need  \texttt{ipv4.src} and \texttt{ipv4.dst} in
+order to learn them, \texttt{ipv4.version\_ihl} to
+correctly advance past the IPv4 header, and \texttt{ipv4.ttl} to decrement. The rest are extracted to verify the checksum.
 
 \begin{codepage}
 \begin{lstlisting}
@@ -1616,7 +1591,7 @@ event learn_ip requires(ipv4.src) {
 \end{codepage}
 
 The first inserted flow entry prevents the same IPv4 address from being learned
-more than once. The second insert flow entry inserts the forwarding rule into the
+more than once. The second flow entry inserts the forwarding rule into the
 \texttt{forward} table. Any packet whose \texttt{ipv4.dst} is equal to the current
 packet's \texttt{ipv4.src} will be forwarded to the current packet's ingress
 port.
@@ -1632,7 +1607,6 @@ It is possible to define this transport layer firewall in Steve. This firewall w
 
 The \texttt{ethernet} and \texttt{ipv4} layouts from the IPv4 switch will remain the same. 
 In addition to these, two transport layer layouts must also be defined: UDP and TCP.
-
 The UDP header contains four fields: source port, destination port, header length, and checksum \cite{udp_std}. The UDP layout is defined as follows.
 
 \begin{codepage}
@@ -1725,7 +1699,7 @@ exact_table tcp_filter(tcp.dst) {
 \end{lstlisting}
 \end{codepage}
 
-Each filtering table will only allow packets whose destination ports are \texttt{80} (HTTP) and \texttt{443} (HTTPS) to be forwarded. All others logged by an event and dropped. Additional flow entries may be added depending on the purpose of the firewall. It is best practice to defined the minimum \textit{allowed} ports rather than those ports that need blocked. From here, the firewall will send to the learning and forwarding tables defined earlier in Section \ref{tut:learning_router}.
+Each filtering table will only allow packets whose destination ports are \texttt{80} (HTTP) and \texttt{443} (HTTPS) to be forwarded. All others are logged by an event and dropped. Additional flow entries may be added depending on the purpose of the firewall. It is best practice to defined the minimum \textit{allowed} ports rather than those ports that need blocked. From here, the firewall will send to the learning and forwarding tables defined earlier in Section \ref{tut:learning_router}.
 
 \subsection{The Wire} \label{tut:wire}
 

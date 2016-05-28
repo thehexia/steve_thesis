@@ -1,14 +1,13 @@
-\chapter{FUNDAMENTALS OF A STEVE PROGRAM} \label{ch:pipeline_model}
+\chapter{THE STEVE ABSTRACT MACHINE} \label{ch:pipeline_model}
 
 This chapter describes the Steve abstract machine. The abstract machine
-describes the abstract mechanisms supported by the language and, by extension, features which must
-be supported by an SDN switch that can run a Steve application.
+describes the packet processing model, program execution semantics, packet operations, and required resources of the Steve programming language.
 Specifically, this chapter describes:
 
 \begin{enumerate}
-\item how a Steve program divides between data and control planes,
-\item what operations these two elements must support, and
-\item the \emph{packet processing pipeline} abstract model.
+\item how a Steve application divides between data and control planes,
+\item what operations and actions these two elements must support for packets, and
+\item the \emph{packet processing pipeline} which handles directing packet flow.
 \end{enumerate}
 %
 %This chapter describes the fundamentals parts of a Steve program: how it works,
@@ -35,7 +34,7 @@ data plane to modify pipeline behavior or to re-enter special packets.}
 \end{figure}
 
 The packet processing pipeline is part of the abstract data plane.
-This is the fundamental algorithm used to process packets and
+This is the algorithm used to process packets and
 make forwarding decisions.
 This will sometimes be referred to as the \emph{fast path} for packet
 processing because
@@ -151,7 +150,7 @@ A \emph{context} is a data structure used to save and carry
 additional metadata and stateful information about a packet between pipeline stages.
 Pipeline stages may use this data structure to memoize things they have learned
 about a packet for future stages to use.
-Because pipeline stages do not store any stateful information, they use this data structure to learn about contextual information about the packet.
+Because pipeline stages do not store any stateful information, they use this data structure to learn contextual information about the packet.
 Specifically, the context data structure contains:
 
 \begin{itemize} 
@@ -309,7 +308,7 @@ decoder's layout rule.
 
 \subsection{Enforcing Safe Extractions}
 
-There are safety issues associated with reinterpreting foreign allocated memory
+There are safety issues associated with reinterpreting foreign packet memory
 into local objects within the Steve program. Specifically, a program risks
 reading outside the bounds of the packet, or inadvertently reading outside
 the bounds of a header.
@@ -401,8 +400,8 @@ This process continues until all decoders are finished.
 \subsection{Byte Ordering}
 
 Steve applications automatically convert fields from network byte order
-to the native order of the machine used to compile the application.
-It should be noted that this conversion is applied consistently across all kinds of fields. If the field was not in network byte order, this may actually produce unexpected results
+to the native order of the target machine. All operations on packet fields should keep this in mind.
+It should be noted that this conversion is applied consistently across all kinds of fields. If the field was not in network byte order, this may actually produce unexpected results.
 
 \subsection{Partial and Full Decodes}
 
@@ -433,16 +432,16 @@ That being said, Steve supports the full decode as well. It may be desirable to
 some programmers to do this in certain scenarios, thus the language does not
 favor one paradigm over another.
 
-\subsection{Table Stages} \label{table_desc}
+\subsection{Flow Table Stages} \label{table_desc}
 
 Tables stages are used by the pipeline to make forwarding decisions.
 A network \emph{flow} is a series of packets from a source to a set of one or
 more destinations.
-Table stages use the mechanism known as \emph{flow tables} to establish these
-flows \cite{openflow_spec}. 
-Flow tables are specialized decision tables which classify packets into
+Table stages use the mechanism known as \emph{flow tables} to direct these
+flows \cite{openflow_spec} based on header content. 
+Flow tables are modeled as decision tables which classify packets into
 groups (flows) based on field values found in their headers. 
-A common set of actions, described in Section \ref{action_desc}, are then applied to classified packets.
+A common set of actions, described in Section \ref{action_desc}, are then applied to packets which are part of the same flow.
 Table \ref{tbl:flow_table} provides an example flow table.
 
 \begin{table}[ht]
@@ -521,10 +520,18 @@ key is the same for both, and a flow entry is analogous to a tuple in a SQL
 table. Each packet and its fields "queries" the table for flow entries with
 matching keys.
 
+\subsection{Table Match Patterns} \label{tut:match_patterns}
+
+There can be certain match patterns supported by a table: exact, prefix, and wildcard. Steve currently only handles the exact match pattern. The exact match pattern means the value of the packet field must be exactly equal to the value of the match field. A logical-XOR of the two bit-patterns should produce a result equivalent to 0.
+
+Prefix match tables use the longest prefix match algorithm to determine
+matches over a bit pattern.
+Wildcard match tables allow for arbitrary wildcarded bits in a bit pattern.
+
 \subsection{Actions} \label{action_desc}
 
 Since data planes generally have limited processing power, they are only
-expected to support a limited common set of \texttt{actions}.
+expected to support a limited common set of \emph{actions}.
 Actions may modify a packet, forward it, move it to a new stage, or modify a
 flow table. 
 Actions are primarily applied by flow tables, but may also appear in decoders
@@ -532,7 +539,7 @@ and event handlers.
 
 \begin{itemize}
 
-\item \textbf{Output}. This is used to forward a packet to a designated port.
+\item \textbf{Output}. This is used to forward a copy of a packet to a designated port.
 
 \item \textbf{Drop}. This forces a device to drop a packet and delete its context.
 
@@ -543,7 +550,7 @@ packet from the current stage to another decoder.
 to another flow table matching stage.
 
 \item \textbf{Raise}. This action sends a copy of a packet and context to
-be executed by an event handler. 
+be executed by a control plane event handler. 
 The original packet continues through pipeline processing as usual.
 
 \item \textbf{Insert flow entry}. This inserts a flow entry into
@@ -554,9 +561,9 @@ remove the old one and replace it with the new one.
 \item \textbf{Remove flow entry}. This removes a flow entry from a flow table.
 If the entry does not exist, nothing is done.
 
-\item \textbf{Set.} This is used to modify a field in the packet. This action enforces that the same number of bytes being written matches the size of a field to prevent buffer overflowing.
+\item \textbf{Set.} This is used to modify a field in the packet. This action enforces that the same number of bytes being written matches the size of a field to prevent buffer overflowing. The Steve application is responsible for providing bytes in the correct byte ordering.
 
-\item \textbf{Write.} Write action allows actions to be appended to the context's
+\item \textbf{Write.} This allows actions to be appended to the context's
 action list. Only set and output actions may be written.
 
 \item \textbf{Clear.} The clear action removes all actions from the action list.
@@ -650,9 +657,9 @@ stages. This can involve inserting and removing flow entries to change the
 pipeline, logging through use of C library functions, etc.
 
 Since the control plane is not bound by the same processor limitations
-it may execute a wider range of operations supported by general purpose processors (albeit slower) such as those found in a typical C program.
+it may execute a wider range of operations supported by general purpose processors (albeit slower) such as those found in a typical C program. However, it is not a guarantee that all switch control planes have the full range of general purpose CPU operations.
 
-\section{Steve Compilation and Portability} \label{compile_desc}
+\section{Steve Compilation} \label{compile_desc}
 
 A Steve program compiles into an executable module with multiple entry points
 that may be loaded by a switch. The Steve program expects that a switch exposes a specific interface which provides access to hardware resources. This interface is summarized in Chapter \ref{ch:flowpath}. In turn, Steve provides its own interface which the switch may use to access decoders, configure tables, and communicate with event handlers.

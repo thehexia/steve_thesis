@@ -43,6 +43,8 @@ Pushing and popping headers as well as packet construction are the most interest
 Device introspection, that is, the ability of the application to learn things about the switch is missing.
 It may be useful for an application to search for a specific port, or to learn about the device's MAC and IP addresses.
 
+Deep packet introspection is similarly useful. Most SDN languages only focus on headers, but being able to look into a payload allows certain security applications to be written on the switch.
+
 Dealing with distributed control is not addressed in this paper. Though Steve focuses on programming a non-distributed SDN switch, it is not impossible for a Steve program to deal with distributed control either. Since OpenFlow protocol can be treated as just another header,
 it is possible for the non-distributed control plane to take actions based on OpenFlow packets received by the switch. 
 
