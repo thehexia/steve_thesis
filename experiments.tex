@@ -1,12 +1,17 @@
 \chapter{Experiments} \label{ch:experiments}
 
-In order to validate that Steve applications are not incredibly slow, performance experiments done on compiled Steve applications. These experiments were performed using \textit{Fakeflow}, a Freeflow data plane emulator. Fakeflow is largely equivalent to a single-threaded implementation of Freeflow with the exception of ports. Fakeflow removes the overhead of sending and receiving from ports. Instead, Fakeflow reads packets from pcap files to emulate receiving from ports and forwarded packets do not get sent anywhere (equivalent to simply dropping the packet). This approach is taken because the speed at which the virtual data plane outputs packets varies largely with implementation. The goal of this chapter is to focus only on the performance of the application, not the switch its running on. 
+%In order to validate that Steve applications are not incredibly slow, performance experiments done on compiled Steve applications. 
+
+This thesis is not performance based. However, to verify some questions and hypotheses about elements of the language design, some performance experiments were performed.
+These experiments were performed using \textit{Fakeflow}, a Freeflow data plane emulator. Fakeflow is largely equivalent to a single-threaded implementation of Freeflow with the exception of ports. Fakeflow removes the overhead of sending and receiving from ports. Instead, Fakeflow reads packets from pcap files to emulate receiving from ports and forwarded packets do not get sent anywhere (equivalent to simply dropping the packet). This approach is taken because the speed at which the data plane outputs packets varies largely with implementation. The goal of this chapter is to focus only on the performance of the application, not the speed of switch resources.
 Specifically, two questions are evaluated.
 
 \begin{enumerate}
-\item Is the application slow enough to bottleneck the runtime environment? Specifically, is it too slow for Freeflow.
+\item How fast can these applications process packets on a general purpose CPU? Comparison of these numbers against a real switch is excluded because it is unfair. Real programmable switches have specialized hardware to speed up table matching and decoding. Instead, these numbers are used to compare how certain use cases and packet structures affect a Steve application's performance.
 
-\item Does partial decodes produce measurable gains over full decodes?
+\item Does partial decodes produce measurable gains over full decodes? Steve was designed to support partial decodes, so for the design choice to be valid, this must be true.
+
+\item What is the performance of each individual action or operation on a general purpose CPU? Knowing this allows the programmer to make certain optimization choices when writing code.
 \end{enumerate}
 
 \section{Data Sets} \label{exp:use_cases}
@@ -14,7 +19,7 @@ Specifically, two questions are evaluated.
 Tests were performed using three pcap samples described in Table \ref{tbl:pcap}. 
 The samples are relatively diverse, having varying packet sizes, packet count, and protocols. Samples 1 and 2 were taken from Tcpreplay's sample captures \footnote{http://tcpreplay.appneta.com/wiki/captures.html} used for testing NetFlow. Sample 3 was taken from Netresec \footnote{http://www.netresec.com/?page=PCAP4SICS} which contains real industrial network traffic passing through ICS labs.
 
-\begin{table}
+\begin{table}[ht]
 \caption{The three pcap test cases used for experiments.}
 \begin{center}
 \begin{tabularx}{\linewidth}{| c || c | c | c | X |}
@@ -69,9 +74,11 @@ Firewall & 8.47 & 0.94 & 1.64 \\
 \end{table}
 
 
-Table \ref{tbl:pcap1_stats} shows the performance of each application using Sample 1. Sample 1 has the largest average packet size. Results here are largely predictable. The wire application is fastest in terms of data rate, having no headers or fields to process. The MAC learning switch performs the next fastest, having to only process the ethernet header. The IPv4 learning application is naturally slower as it must process the ethernet and IPv4 headers.
-
-The most interesting thing to note from Table \ref{tbl:pcap1_stats} is that the firewall application, which is both an IPv4 switch and a packet filter, processes packets \textit{faster} than the IPv4 switch. However, the firewall's throughput is significantly lower. This is because packet's which do not match the filtering rules get dropped before learning and forwarding happens. Only approximately 83\% of packets in Sample 1 used port 80 or 443, so 17\% of packets get prematurely dropped. This reduces the overall time the firewall spends learning (i.e. inserting flow entries) compared to the IPv4 switch. Learning is of course, the most expensive operation a pipeline can perform (see Table \ref{tbl:action_stats}).
+Table \ref{tbl:pcap1_stats} shows the performance of each application using Sample 1. Results here are largely predictable. 
+In terms of performance, applications which process less headers perform better than those that process more headers. The amount of tables also has a large impact as table matching is one of the more expensive operations (see Table \ref{tbl:action_stats}). The wire application performs significantly better because it performs no table matching.
+Similarly, applications which do less flow entry inserting perform significantly better than those that do. The firewall example, for instance, is an extension of the IPv4 switch, yet processes packets faster. This is because only approximately 83\% of packets in Sample 1 used port 80 or 443, so 17\% of packets get prematurely dropped, reducing the amount of learning done.
+Table \ref{tbl:pcap2_stats}, which uses Sample 2, largely shows the same patterns. 
+The difference in measures between firewall and IPv4 switch is more exaggerated with this sample because only 51.94\% of packets used port 80 or 443.
 
 % % % % % % % % % %
 % Big flows
@@ -97,22 +104,22 @@ Firewall & 6.29 & 1.35 & 1.75 \\
 \label{tbl:pcap2_stats}
 \end{table}
 
-Table \ref{tbl:pcap2_stats}, which uses Sample 2, largely shows the same patterns. 
-The difference in measures between firewall and IPv4 switch is more exaggerated with this sample because only 51.94\% of packets used port 80 or 443.
 
-It is important to note that though the \emph{data} processed per second is \emph{lower} going from Sample 1 to Sample 2, the number of \texttt{packets} process per second is actually slightly higher.
-
-This is explained by two reasons. The first reason, which explains the lower data rate, is that the time it takes to process a packet is more strongly affected by the number of headers processed and actions taken. The size of the packet only has a very small impact comparatively.
+The relationship between data rate, packet rate, and packet size is of interest here.
+The lower the packet size, the lower the data rate. The time it takes to process a packet is more strongly affected by the number of headers processed and actions taken. The size of the packet has comparatively small impact.
 This is because payloads, which typically make up most of a packet's size, are disregarded by the application.
 
 Packet sizes in Sample 2 are on average 197 bytes (or about 30.50\%) smaller than Sample 1. The data rate for from Table \ref{tbl:pcap1_stats} to Table \ref{tbl:pcap2_stats} is approximately 27.86\% slower. This roughly corresponds to the decrease in packet sizes.
 
-The second reason explains why there is an increase in packet processing rate -- the amount of time it takes to allocate the buffer used to store a packet has a cost.
-Smaller packets mean slight improvements in packet rate. However, this cost is small when compared to loses in data rate.
+However, the lower the packet size, the higher the packet processing rate.
+This is explained by the amount of time it takes to read and save packets into program memory.
+Smaller packets mean slight improvements in packet rate. However, this improvement is small when compared to loses in data rate.
 The largest increase in packet rate is 6.00\% with wire. The conclusion can be drawn that the benefit of larger packets producing higher data rates far outweigh the loss in packet rate.
 
 Table \ref{tbl:pcap3_stats} uses Sample 3, which has a significantly smaller average packet size than other samples. 
-Packet processing rates for all applications improved here due to the smaller packet size. However, data rates and throughput severely suffered.
+Packet processing rates for all applications significantly improved here due to the smaller packet size. However, data rates and throughput severely suffered. 
+When compared against Sample 1, Sample 3 is 87.77\% smaller. On average, data rates were 86.34\% slower when Sample 3 was run through compared to Sample 1.
+The average increase in packet processing rate was only 16.12\%. This reinforces that data rate grows faster with packet size than packet processing rates from smaller packet sizes.
 
 % % % % % % % % % %
 % 4SICS flows
@@ -138,17 +145,12 @@ Firewall & 1.25 & 0.04 & 2.06 \\
 \label{tbl:pcap3_stats}
 \end{table}
 
-When compared against Sample 1, Sample 3 is 87.77\% smaller. On average, when applications were 86.34\% slower when Sample 3 was run through compared to Sample 1.
-The largest increase in packet processing rate was only 16.12\%, with the high increase again being wire at 25.62\%. This reinforces again that gains in data rate from larger packet sizes grow faster than gains in packet processing rates from smaller packet sizes.
-
-
 \section{Partial vs. Full Decodes} \label{exp:decode_comparison}
 
 Steve proposed that partial decodes produced measurable gains over full decodes. To demonstrate this, an experiment was run using the stateless firewall application. The original version had partial decodes of ethernet, TCP, and UDP headers. A duplicate was written with full decodes of all headers.
 
 Each sample from Table \ref{tbl:pcap} is run through the full decoding firewall the same number of iterations as described in Tables \ref{tbl:pcap1_stats} through \ref{tbl:pcap3_stats}. These experiments are run five times each and an average is recorded. Results are compared against the partial decoding firewall.
-
-Table \ref{tbl:firewall_cmp} summarizes the difference between partial and full decodes for the firewall application. The table also includes the percentage of TCP and UDP packets. The full decoding firewall extracts four additional fields on UDP packets and nine additional fields on TCP packets. 
+Table \ref{tbl:firewall_cmp} summarizes these results. The table also includes the percentage of TCP and UDP packets per sample. The full decoding firewall extracts four additional fields on UDP packets and nine additional fields on TCP packets. 
 
 \begin{table}[ht]
 \caption{Comparing firewall performance (in Mpps) with partial header decodes versus full header decodes.}
@@ -169,12 +171,12 @@ Sample & Partial (Mpps) & Full (Mpps) & \% TCP & \% UDP & Approx. Difference (\#
 \end{table}
 
 
-Table \ref{tbl:firewall_cmp} shows the percentage difference between full and partial decodes. A partial decode produces a non-negligible difference in performance with the average percentage difference between the three samples being about 6.55\%. This is only for a simple three header packet. For more complex header structures, gains from partial decodes would become more and more substantial.
+A partial decode produces a non-negligible difference in performance with the average percentage difference between the three samples being about 6.55\%. This is only for a simple three header packet. For more complex header structures, gains from partial decodes would become more and more substantial.
 
 
 \section{Performance of Operations} \label{exp:action_performance}
 
-This section presents the typical performance of certain common operations performed by a Steve pipeline. Each operation is executed approximately 10 million times per experiment. This experiment is repeated ten times and the timings are given as an average. Table \ref{tbl:action_stats} summarizes the time performance of each action. The output action is intentionally excluded as the results vary based on a number of factors including Freeflow implementation, threading models, and specialized forwarding hardware.
+This section presents the typical performance of certain common operations performed by a Steve pipeline. Each operation is executed approximately 10 million times per experiment. This experiment is repeated ten times and the timings are given as an average. Table \ref{tbl:action_stats} summarizes the timed performance of each action. The output action is intentionally excluded as the results vary based on a number of factors including Freeflow implementation, threading models, and specialized forwarding hardware.
 
 \begin{table}[ht]
 \caption{Average wall clock time for executing certain operations. Output action has been excluded as it varies with the threading model implementation of Freeflow.}
@@ -209,4 +211,4 @@ To reiterate the conclusion of Section \ref{exp:decode_comparison}, the average 
 As mentioned in earlier sections, inserting and removing flow entries are the most expensive operations a pipeline can perform. They do notably bottleneck the pipeline and are best performed asynchronously.
 It is also worth noting that writing actions to an action list is more expensive than one might anticipate (being slightly slower than even table matching). This may be a result of the current implementation dynamically allocating memory to store the action.
 
-The goto action (which also invokes table matching) is also relatively expensive compared to other operations. It is for this reason that users should strive to reduce the number of table matches as much as possible. The developers of POF came to a similar conclusion \cite{pof_impl} . They suggest using as few tables as possible. Multiple tables can be combined into a single table. When appropriate, a user should also consider replacing a table with a conditional statement.
+The goto action (which also invokes table matching) is also relatively expensive compared to other operations. It is for this reason that users should strive to reduce table matches as much as possible. The developers of POF came to a similar conclusion \cite{pof_impl}. They suggest using as few tables as possible. Multiple tables can be combined into a single table. When appropriate, a user should also consider replacing a table with a conditional statement.

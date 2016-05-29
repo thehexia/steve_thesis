@@ -124,7 +124,7 @@ Interface Functions & Functionality \\
 \texttt{process(context)} & Freeflow sends contexts through this function to start pipeline processing. The application's logic will dictate which decoders and tables are used. Once the application finishes execution, Freeflow executes egress processing described in Section \ref{egress_desc}. \\
 
 \hline
-Event Handlers & Event handlers may vary in name. Whenever an event is raised, an event handler with the same name is executed.\\
+Event Handlers & Event handlers may vary in name, but all accept a context as a parameter. Whenever an event is raised, an event handler with the same name is executed.\\
 \hline
 
 \end{tabular}
@@ -163,4 +163,4 @@ Event Handlers & Event handlers may vary in name. Whenever an event is raised, a
 Steve compilation is a three stage process.
 In the first stage, high-level network-specific syntax is lowered into primitive code elements such as functions, function calls, variables, system intrinsics, etc.
 In the second stage, Steve is compiled into LLVM IR \cite{llvm_webpage}. The LLVM IR is linked against the Steve runtime library which contains the context data structure. The context data structure is kept in an independent library so that different context formats may be easily swapped out depending on the target architecture.
-In the last stage, the LLVM IR is compiled by the LLVM optimizing compiler into assembly cpde which is assembled into the DLL.
+In the last stage, the LLVM IR is compiled by the LLVM optimizing compiler into assembly code which is assembled into the DLL.

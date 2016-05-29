@@ -42,8 +42,7 @@ Progress is the fundamental nature of the pipeline abstraction.
 
 To enforce this property, a Steve program is well-formed if and only if the graph representation of the pipeline is a directed acyclic graph (DAG). This property can be easily confirmed using topological sorting.
 
-\textit{Proof.} A DAG, by definition, has no cycles. If there are no cycles, there is no way to visit the same stage more than once. It is therefore obvious that the
-progress property holds true because there are a finite number of nodes in the graph.
+\textit{Proof.} A DAG, by definition, has no cycles. If there are no cycles, there is no way to visit the same stage more than once. It is therefore obvious that processing on a packet must terminate because there are a finite number of nodes.
 
 %First of all, table nodes are assigned a hidden, unique, incremented integer identifier in the order with which they are declared. For example, the first table declared in a Steve program is given the integer identifier 0, the second table declare is given the identifier 1, and so on. Conventionally, tables are expected to be declared in the order with which they are expected to occur in a pipeline.
 %
@@ -88,20 +87,19 @@ In case 2, a flow entry within a table accesses the field. In case 3, an event
 handler accesses the field.
 
 In case 1, a decoder can only use a field after an extract declaration with
-that field name. This innately prevents field access from happening on
-un-extracted fields.
+that field name has been made inside that decoder. This innately prevents field access from happening on
+un-extracted fields within a decoder. Since a decoder can only access fields it has decoded, it also has no requirements that must be satisfied by other nodes.
 
 In case 2, the Steve language semantics prevent a flow entry from using
 fields that are not part of the containing flow table's key fields or
 required fields. If all paths leading to the table satisfy its requirements,
-by definition of requirement satisfaction those fields must have been extracted at least once before
+by definition those fields must have been extracted at least once before
 reaching the table. If this is the case, when the flow entry accesses that
 field, it is guaranteed to have been extracted.
 
 In case 3, the Steve language semantics prevent an event handler from using fields
 that are not listed in the \texttt{requires} specifier. If all paths
-leading to an event handler satisfy its requirements, then by definition of requirement
-satisfaction, it is guaranteed that field has been extracted at least once.
+leading to an event handler satisfy its requirements, then by definition, it is guaranteed that field has been extracted at least once.
 
 \subsection{Depth First Search Graph Checking} \label{guide:dfs_desc}
 
@@ -128,9 +126,9 @@ productions of nodes that it leaves behind from its set of accumulated productio
  	\State v.visited = true
  	\State p  += v.productions
  	\If{meetsRequirements(v, p)}
- 		\For{\textit{all} i \textit{in} G.adjacentNodes(v)}
- 			\If{(i.visited == false) $\land$ canProgress(v, i)}
- 				\State \Call{DFS}{G, i, p}
+ 		\For{\textit{all} a \textit{in} G.adjacentNodes(v)}
+ 			\If{(a.visited == false) $\land$ canProgress(v, a)}
+ 				\State \Call{DFS}{G, a, p}
  			\Else
  				\State \Return compiler error
  			\EndIf
@@ -148,18 +146,25 @@ productions of nodes that it leaves behind from its set of accumulated productio
 
 \end{algorithm}
 
-The worst case complexity of this algorithm is $O(n!)$ where $n$ is the number of nodes.
 
-\textit{Complexity Proof.} Assume a DAG has $n$ nodes. There are at most $n-1$ nodes adjacent to the root node. Each node adjacent to the root has at most $n-2$ nodes adjacent to it. This pattern continues until paths end in a sink. Thus the number of paths can be represented as $(n-1)(n-2)...1$ or $(n-1)!$. Therefore, the performance
+\textit{Complexity Proof.} The worst case complexity of this algorithm is $O(n!)$ where $n$ is the number of nodes. Assume a DAG has $n$ nodes. There are at most $n-1$ nodes adjacent to the root node. Each node adjacent to the root has at most $n-2$ nodes adjacent to it. This pattern continues until paths end in a sink. Thus the number of paths can be represented as $(n-1)(n-2)...1$ or $(n-1)!$. Therefore, the performance
 is $O(n!)$.
 
 Fortunately, this worse case performance is rarely ever achieved. Only the most dense pipeline graphs, where a node at each level is connected to every other possible node has this kind of performance. Packet processing graphs are typically more sparse because edges (branches) only occur when determining what the next header is. These graphs are generally not very deep either as packets tend to have a very small number of headers.
 Additionally, it is acceptable to incur performance penalties at compile time
 to ensure safety at runtime.
 
+\textit{Termination Proof.} This algorithm is guaranteed to terminate on DAGs. By definition, a DAG has a finite number of unique paths that can be taken from source to sink. A unique path, by definition, is an ordered sequence of nodes that is distinct from all other paths.
+Now, with proof by contradiction, assume the algorithm might not terminate. This would imply that this algorithm can visit the same unique path more than once.
+Let $V$ be the set of all nodes in the graph $G$.
+For a graph traversal algorithm to visit the same path more than once, for each $v \in V$, it must be possible to traverse from $v$ to a node adjacent to $v$ more than once. 
+
+In this algorithm, given any node, $v$, in the graph there is a set of adjacent nodes, $A$. When this algorithm traverses the graph, for each node $a \in A$, the algorithm traverses the edge from $v$ to $a$ exactly once. If this algorithm does not terminate, then the algorithm must be able to traverse from $v$ to any node $a \in A$ more than once. But the algorithm explicitly prevents this, therefore the assumption is false and the algorithm does terminate.
+
 \section{Why Objects of Layout Type can not Exist.} \label{guide:no_dst}
 
-Objects created from layouts cannot be done in Steve for two reasons.
+It was mentioned in an earlier chapter than objects of layout type may not exist.
+This is necessary for two reasons.
 First, Steve does not currently support creating new packets or pushing new headers. 
 It can only processing existing ones. 
 Objects of layout type are not strictly necessary without this ability.
@@ -169,12 +174,11 @@ types are dynamically sized.
 Allocating objects of dynamically-sized types (DST) on the stack produce a number of concerns which have not been solved.
 The only language which actually supports user-defined DSTs, Rust, only allows it under 
 very limited circumstance \cite{rust_dst_std}.
-
-Allocating a single object of dynamically-sized type on the stack is not actually a difficult thing to achieve. 
-It is done by allocating memory by modifying the stack pointer using the intrinsic
-\texttt{alloca}. 
-Allocating DSTs on the heap is, of course, what dynamic allocation was made for, but
+Allocating DST objects on the heap is, of course, what dynamic allocation was made for, but
 it is expensive and does not help when reinterpreting existing packet memory.
+Allocating a single DST object on the stack is not actually a difficult thing to achieve. 
+It is done by allocating memory by pushing the stack pointer forward using the intrinsic
+\texttt{alloca}. 
 Now consider what happens when this DST object appears at the end of a class/record
 type. For example:
 
@@ -187,6 +191,8 @@ struct Ipv4 {
 	// options has dynamically-sized type predicated on ihl.
 	options : DST(ihl); 
 }
+
+var x : Ipv4 = ...;
 \end{lstlisting}
 \end{codepage}
 
@@ -223,13 +229,13 @@ are also not allowed.
 \section{Decoder Anatomy} \label{decoder_anatomy}
 
 This section discusses the ``anatomy'' of a decoder.
-Specifically, it will focus on how a decoder finds fields, what unexpected circumstances
+Specifically, it will describe the formalism of \textit{(offset, length)} generation by the compiler, what unexpected circumstances
 may arise while decoding, and a special kind of extraction known
 as a rebinding.
 
 \subsection{Determining the Location and Length of Extracted Fields}
 
-An extract declaration produces an extraction by executing a set of instructions on a packet which saves the extraction's \textit{location} and \textit{length} to the context's binding environment. Information gathered from the field name and layout rule is used to calculate these two values. This process is completely opaque to the user, and is described below.
+An extract declaration produces an extraction by executing a set of instructions on a packet which saves the extraction's \textit{location} and \textit{length} to the context's binding environment. Information gathered from the field name and layout rule is used to calculate these two values. These instructions are completely opaque to the user and are automatically generated by the compiler. The formalism for this code generation is described below.
 
 First, let the field name have the form \texttt{E1.E2} where \texttt{E1} is the \textit{container layout} and \texttt{E2} is the \textit{contained field}.
 
@@ -242,15 +248,18 @@ First, let the field name have the form \texttt{E1.E2} where \texttt{E1} is the 
 
 \begin{enumerate}
 
-\item If \texttt{E1} identifies a layout, then $rel(E1, E2) = \sum_{x \in precede(E1.E2)}{} len(x)$.
+\item If \texttt{E1} identifies a layout, then $rel(E1, E2) = \sum_{x \in precede(E1,E2)}{} len(x)$.
 
 \item If \texttt{E1} is a field name, then let \texttt{E1} have the form \texttt{E1'}.\texttt{E2'}.
 
-Then $rel(E1, E2)=rel(E1', E2') + \sum_{x \in precede(E1.E2)}{} len(x)$
+Then $rel(E1, E2)=rel(E1', E2') + \sum_{x \in precede(E2',E2)}{} len(x)$
 
 \end{enumerate}
 
+\item If $rel(E1, E2)$ results in a number greater than the length of the field, then the packet is malformed and dropped.
+
 \item Given a field name of the form \texttt{E1.E2} and the current view index (see \ref{guide:decoder_view}), $i$, the \textit{absolute offset} of the field being extracted is this $abs(E1, E2) = i + rel(E1, E2)$.
+If the result of $abs(E1, E2)$ is greater than the length of the packet, then the packet is malformed and dropped.
 
 \item The location of an extracted field is its absolute offset, that is, the number of bytes it is away from the beginning of the packet. The pair stored by the binding environment is $(abs(E1, E2), len(E2))$.
 
@@ -282,7 +291,7 @@ The first extract declaration is \texttt{extract L.a}. The type of \texttt{a} is
 
 The second extract declaration is \texttt{extract L.c.f}. This is the case of the nested layout. The value of $len(f)$ is 16 bits or 2 bytes. The relative offset of \texttt{f} is the sum of the length of all field declaration which precede it in \texttt{N} (8 bits or 1 byte), plus the relative offset of \texttt{c} in \texttt{L} (64 bits or 8 bytes). Thus, the relative offset for \texttt{L.c.f} is $64+8=72$ bits or 9 bytes.
 
-Assuming the beginning of the current view for \texttt{D} is 112 bits past the beginning of the packet. The \textit{absolute offset} for \texttt{L.a} would be 112 bits. The absolute offset for \texttt{L.c.f} would be $112+72=184$ bits or 23 bytes.
+Assuming an arbitrary example where the beginning of the current view for \texttt{D} is 112 bits past the beginning of the packet, the \textit{absolute offset} for \texttt{L.a} would be 112 bits. The absolute offset for \texttt{L.c.f} would be $112+72=184$ bits or 23 bytes.
 
 \subsection{Extracting the Same Field More Than Once}
 
@@ -305,10 +314,10 @@ When extracting multiple fields of the same name, this allows the
 programmer to disambiguate them. 
 
 More commonly it is used to rename fields so that they may be reinterpreted as other fields. For example, assume that an Ethernet
-frame has a VLAN tag. The ethertype field of the VLAN tag is what 
+frame has a VLAN tag. The \texttt{ethertype} field of the VLAN tag is what 
 actually informs the switch what Layer 3 protocol is encapsulated
 by Ethernet. 
-To write a rebind, a rebind declaration (\ref{guide:rebind}) is used.
+A rebind declaration (\ref{guide:rebind}) is used to alias a field with a new name.
 So for example:
 
 \begin{codepage}

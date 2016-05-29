@@ -1,4 +1,4 @@
-\chapter{ Conclusion} \label{ch:conclusion}
+\chapter{ Conclusion and Future Work} \label{ch:conclusion}
 
 The goal of this research was to present a safe and efficient language for writing network applications for SDN switches. Though other languages already exist, Steve sought to improve upon them. First, Steve provides strict compile-time safety guarantees of user-defined packet processing pipelines.
 Steve's type and constraints system make it almost impossible to write a network application which invokes undefined behavior.
@@ -8,11 +8,11 @@ Secondly, the Steve language expands past the basic pipeline specification of mo
 
 \subsection{Language Use Cases}
 
-As we are not network programming specialists, we were never completely sure of which language features were needed to support rich network applications. We chose to use OpenFlow as our guide post of what was, at minimum, required. From there, we expanded on it from other languages such as POF and P4 \cite{pof, p42014, p4_spec}. Steve may expand as the need for new use cases grow.
+As we are not network programming specialists, we were never completely sure of which language features were needed to support rich network applications. We chose to use OpenFlow \cite{openflow_spec} as our guide post of what was, at minimum, required. From there, we expanded on it from other languages such as POF \cite{pof, pof_fis, pof_impl} and P4 \cite{pof, p42014, p4_spec}. Steve may expand as the need for new use cases grow.
 
 \subsection{Portability}
 
-Portability is another major issue closely related to use cases. We do not own the SDN hardware capable of running Steve due to cost. We are also unaware of how many SDN switches are actually fully capable of all the Steve features. At the time of writing, these devices are rather exotic and lack standardization.
+Portability is another major issue closely related to use cases. We do not own the SDN hardware capable of running Steve due to cost. We are also unaware of how many SDN switches are actually fully capable of all the Steve features. At the time of writing, these devices are rather exotic and lack standardization. This is why we choose to target the interoperable ABI from the Freeflow rather than compiling for specific switch instructions.
 
 First the virtual machine, Freeflow \cite{freeflow_software} or some alternative software, would have to be ported to the target device to expose the ABI which Steve depends on. Then the Steve compiler would have to be rewritten to target the appropriate processor architecture. We suspect this is rare because LLVM already supports the most common ones.
 
