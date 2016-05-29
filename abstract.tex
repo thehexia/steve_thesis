@@ -1,18 +1,15 @@
 \begin{abstract}
-Software-defined networking (SDN) was created to bypass the limitations of conventional network switches.
-SDN aims to make the control plane and data plane components of a switch programmable
-rather than relying on built-in hardware and firmware.
-Network functions such as switching, firewalls, and NAT can be defined in software that can be quickly loaded by the
-SDN switch to change its behavior.
-We present \emph{Steve}, a domain-specific language (DSL) for writing efficient programs for SDN devices.
+Software-defined networking (SDN) promises to make network switches programmable to enable a class of intelligent networking applications
+that can automate network flow direction in ways that conventional switches cannot.
+We present \emph{Steve}, a protocol-independent, domain-specific language (DSL) for writing these networking applications on SDN devices.
 Steve provides high-level language features for expressing protocol structure, decoding rules,
-forwarding decision making, packet manipulation, and a reactive non-distributed control plane.
+forwarding decisions, packet manipulation, and event handling for reactive non-distributed control planes.
+These features define a packet processing pipeline -- the algorithm used to make forwarding decisions.
 
-Steve solves three problems in SDN language development: protocol independence, program safety, and efficiency.
-To these ends, we have developed an optimizing compiler that ensures safety through a specialized type and constraints system.
-Steve compiled applications target Freeflow, a protocol independent virtual data plane designed to abstract the underlying hardware of an SDN switch.
-To prove that Steve is expressive enough to write network functions,
-we present four Steve programs: a MAC learning switch, a IPv4 learning switch, a firewall, and a full-duplex wire.
-These applications were run on a Freeflow instance with a Linux x86 machine and had performance between 1 and 3 Mpps which is
-impressive for non-specialized hardware execution.
+Steve solves two issues in SDN language development: safe packet access and safe pipeline composition.
+Vulnerabilities in an application running a network switch can be disastrous, therefore the Steve compiler is designed to catch potential errors.
+Steve uses a type and constraints system which enforces these safety guarantees.
+To verify our work, we produced a Steve language compiler which implements these safety guarantees.
+We also present four compilable Steve applications: a MAC and IPv4 learning switch, a stateless firewall, and a full-duplex wire.
+These applications are tested with a runtime environment which provides Steve access to switch resources.
 \end{abstract}
