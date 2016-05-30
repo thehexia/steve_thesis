@@ -43,7 +43,7 @@ Identifiers can be used as \textit{names} for \textit{entities}. An entity is a 
 
 Identifiers that refer to a variable, function, decoder, table, or port can be used as an expression. In this case, the identifier becomes an \textit{identifier expression} (see \ref{guide:id_expr}). In the Steve grammar, identifier expressions shall have the form \grd{kind}{id}, where \texttt{\textit{kind}} shall be the declaration kind. For example, an identifier to a variable would be represented in the grammar as \grd{variable}{id}.
 
-\section{Keywords} \label{guide:keyword}
+\subsection{Keywords} \label{guide:keyword}
 
 A number of identifiers in Steve are reserved as \textit{keywords}. The meaning and semantics of these identifiers cannot be changed. A list of Steve keywords can be found in Table \ref{fg:keywords_table}.
 
@@ -65,7 +65,7 @@ advance & egress & struct & char
 \end{tabularx}
 \end{table}
 
-\section{Field Name} \label{guide:field_name}
+\section{Field Names} \label{guide:field_name}
 
 \textit{Field names} are special, \textit{qualified} names which refer to field declarations made within a layout declaration (see \ref{guide:layout}). Field names have the form:
 
@@ -265,7 +265,7 @@ Types have the form:
 \end{grammar}
 \end{minip}
 
-\section{Scalar Type} \label{guide:scalar_type}
+\subsection{Scalar Type} \label{guide:scalar_type}
 
 Objects of scalar type represent exactly one value. They are not composed of multiple sub-objects. Steve supports the scalar types boolean, integer, and character. Scalar types have the form:
 
@@ -319,7 +319,7 @@ Single characters have character type. Character type has the form:
 \end{grammar}
 \end{minip}
 
-\section{Reference Type} \label{guide:ref_type}
+\subsection{Reference Type} \label{guide:ref_type}
 
 Objects and expressions of reference type represent an address to an object.  Reference types have the form:
 
@@ -361,7 +361,7 @@ y = 5; // This modifies x as well, so now both are 5.
 
 Here, any modifications to \texttt{y} have the same affect on \texttt{x}, because y only stores an address to the original object.
 
-\section{Array Type} \label{guide:array_type}
+\subsection{Array Type} \label{guide:array_type}
 
 An array type, \texttt{T[N]}, describes a region of contiguous memory containing \texttt{N} number of objects of type \texttt{T}. Array types have the form: 
 
@@ -371,7 +371,7 @@ An array type, \texttt{T[N]}, describes a region of contiguous memory containing
 \end{grammar}
 \end{minip}
 
-\section{Block Type} \label{guide:block_type}
+\subsection{Block Type} \label{guide:block_type}
 
 A block type describes a region of contiguous memory containing an unknown number of objects of type \texttt{T}. Block type has the form:
 
@@ -389,7 +389,7 @@ var str : char[] = "Hello, world";
 \end{lstlisting}
 \end{minip}
 
-\section{Layout Type} \label{guide:layout_type}
+\subsection{Layout Type} \label{guide:layout_type}
 
 Layout types are declared via layout declarations (see \ref{guide:layout}). Layout types have the form:
 
@@ -412,7 +412,7 @@ def foo(y : L1) -> L1 { ... }
 
 The size of a layout is equal to the sum of the sizes of each of its field types. This is only knowable at compile time if the layout contains only scalar typed fields. For example, the layout \texttt{L1} has a size of 48 bits or 6 bytes.
 
-\section{Port Type} \label{guide:port_type}
+\subsection{Port Type} \label{guide:port_type}
 
 All port declarations have port type. Port type is not a type that appears explicitly in the grammar. Variables, parameters, and fields may not have port type.
 
@@ -428,7 +428,7 @@ if (p1 == 0) { ... }
 \end{lstlisting}
 \end{minip}
 
-\section{Function Type} \label{guide:function_type}
+\subsection{Function Type} \label{guide:function_type}
 
 Functions have function type. Function type describes the type of each parameter and the return type of the function. Function type can be written and has the form:
 
@@ -537,35 +537,8 @@ Declarations have the form:
 All declarations introduce a name into a scope. A layout, decoder, table, event, or function declaration must be made in global scope. These are known as \textit{global} declarations.
 
 Declarations may have a number of specifiers (see \ref{guide:specifications}) attached to them, given by \grd{specifier}{seq}. Specifiers modify the semantics of declarations.
-
-\section{Specifiers} \label{guide:specifications}
-
-Specifiers modify the semantics of a declaration. A sequence of specifiers may optionally appear at the beginning of a declaration. Not all specifiers are allowed on all declarations. Not all specifiers are allowed to appear together before the same declaration. Note that there is currently only one supported specifier. A number of other specifiers will eventually be introduced.
-
-Specifiers have the following form:
-
-\begin{grammar}
-\singlespace
-<specifier> ::= "foreign"
-\end{grammar}
-
-\subsection{Foreign Specifier} \label{guide:foreign_spec}
-
-The \texttt{foreign} specifier can only appear before a \grd{function}{declaration}. This specifier says that a function has foreign linkage, that is, the function is not defined in this scope but rather in a different program. This function is said to be a \textit{foreign function}. The name of a foreign function is not mangled. Foreign functions cannot have a definition, that is, the \grd{function}{declaration} cannot have a \grd{block}{statement}. This is the only case where a declaration varies from a definition.
-
-\begin{minip}
-\begin{lstlisting}
-foreign def puts(char[]) -> int;
-
-def f() -> int {
-	puts("Hello world.");
-}
-\end{lstlisting}
-\end{minip}
-
-Foreign linkage is most often used to link against the C runtime library. For example, the following introduces the \texttt{puts} C-function into global scope. Function calls to \texttt{puts} will call the C-function with the same name.
  
-\section{Layout Declaration} \label{guide:layout}
+\subsection{Layout Declaration} \label{guide:layout}
 
 Layout declarations are used to define the physical structure of packets in memory. A layout declaration declares a \textit{layout type}. Layout declarations have the following form:
 
@@ -601,7 +574,7 @@ def foo(x : l1) -> l1 { ... } // Illegal.
 
 A layout type may only appear as the type of a field declaration in layout scope. This is to allow for handling of nested header structures.
 
-\section{Decoder Declarations} \label{guide:decoder}
+\subsection{Decoder Declarations} \label{guide:decoder}
 
 Decoder declarations have the following form:
 
@@ -620,21 +593,21 @@ The optional \texttt{start} keyword shall occur on exactly one decoder declarati
 
 The execution of a decoder is similar to that of a function. Each statement within \grd{block}{statement} is executed in turn.
 
-\subsection{Decoder View and Shifting} \label{guide:decoder_view}
+%\subsection{Decoder View and Shifting} \label{guide:decoder_view}
+%
+%The \textit{current view} of a packet begins where the first byte of the header being decoded lies in memory. The end of the current view is found at the position of the beginning plus the length of the current header. For headers whose lengths can be determined during compile time using the layout rule, the current view is said to be \textit{statically-sized}. For headers whose lengths must be determined by operations performed at runtime, the current view is said to be \textit{dynamically-sized}.
+%
+%Steve uses this view mechanism to allow for partial decodes of headers. Without the ability to find fields relative to the beginning of views, decoding phases would be forced into full forward decoding, meaning for a field to be extracted, all fields prior to it would have to be extracted. This prevents us from receiving the gains of partial decode.
+%
+%Additionally, this means extractions cannot exceed the logical bounds of a single header. It is implicitly impossible to decode further than the final field in the layout rule.
+%
+%The context is used to maintain a positional index, known as the \textit{view index}, corresponding to the beginning of the current view. At first, this index begins at 0, corresponding to the first byte of the packet, and thus the first byte of the first header. Each decoder shifts the current view by the length of the current header before transitioning to the next stage, that is, the length of the current header is added to the view index upon the execution of a \texttt{decode} or a \texttt{goto} action (see \ref{guide:decode_action} \& \ref{guide:goto}).
+%
+%If the view is statically-sized, the shift shall be implicitly emitted as code by the compiler by using the layout rule. This is known as an \textit{implicit advance}.
+%
+%If the view is dynamically-sized, the length of the shift must be explicitly quantified using the \texttt{\color{blue}advance} specifier attached to either a \texttt{goto} (see \ref{guide:goto}) or \texttt{decode} action (see \ref{guide:decode_action}). This is known as an \textit{explicit advance}.
 
-The \textit{current view} of a packet begins where the first byte of the header being decoded lies in memory. The end of the current view is found at the position of the beginning plus the length of the current header. For headers whose lengths can be determined during compile time using the layout rule, the current view is said to be \textit{statically-sized}. For headers whose lengths must be determined by operations performed at runtime, the current view is said to be \textit{dynamically-sized}.
-
-Steve uses this view mechanism to allow for partial decodes of headers. Without the ability to find fields relative to the beginning of views, decoding phases would be forced into full forward decoding, meaning for a field to be extracted, all fields prior to it would have to be extracted. This prevents us from receiving the gains of partial decode.
-
-Additionally, this means extractions cannot exceed the logical bounds of a single header. It is implicitly impossible to decode further than the final field in the layout rule.
-
-The context is used to maintain a positional index, known as the \textit{view index}, corresponding to the beginning of the current view. At first, this index begins at 0, corresponding to the first byte of the packet, and thus the first byte of the first header. Each decoder shifts the current view by the length of the current header before transitioning to the next stage, that is, the length of the current header is added to the view index upon the execution of a \texttt{decode} or a \texttt{goto} action (see \ref{guide:decode_action} \& \ref{guide:goto}).
-
-If the view is statically-sized, the shift shall be implicitly emitted as code by the compiler by using the layout rule. This is known as an \textit{implicit advance}.
-
-If the view is dynamically-sized, the length of the shift must be explicitly quantified using the \texttt{\color{blue}advance} specifier attached to either a \texttt{goto} (see \ref{guide:goto}) or \texttt{decode} action (see \ref{guide:decode_action}). This is known as an \textit{explicit advance}.
-
-\section{Extract Declaration} \label{guide:extract}
+\subsection{Extract Declaration} \label{guide:extract}
 
 Extract declarations have the following form:
 
@@ -672,7 +645,7 @@ At certain times, it may be convenient to extract a certain field, but \textit{a
 The rebind declaration has the form \texttt{extract N1 as N2} where \texttt{N1} and \texttt{N2} are field names.
 \texttt{N1} is the \textit{original field name} and must refer to a field in the layout rule. \texttt{N2} is the \textit{alias field name} and may refer to any valid field. The types of \texttt{N1} and \texttt{N2} must be the same.
 
-\section{Table and Flow Declarations} \label{guide:tables}
+\subsection{Table and Flow Declarations} \label{guide:tables}
 
 Table declarations have the following form:
 
@@ -750,7 +723,7 @@ Flow entries may optionally have a \grd{properties}{block}. \textit{Properties} 
 
 \textit{Initial flow entries}, that is, the flow entries within \grd{table}{initializer}, are inserted into tables before any packets are processed. Each initial flow entry is inserted with the order in which they are declared. There may only be one or less \grdd{miss}{flow}{declaration}.
 
-\section{Event Declaration} \label{guide:event}
+\subsection{Event Declaration} \label{guide:event}
 
 An event declaration has the following form:
 
@@ -764,7 +737,7 @@ An event declaration has the following form:
 
 An event declaration defines a special function, known as an \textit{event handler}, which has access to extractions (see \ref{guide:extract}) and can use actions (see \ref{guide:action}). They implicitly take a context (see \ref{guide:context}) as a parameter. These are used when an exceptional event has occurred and certain slower actions need to be applied outside of the fast path, e.g. adding and removing flow entries.
 
-An event handler can only be invoked via the raise action. At this time, a \textit{copy} of the context is passed to the runtime. The runtime shall forward this context and event handler packaged together to the controller port. The controller waits to receive these contexts and event handlers. It executes event handlers on contexts as it receives them.
+An event handler can only be invoked via the raise action. At this time, a \textit{copy} of the context is passed to the runtime. The runtime shall forward this context and event handler packaged together to the controller port. The controller port waits to receive these contexts and event handlers. It dispatches these contexts to be executed by the event handler in the control plane.
 
 Any modifications to the copied context shall not apply to the original. For example, in the following, it is demonstrated that a field modified via \texttt{set} action only affects a copy and never the original packet.
 
@@ -797,7 +770,7 @@ Event declarations are subject to meeting the \textit{requirements satisfaction}
 
 The execution of an event handler may be immediate or asynchronous. The behavior is runtime implementation specific. The user should have no expectations on the order of execution. 
 
-\section{Port Declaration} \label{guide:port}
+\subsection{Port Declaration} \label{guide:port}
 
 A port declaration has the following form:
 
@@ -812,7 +785,7 @@ A port declaration has the following form:
 
 A port declaration may have an optional \grd{port}{initializer} that instantiates it with a port identifier. The \grd{port}{initializer} shall be a \grd{port}{expr} (see \ref{guide:port_expr}). If no initializer is given, the default is a port with identifier 0 (invalid port). Forwarding to the invalid port drops the packet.
 
-\section{Variable Declarations} \label{guide:variables}
+\subsection{Variable Declarations} \label{guide:variables}
 
 Variable declarations have the form:
 
@@ -829,7 +802,7 @@ A variable declaration may have an optional \grd{variable}{initializer}. If this
 
 For a variable declaration \texttt{var v1 : T = E1}, the type of object \texttt{v1} is \texttt{T}. The type of \texttt{E1} must be \texttt{T} or there shall be a type conversion sequence from \texttt{E1}'s type to \texttt{T}. 
 
-\section{Function Declarations} \label{guide:function}
+\subsection{Function Declarations} \label{guide:function}
 
 A function declaration has the following form:
 
@@ -851,7 +824,34 @@ There may be multiple declarations of a function with the same name if and only 
 \begin{itemize}
 \item Each function declaration has a different type.
 \item Two function declarations of the same name, but different type, may not vary only in their return type.
-\end{itemize} 
+\end{itemize}
+
+\section{Specifiers} \label{guide:specifications}
+
+Specifiers modify the semantics of a declaration. A sequence of specifiers may optionally appear at the beginning of a declaration. Not all specifiers are allowed on all declarations. Not all specifiers are allowed to appear together before the same declaration. Note that there is currently only one supported specifier. A number of other specifiers will eventually be introduced.
+
+Specifiers have the following form:
+
+\begin{grammar}
+\singlespace
+<specifier> ::= "foreign"
+\end{grammar}
+
+\subsection{Foreign Specifier} \label{guide:foreign_spec}
+
+The \texttt{foreign} specifier can only appear before a \grd{function}{declaration}. This specifier says that a function has foreign linkage, that is, the function is not defined in this scope but rather in a different program. This function is said to be a \textit{foreign function}. The name of a foreign function is not mangled. Foreign functions cannot have a definition, that is, the \grd{function}{declaration} cannot have a \grd{block}{statement}. This is the only case where a declaration varies from a definition.
+
+\begin{minip}
+\begin{lstlisting}
+foreign def puts(char[]) -> int;
+
+def f() -> int {
+	puts("Hello world.");
+}
+\end{lstlisting}
+\end{minip}
+
+Foreign linkage is most often used to link against the C runtime library. For example, the following introduces the \texttt{puts} C-function into global scope. Function calls to \texttt{puts} will call the C-function with the same name.
 
 \section{Expressions} \label{guide:expr}
 
@@ -866,7 +866,7 @@ Expressions, generally speaking, perform some type of operation or computation w
 \end{grammar}
 \end{minip}
 
-\section{Primary Expressions} \label{guide:primary_expr}
+\subsection{Primary Expressions} \label{guide:primary_expr}
 
 Primary expressions have no operators. They have the following form:
 
@@ -880,7 +880,7 @@ Primary expressions have no operators. They have the following form:
 \end{grammar}
 \end{minip}
 
-\section{Identifier Expressions} \label{guide:id_expr}
+\subsection{Identifier Expressions} \label{guide:id_expr}
 
 When an \gr{identifier} (see \ref{guide:identifiers}) is used where an \gr{expression} is expected, it is considered an identifier expression. Identifier expressions have the form:
 
@@ -894,7 +894,7 @@ Identifier expressions refer to a specific declaration of that name. When used a
 
 If an identifier expression is used where an rvalue is expected, then a reference-to-value conversion is applied (see \ref{guide:reftoval_conv}).
 
-\section{Field Access Expression} \label{guide:field_access_expr}
+\subsection{Field Access Expression} \label{guide:field_access_expr}
 
 When a field name (see \ref{guide:field_name}) is used where an \gr{expression} is expected, it is considered a field access expression. They have the form:
 
@@ -918,7 +918,7 @@ A field access expression may only occur within the body of a decoder declaratio
 
 If the type of the extraction is \texttt{T}, then the type of a field access expression referring to that extraction shall be \texttt{T\&}. When the value of that field is required, then a reference-to-value conversion (see \ref{guide:reftoval_conv}) is applied to the field access expression.
 
-\section{Port Expressions} \label{guide:port_expr}
+\subsection{Port Expressions} \label{guide:port_expr}
 
 A port expression is either an identifier which refers to a port declaration, or a keyword referring to a number of reserved port names. They have the form:
 
@@ -952,7 +952,7 @@ The \grdd{all}{port}{expression} shall evaluate to the all port. The all port is
 
 The \grdd{reflow}{port}{expression} shall evaluate to the reflow port. The reflow port is a logical port which represent re-entry into the pipeline. When output to this port, a packet's context data is reset and the packet is sent back to the beginning of the pipeline.
 
-\section{Literal Expressions} \label{guide:literal_expr}
+\subsection{Literal Expressions} \label{guide:literal_expr}
 
 Literal expressions are expressions which represent constant values. Steve supports decimal integer, binary, hexadecimal, character, and string literals.
 
@@ -1039,7 +1039,7 @@ var s1 : char[] = "Hello, world.";
 \end{lstlisting}
 \end{minip}
 
-\section{Unary Expressions} \label{guide:unary_expr}
+\subsection{Unary Expressions} \label{guide:unary_expr}
 
 Unary expressions have a single operator and a single operand. They have the following form:
 
@@ -1075,7 +1075,7 @@ The negative expression is used to change the sign of an integer value. Negative
 
 Given an expression \texttt{-N}, \texttt{N} shall have integer type and \texttt{-N} shall have signed integer type. The evaluation shall be equal to \texttt{N * -1}.
 
-\section{Binary Expressions} \label{guide:binary_expr}
+\subsection{Binary Expressions} \label{guide:binary_expr}
 
 Binary expressions have a single operator and two operands. They have the following form:
 
@@ -1239,7 +1239,7 @@ Statements are pieces of code which are executed in sequence, and have some side
 \end{grammar}
 \end{minip}
 
-\section{Block Statement} \label{guide:block_stmt}
+\subsection{Block Statement} \label{guide:block_stmt}
 
 A block statement is a compound statement which contains a sequence of statements that are executed in order. Block statements also introduce block scope (see \ref{guide:block_scope}).
 
@@ -1252,7 +1252,7 @@ A block statement is a compound statement which contains a sequence of statement
 
 Block statements may be nested within each other. A block statement may contain no statements. 
 
-\section{Expression Statement} \label{guide:expr_stmt}
+\subsection{Expression Statement} \label{guide:expr_stmt}
 
 An expression statement is a statement which executes a single expression. Expression statements have the following form:
 
@@ -1265,7 +1265,7 @@ An expression statement is a statement which executes a single expression. Expre
 
 The \gr{expression} is executed and any return value it might have is discarded. It may have had side effects on the program.
 
-\section{Declaration Statement} \label{guide:decl_stmt}
+\subsection{Declaration Statement} \label{guide:decl_stmt}
 
 A declaration statement introduces a declaration at compile time. Declaration statements have the following form:
 
@@ -1278,7 +1278,7 @@ A declaration statement introduces a declaration at compile time. Declaration st
 
 Because a statement generally only appears in a block statement, global declarations (see \ref{guide:declarations}) may not appear in declaration statements. 
 
-\section{Assignment Statements} \label{guide:assign_stmt}
+\subsection{Assignment Statements} \label{guide:assign_stmt}
 
 Assignment statements allow the contents of one object to be replaced with the contents of another. Assignment statements have the form:
 
@@ -1292,10 +1292,6 @@ Assignment statements allow the contents of one object to be replaced with the c
 The \grd{identifier}{expression} must refer to a valid object declaration. That object must be assignable. Only variables and ports are assignable. When an assignment statement is executed, the result \gr{expression} shall be copied into that object.
 
 Given an assignment statement \texttt{E1 = E2}, \texttt{E1} must have type \texttt{T\&}. \texttt{E2} must have type \texttt{T} or there must exist a conversion sequence to \texttt{T}.
-
-\section{Conditional Statements} \label{guide:condition_stmt}
-
-Conditional statements allow for branches in statement execution based on a runtime condition. Steve supports three conditional statements: if, if-else, and match.
 
 \subsection{If and If-else}
 
@@ -1337,7 +1333,7 @@ Match statements do \textit{not} have fall-through behavior like switch statemen
 
 The type, \texttt{T}, of \gr{expression} in \grd{match}{statement} shall be integer. The type of \grd{literal}{expression} in all \grd{case}{statements} shall also be \texttt{T}.
 
-\section{While Loops} \label{guide:while_stmt}
+\subsection{While Loops} \label{guide:while_stmt}
 
 While loops work in the same way as all C-like languages. They have the following form:
 
@@ -1367,7 +1363,7 @@ These have the form:
 \end{grammar}
 \end{minip}
 
-\section{Return Statement} \label{guide:return_stmt}
+\subsection{Return Statement} \label{guide:return_stmt}
 
 A return statement returns a value from a function. It has the form:
 
@@ -1401,7 +1397,7 @@ An action is a special statement that may affect the state of a packet, its cont
 \end{minip}
 
 
-\section{Decode Action} \label{guide:decode_action}
+\subsection{Decode Action} \label{guide:decode_action}
 
 The decode action is a stage transitioning action. It transitions the context (see \ref{guide:context}) from the current stage (which may be a decoder, table, or event) to a new decoding stage. It has the form:
 
@@ -1418,7 +1414,7 @@ A decode action transfers control of the context it is operating on to the decod
 
 A decode action may optionally have an \grd{advance}{specifier}, if and only if it occurs within a decoder. Given a decode action of the form \texttt{decode d1 advance E1}, the type of \texttt{E1} shall be unsigned integer. The result of E1 (in bytes) shall be added to the view index. The reason the shift is by bytes and not by bits is because generally speaking, headers are byte aligned.
 
-\section{Goto Action} \label{guide:goto}
+\subsection{Goto Action} \label{guide:goto}
 
 The goto action is a stage transition action, similar to the decode action. A goto action transitions the context (see \ref{guide:context}) from the current stage (which may be a decoder, table, or event) to a new table matching stage.
 
@@ -1437,7 +1433,7 @@ If a goto action appears within the body of a decoder (see \ref{guide:decoder}),
 
 A goto action may optionally have an \grd{advance}{specifier}, if and only if it occurs with the body of a decoder. Given a goto action of the form \texttt{goto d1 advance E1}, the type of \texttt{E1} shall be unsigned integer. The result of E1 (in bytes) shall be added to the view index.
 
-\section{Output Action} \label{guide:output}
+\subsection{Output Action} \label{guide:output}
 
 An output action forwards a copy of the packet to the designated port. It has the form:
 
@@ -1455,7 +1451,7 @@ The output semantics here are a little unintuitive. Some may have the expectatio
 
 At this point egress processing (see \ref{egress_desc}) would begin. Any actions written to the action set would be executed. Written output actions modify the egress port field in the context. The original packet is forwarded to the port saved in this field.
 
-\section{Drop Action} \label{guide:drop}
+\subsection{Drop Action} \label{guide:drop}
 
 The drop action is used to delete the packet and immediately terminate pipeline processing. The drop action has the following form:
 
@@ -1467,7 +1463,7 @@ The drop action is used to delete the packet and immediately terminate pipeline 
 
 The drop action is implicitly applied to any packet who has reached egress processing (see \ref{egress_desc}), but which does not have an output action (see \ref{guide:output}) written to its action set.
 
-\section{Clear Action} \label{guide:clear}
+\subsection{Clear Action} \label{guide:clear}
 
 A clear action removes all actions from the context's action set. If the action set is empty, nothing is done. The clear action has the following form:
 
@@ -1477,7 +1473,7 @@ A clear action removes all actions from the context's action set. If the action 
 \end{grammar}
 \end{minip}
 
-\section{Set Action} \label{guide:set_field}
+\subsection{Set Action} \label{guide:set_field}
 
 A set action copies a given value into a given field. The set action has the following form:
 
@@ -1489,7 +1485,7 @@ A set action copies a given value into a given field. The set action has the fol
 
 If \grdd{field}{access}{expression} has type \texttt{T\&}, then the result of evaluating \gr{expression} shall have type \texttt{T}, or there shall exist a conversion sequence from its type to \texttt{T}. This prevents the length of the value from exceeding the length of the field.
 
-\section{Insert Action} \label{guide:insert_flow}
+\subsection{Insert Action} \label{guide:insert_flow}
 
 Insert action will add a new flow entry into a table. They may also be used to update an existing flow entry into a table. They have the form:
 
@@ -1505,7 +1501,7 @@ If a flow entry already in that table has the same match fields as the flow entr
 
 A miss case flow entry may be given as \grd{flow}{declaration}. The same insertion semantics apply here as well.
 
-\section{Remove Action} \label{guide:remove_flow}
+\subsection{Remove Action} \label{guide:remove_flow}
 
 A remove action will remove an existing flow entry from a table. They have the form:
 
@@ -1528,7 +1524,7 @@ Miss case flow entries may also be removed from a table. Miss case removal has t
 
 When a miss case is removed, it is replaced by the default miss case. The default miss case has no timeout and no egress port. Its body has exactly one action: the drop action.
 
-\section{Write Action} \label{guide:write}
+\subsection{Write Action} \label{guide:write}
 
 A write action writes another action to a context's action set. They have the form:
 
@@ -1546,9 +1542,9 @@ All actions written to the context's are executed upon egress processing (see \r
 \item \textit{Output}. The output action sets the egress port field in the context. It does not immediately forward the packet upon execution. When every action in the action set is completed, the original packet is forwarded (not a copy).
 \end{itemize}
 
-\section{Raise Action} \label{guide:raise}
+\subsection{Raise Action} \label{guide:raise}
 
-A raise action is used to raise an event which gets executed on the controller port. The raise action has the form:
+A raise action is used to raise an event which causes the context to be dispatched to the controller port. The packet is then sent to an event handler with the same name. The event handler gets executed by the control plane. The raise action has the form:
 
 \begin{minip}
 \begin{grammar}

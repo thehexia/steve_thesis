@@ -42,12 +42,13 @@ The goal of SDN architectures is to provide highly programmable, scalable, and
 efficient network functions in software.
 
 The conventional control plane is replaced by a software application known as a \emph{controller} (software control plane).
-This controller then serves as the intelligent network application which manages the switch's behavior. Alternatively, it may serve as an interface so that multiple network applications may manage the switch.
-This software controller may be run on any machine, completely separate from its switch and data plane.
+This controller then serves as the intelligent network application which manages the switch's behavior. 
+Alternatively, it may serve as an interface so that multiple network applications may manage the switch.
+It may be run on any machine, completely separate from its switch and data plane.
 It may then perform distributed control over multiple data planes by communicating via network messages.
 The most widely adopted standard for this communication is OpenFlow
 \cite{openflow_spec}.
-Because the software controller may be run on any machine,
+Because it may be run on any machine,
 any programmer can write regular software for common operating
 systems and processors to control the behavior of their networking device.
 
