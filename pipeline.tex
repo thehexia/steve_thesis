@@ -305,7 +305,7 @@ However, Steve does not require the programmer to specify these pairs manually.
 The pairs are compiler generated using information from a
 decoder's layout rule.
 
-\subsection{Enforcing Safe Extractions}
+\subsection{Enforcing Safe Extractions Through Views} \label{guide:decoder_view}
 
 There are safety issues associated with reinterpreting foreign packet memory
 into local objects within the Steve program. Specifically, a program risks
@@ -335,7 +335,7 @@ view or the packet, the packet is automatically dropped before extraction occurs
 Figure \ref{fg:decoding} demonstrates how decoders extract fields and
 how this view mechanism is applied on an actual packet instance. 
 Here, the Steve application decodes a typical packet 
-containing ethernet, IPv4, and UDP headers.
+containing Ethernet, IPv4, and UDP headers.
  
 The view index always starts at the beginning of the packet.
 In Figure \ref{fg:view1}, the first header is Ethernet.

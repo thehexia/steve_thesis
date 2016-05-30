@@ -15,7 +15,7 @@ OpenFlow messages, and ports.
 \begin{figure}[ht]
 \centering
 \includegraphics[scale=.5]{openflow}
-\caption{The openflow switch architecture is made up of ports, a pipeline,
+\caption{The Openflow switch architecture is made up of ports, a pipeline,
 and an external controller which uses OpenFlow messages to communicate. (Image Source: \cite{openflow_spec})}
 \label{fg:openflow_switch}
 \end{figure}
@@ -45,9 +45,9 @@ from user-specified header structures.
 OpenFlow does not mention decoding because
 protocol dependent decoding is typically built into the switch.
 
-The second difference are the actions used to modify the packet.
+The second difference is the actions used to modify the packet.
 Steve flattens the instruction+action design of OpenFlow into
-just actions. Steve actions are generic and may work with any protocol field whereas OpenFlow only supports specific fields. It also provides action extensions to manipulate flow tables
+just actions. Steve actions are generic and may work with any protocol field, whereas OpenFlow only supports specific fields. It also provides action extensions to manipulate flow tables
 which OpenFlow does not.
 Steve also does away with OpenFlow's strict action set limitation, allowing any number of actions to be applied to a packet.
 
@@ -100,16 +100,13 @@ resides on the same switch as the data plane.
 
 \section{Early Steve Work}
 
-Once people decided that programmable switch components were valuable,
-they needed languages to program their controllers and data planes.
-However, due to the sensitive nature of network applications, the program must be provably safe.
-
+Due to the sensitive nature of network applications, the program must be provably safe to execute.
 Early development of Steve focused on the safe interpretation of packet memory as local objects.
 Casey, et al., described the semantic constraints,
 structural constraints (including buffer and view abstractions used by decoders), and 
 safe access properties needed when working with packet headers as well as providing the early Steve language.
 The Arbiter Framework was another language implementation that checked the correctness of data paths (pipelines) and ensured that they did not violate the 
-capabilities of switches they ran on.
+capabilities of switches they ran on
 \cite{arbiter}.
 
 \section{SDN Programming Languages}
@@ -140,11 +137,12 @@ tables (equivalent to flow tables). Parsing state is stored in a data structure
 called a ``parsed representation.''
 
 Huawei's Protocol-Oblivious Forwarding (POF) \cite{pof_fis, pof, pof_impl} provides a
-low-level, assembly-like, instruction set for POF SDN switches. 
+low-level, assembly-like, instruction set for POF SDN switches.
+The POF pipeline is a series of match tables which are also
+responsible for decoding the fields they match on. 
 The POF programming model uses metadata as a ``scratch pad'' for parsing fields,
 requiring that the programmer represent fields as generic \textit{\{offset, length\}} pairs, 
-known as "search keys". The POF pipeline is a series of match tables which are also
-responsible for decoding the fields they match on.
+known as ``search keys''. 
 
 NetASM is an intermediate representation language for programmable data planes
 \cite{shahbaz2015netasm}. It aims to solve the same issues as POF, but also provides a language that is target/device independent.

@@ -20,29 +20,29 @@ cloud services, web services, Internet of Things, etc. As the world grows
 more reliant on services provided over a network, so must the communication network evolve.
 
 The backbone of all networks is the \emph{switch}. The term switch here is not used to specifically mean a Layer 2 forwarding device. but rather to mean any device capable of making forwarding decisions across multiple layers of the OSI stack \cite{osi_model}. The term switch thus incorporates bridges, routers, hardware firewalls, etc.
-Unfortunately, modern switches suffer from a number of issues which make them difficult to use in an industry where networks are becoming increasingly elaborate.
+The problem is that modern switches suffer from a number of issues which make them difficult to use in an industry where networks are becoming increasingly elaborate.
 
 Conventional switches are complex and unscalable because they are only designed to deal with very specific sets of well-known protocols and use cases. A router, for example, may be reconfigured with new forwarding rules, but it will never be anything other than a router. The behavior is difficult if not impossible to change, making these devices very rigid.
 Because they may only be reconfigured within a limited use case, they cannot easily adapt to dynamic changes in network traffic and load.
 Even when reconfiguring, network administrators are often forced to do so through clunky, vendor-imposed command line interfaces. 
 
-This model cannot last forever. Future networks will require that network flows be directed in increasingly complex ways. More protocols and information will be carried on packets than ever before, and the modern switch model simply is simply not flexible enough.
-In order to bypass this inflexibility, it must be possible to implement network functions (routing, firewalls, NAT, etc) through intelligent networking applications in software.
+This model cannot last forever. Future networks will require that network flows be directed in increasingly complex ways. More protocols and information will be carried on packets than ever before, and the modern switch model is not flexible enough.
+In order to bypass this inflexibility, it must be possible to implement network functions (routing, firewalls, NAT, etc) through intelligent networking applications implemented in software.
 These applications must be capable of automatically adapting to changing network conditions by modifying switch behavior to optimize forwarding decisions, throughput, resource consumption, etc.
 There must also exist a switch which is capable of installing and running this software.
 
 This is the promise of \emph{software-defined networking} (SDN). 
-SDN modifies two major elements of a conventional network switch: the data plane and the control plane. The \emph{data plane}, sometimes called the \emph{forwarding plane}, is the element which is responsible for forwarding packets between ports on the device. The control plane is the element which learns and configures the forwarding logic used by the data plane. It is also capable of processing packets which the data plane cannot.
+SDN modifies two major elements of a conventional network switch: the data plane and the control plane. The \emph{data plane}, sometimes called the \emph{forwarding plane}, is the element which is responsible for forwarding packets between ports on the device. The control plane manages the data plane. It is the element which learns and configures the forwarding logic used by the data plane. It is also capable of processing packets which the data plane cannot.
 
 The Open Network
 Foundation (ONF) defines SDN as the ``separation of the network control
 plane from the forwarding [data] plane'' \cite{onf_sdn_def}.
 Either of these components may then be implemented in regular software.
-The goal of SDN architectures is to provide highly programmable, scalable, and 
-efficient network functions in software.
+The goal of SDN is to provide highly programmable, scalable, and 
+efficient network functions implemented in software.
 
 The conventional control plane is replaced by a software application known as a \emph{controller} (software control plane).
-This controller then serves as the intelligent network application which manages the switch's behavior. 
+This controller then serves as the network application which manages the switch's behavior. 
 Alternatively, it may serve as an interface so that multiple network applications may manage the switch.
 It may be run on any machine, completely separate from its switch and data plane.
 It may then perform distributed control over multiple data planes by communicating via network messages.
@@ -52,7 +52,7 @@ Because it may be run on any machine,
 any programmer can write regular software for common operating
 systems and processors to control the behavior of their networking device.
 
-The \emph{programmable data plane} remains on the device and is implemented with specialized, programmable processors. 
+The \emph{programmable data plane} remains on the device and is implemented with specialized, programmable packet processors. 
 Software may then be installed to program this hardware.
 A programmable data plane provides
 a key benefit that the software control plane cannot: \emph{protocol independence}.
@@ -84,7 +84,7 @@ parsing/decoding
 these protocols, the data plane supports processors
 and generic instructions that can be used to decode and operate on
 any header and field.
-This allows users to support their any future protocols in addition to
+This allows users to support any future protocols in addition to
 supporting current, well-known protocols. This makes the data plane scalable, that is, it
 can adapt to new headers easily.
 
@@ -191,7 +191,7 @@ range of values,
 triggered by a single packet),
 
 \item incorrect assumptions about decoding state. That is, a programmer using
-a field which they have not extracted yet.
+a field which they have not extracted yet or that does not exist.
 \end{itemize}
 
 Programmers using C for SDN applications are also burdened with management of
@@ -205,7 +205,7 @@ memory leakage.
 \item ports. The programmer is responsible for receiving, reading, and
 forwarding
 through ports. This process should be decoupled from the packet processing logic
-for modularity. A packet processing application should be architecture
+for modularity. Packet processing logic should be architecture
 independent
 whereas port management is a architecture dependent problem.
 \end{itemize}
@@ -264,7 +264,7 @@ Steve focuses on the language features required for programming a single device.
 
 There are flaws in distributed control that a single device does not have to deal with.
 Specifically, communicating with a distributed control plane is slow.
-The switch has to send messages over a network, the controller must process the message, then send more messages back to modify switch behavior. This latency is unnecessary
+The switch has to send messages over a network, the controller must process the message, then send more messages back to modify switch behavior. This latency is unnecessary for simple network functions.
 The trade-off is that it allows for control over an
 entire network.
 
@@ -276,7 +276,7 @@ because the two elements may communicate directly through an application
 binary interface (ABI).
 This model is considerably more effective for simple network functions.
 The programming model for a control and data plane on the same device
-is essentially basic event-driven programming (EDP).
+is basic event-driven programming (EDP).
 
 The data plane raises events when it needs something from the control plane.
 The control plane catches these events with special handlers and modifies the
@@ -359,7 +359,7 @@ it cannot handle a packet. Steve allows for the definition of
 \emph{event handlers} -- control plane functions which deal
 with these special circumstances.
 Unlike the pipeline, event handlers can execute a wider range of
-operations that are too slow for a data plane such as:
+operations that are too slow or complex for a data plane such as:
 logging, flow table modification, C library calls, etc.
 
 \subsection{General Purpose Features}
@@ -493,17 +493,15 @@ Right now, it targets an x86 architecture.
 
 In order to validate that our language abstractions work, the Steve compiler builds modules (dynamic link libraries)
 loaded by the Freeflow virtual machine (FFVM). 
-Freeflow is a virtual machine (VM) that also serves as the Steve runtime
-environment \cite{freeflow_software}.
+FFVM serves as the Steve runtime environment \cite{freeflow_software}.
 FFVM abstracts underlying switch
-hardware and services and exposes them through an interoperable ABI.
+hardware and services and exposes them through an interoperable ABI which may be called by the Steve application.
 %Freeflow is a VM in the similar sense that Java Virtual Machine (JVM) is a VM. Targeting the VM ABI allows high-level applications to avoid generating architecture dependent code and optimizations.
 
 FFVM may also be considered a software data plane.
 A Steve module is designed to program FFVM's packet processing pipeline by providing
 flow table configuration, flow table entries, and packet decoders.
-The module also instantiates the control plane for FFVM with the appropriate
-event handlers.
+The module also acts as the controller for FFVM's data plane and therefore provides an event handler interface which the data plane can call when it needs the control plane to process a packet.
 
 \section{Thesis Overview}
 
@@ -523,9 +521,7 @@ Chapter \ref{ch:limits} elaborates on pipeline safety guarantees, what algorithm
 limitations of the language and why they exist.
 
 Appendix \ref{ch:users_guide} serves as a reference
-manual which includes semantic, grammar, and typing rules for the language.
-This reference manual may be helpful to refer to when confused about a
-Steve code example.
+manual which includes semantic, grammar, and typing rules for the language. References to this appendix are made throughout this thesis as needed.
 
 Chapter \ref{ch:flowpath} describes the interface which must be exposed by the switch for Steve applications to run. To validate this approach, this chapter also summarizes Freeflow, a virtual data plane which exposes this interface to Steve \cite{freeflow_software}. It also describes the interface which a Steve application exposes to the switch.
 
@@ -533,5 +529,4 @@ Chapter \ref{ch:experiments} provides experiments using sample Steve
 applications. Pcap files are run through Steve applications to measure the data
 rate and raw packet rate that each application is capable of running at on a
 Linux machine.
-
 Chapter \ref{ch:conclusion} provides discussion, details future work for Steve, and provides concluding remarks about the project.

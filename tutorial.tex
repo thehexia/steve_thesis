@@ -38,7 +38,7 @@ The learning component prevents the switch from having to flood all packets like
 
 The first step in writing any Steve application is defining the layouts.
 Layouts, which are the topic of Section \ref{tut:layout}, are a way of defining the structure of a header.
-A learning switch only concerns itself with the ethernet header.
+A learning switch only concerns itself with the Ethernet header.
 
 \begin{codepage}
 \begin{lstlisting}
@@ -52,7 +52,7 @@ layout ethernet {
 
 The next step is writing a decoder, which is the topic of Section \ref{tut:decoder}.
 Since this application is only concerned with the
-ethernet header, it will only need an ethernet decoder. 
+Ethernet header, it will only need an Ethernet decoder. 
 
 \begin{codepage}
 \begin{lstlisting}
@@ -334,7 +334,7 @@ layout ethernet {
 
 Every layout has a name (\texttt{ethernet}) and a sequence of field declarations
 which describe the fields contained within the header.
-This ethernet layout has three such field declarations (\texttt{dst}, \texttt{src},
+This layout has three such field declarations (\texttt{dst}, \texttt{src},
 and \texttt{type}).
 Each field declaration has a name and a type that describes valid operations and
 value ranges for that field.
@@ -352,15 +352,15 @@ offset of 0 bits, \texttt{src} has one of 48 bits (6 bytes), and \texttt{type} h
 96 bits (12 bytes).
 
 The field declarations must appear in the order with which they would normally appear
-in an ethernet header. Field ordering should always be
+in an Ethernet header. Field ordering should always be
 preserved when declaring layouts. If the ordering is incorrect, decoders will
 assume a sequence of bits is a certain field when it truly is not. 
 
-Not all header structures are as simple as the ethernet header. Sometimes one
+Not all header structures are as simple as the Ethernet header. Sometimes one
 must deal with headers nested inside headers. Steve supports nested layouts
 to describe nested header structures.
 The following presents such a case where the programmer expects a VLAN header
-\cite{vlan_std} nested before the \texttt{type} field of an ethernet
+\cite{vlan_std} nested before the \texttt{type} field of an Ethernet
 header.
 
 \begin{codepage}
@@ -491,8 +491,8 @@ are located in a header and how long they are.
 \subsection{The Basic Decoder Form} \label{tut:basic_decoder}
 
 A decoder is written using a \textit{decoder declaration} (see \ref{guide:decoder}).
-The most common decoder written is likely the ethernet decoder. The following
-is the basic form of an ethernet decoder.
+The most common decoder written is likely the Ethernet decoder. The following
+is the basic form of an Ethernet decoder.
 
 \begin{codepage}
 \begin{lstlisting}
@@ -557,7 +557,7 @@ A field access expression is a field name being used where
 an expression is expected. This is similar to using a variable name
 in an expression to represent the value of the variable.
 
-A typical operation on an ethernet header is determining which protocol
+A typical operation on an Ethernet header is determining which protocol
 it encapsulates, i.e. the header which comes next. This is indicated
 by the value stored in \texttt{ethernet.type}.
 The following example demonstrates how the value of the \texttt{ethernet.type} 
@@ -579,9 +579,9 @@ decoder start eth_d(ethernet) {
 \end{codepage}
 
 
-The IEEE ethernet standard says that \texttt{ethernet.type} fields greater than 
+The IEEE Ethernet standard says that \texttt{ethernet.type} fields greater than 
 or equal to \texttt{0x600} indicate the next header's protocol \cite{eth_std}. 
-Any \texttt{type} fields less than \texttt{0x05dc} indicate the ethernet frame's 
+Any \texttt{type} fields less than \texttt{0x05dc} indicate the Ethernet frame's 
 length. 
 Here, field access is used to compare \texttt{ethernet.type} to 
 hexadecimal literals in an \texttt{if-else} statement to determine the meaning of 
@@ -702,7 +702,7 @@ table matching stages can be chained together in a number of flexible ways.
 Any stage may move a packet to a new decoder or a new table.
 
 To move to another decoding stage, the \texttt{decode} action (see \ref{tut:decode_action})
-is used. The following example bridges the ethernet and IPv4 decoders
+is used. The following example bridges the Ethernet and IPv4 decoders
 declared in earlier examples. Extract declarations are elided for
 brevity.
 
@@ -1408,7 +1408,7 @@ The IPv4 learning switch is not too different from the MAC learning switch.
 Instead of learning and forwarding from MAC addresses, this application will use 
 IPv4 addresses.
 
-To start, the layouts must be defined. The ethernet layout
+To start, the layouts must be defined. The Ethernet layout
 from the learning switch in Section \ref{tut:learning_switch} can be reused. 
 In addition, the IPv4 layout is also needed.
 
@@ -1429,7 +1429,7 @@ layout ipv4 {
 \end{lstlisting}
 \end{codepage}
 
-An ethernet decoder is needed again, however, this time the MAC
+An Ethernet decoder is needed again, however, this time the MAC
 addresses are not needed. Instead, the \texttt{ethernet.type} field is needed to confirm
 this is an IPv4 packet. If it is, the packet is sent to the IPv4 decoder.
 
@@ -1720,7 +1720,7 @@ Port p2;
 \end{lstlisting}
 \end{codepage}
 
-The ethernet layout from prior examples can be used to write a starting decoder. The
+The Ethernet layout from prior examples can be used to write a starting decoder. The
 special thing about this decoder is that it does not care about any of the fields.
 It only needs the ingress port.
 
