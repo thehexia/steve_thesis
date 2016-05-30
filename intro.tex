@@ -52,7 +52,8 @@ Because it may be run on any machine,
 any programmer can write regular software for common operating
 systems and processors to control the behavior of their networking device.
 
-The \emph{programmable data plane} remains on the device and is implemented with specialized, programmable processors. Software may then be installed to program this hardware.
+The \emph{programmable data plane} remains on the device and is implemented with specialized, programmable processors. 
+Software may then be installed to program this hardware.
 A programmable data plane provides
 a key benefit that the software control plane cannot: \emph{protocol independence}.
 
@@ -476,10 +477,13 @@ processing logic.
 %header they want extracted rather than forcing them to extract the entire
 %thing.
 
-High-level abstractions tend to produce performance penalties in exchange
-for safety. The Steve compiler tries to reduce this penalty as much as possible.
-The Steve compiler generates LLVM intermediate representation (IR) code
-\cite{llvm_webpage}. The LLVM IR optimizing compiler is able to produce code equivalent to that of a similar C implementation (as Clang \cite{clang_webpage} also uses LLVM). The LLVM infrastructure can also be modified to support special intrinsics which can be optimized for specific switch architectures. Right now, it targets an x86 architecture.
+High-level abstractions tend to produce performance penalties in exchange for safety and simplicity. 
+The Steve compiler tries to mitigate abstraction penalties where possible. 
+Steve generates LLVM intermediate representation (IR) code
+\cite{llvm_webpage}. 
+The LLVM IR optimizing compiler is used to optimize Steve code as much as possible.
+The LLVM compiler infrastructure can also be modified to support special intrinsics which can be optimized for specific switch architectures. 
+Right now, it targets an x86 architecture.
 
 %Steve may also customize the LLVM compiler to produce
 %specialized instructions that are optimized for the architecture running

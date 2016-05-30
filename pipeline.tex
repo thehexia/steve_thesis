@@ -2,6 +2,7 @@
 
 This chapter describes the Steve abstract machine. The abstract machine
 describes the packet processing model, program execution semantics, packet operations, and required resources of the Steve programming language.
+A switch must be able to emulate the Steve abstract machine in order to run a Steve program.
 Specifically, this chapter describes:
 
 \begin{enumerate}
@@ -34,26 +35,24 @@ data plane to modify pipeline behavior or to re-enter special packets.}
 \end{figure}
 
 The packet processing pipeline is part of the abstract data plane.
-This is the algorithm used to process packets and
+This is the algorithm used to process the majority of packets and
 make forwarding decisions.
-This will sometimes be referred to as the \emph{fast path} for packet
-processing because
-data plane processing does not have the latency associated
-with requesting processing from the control plane. 
+This will sometimes be referred to as the \emph{fast path} because
+data plane processing is optimized to be simple, fast, and does not incur the overhead of control plane processing. 
 A switch must be able to emulate all components of this pipeline.
 The abstract pipeline model is discussed in Section \ref{pipeline_desc}.
 
 The control plane defines control
 and logic over the data plane.
-In order to support Steve, a switch must support a non-distributed control
-plane which is capable of loading a program containing event handlers.
 Event handlers provide an interface for the data plane to interact with
 the control plane.
 The control plane uses these event handlers
 to process exceptional events raised by the pipeline.
-This typically indicates that the data plane was unable to process a packet
-and is requesting assistance from the control plane.
+The control plane is capable of more complex computation than the data plane.
+When the data plane cannot handle a packet because doing so would be too complicated or too slow, it requests that the control plane handle the packet.
 Event handlers are further discussed in Section \ref{events_desc}.
+In order to support Steve, a switch must support a non-distributed control
+plane which is capable of loading a Steve program containing event handlers.
 
 %The Flowpath runtime environment uses an abstract switch model depicted in
 %Figure \ref{fg:abstract_switch}. The switch model is composed of three major
