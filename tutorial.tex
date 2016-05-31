@@ -1162,7 +1162,8 @@ A \texttt{set} action can be used to write to any extracted field within a
 packet. 
 The \texttt{set} action is guaranteed to never overflow or underflow when
 writing bytes into the packet buffer.
-The value being written must have the same integer type (specifically precision) as the field being written to. If they mismatch, implicit integer conversion (see \ref{guide:int_conv}) ensures that the value being written gets converted to the correct type.
+The correct amount of bytes is always written, and always into the correct position in the packet.
+To enforce this, the value being written must have the same integer type (specifically precision) as the field being written to. If they mismatch, implicit integer conversion (see \ref{guide:int_conv}) ensures that the value being written gets converted to the correct type.
 
 The time-to-live field from an IPv4 header may be set as follows.
 

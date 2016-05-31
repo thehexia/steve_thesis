@@ -181,8 +181,7 @@ region of memory,
 resulting in a buffer overflow (i.e. writing new bytes into a header field
 but exceeding the size of that field),
 
-\item buffer underflow when not writing enough bytes while modifying
-a field,
+\item not writing enough bytes while modifying a field,
 
 \item using a field in an operation that is not supported by its
 range of values,
@@ -389,8 +388,7 @@ well-defined.
 To reduce errors related to working with fields as byte buffers, Steve allows
 for the representation of fields as arbitrary precision, signed or unsigned
 integers.
-Implicit integer conversions can be applied to these fields where necessary.
-Conversions prevent field modification from ever underflowing or overflowing.
+Implicit integer conversions can be applied to these fields to ensure that the correct number of bytes is always being written into the packet, making buffer overflows impossible.
 Additionally, Steve's layouts prevent the programmer from making common mistakes while extracting fields or manipulating protocol headers. 
 
 %Steve does not support pointer types, meaning that the programmer is never
