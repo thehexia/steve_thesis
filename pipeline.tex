@@ -34,6 +34,8 @@ data plane to modify pipeline behavior or to re-enter special packets.}
 \label{fg:abstract_switch} 
 \end{figure}
 
+This model is unconventional, as it blurs the separation between control plane and data plane. Because Steve targets SDN switches which are highly programmable but still efficient, a single Steve application can provide entities for both planes and expect the switch to support both. The advantage is that a single language can express the behavior of all elements in the switch.
+
 The packet processing pipeline is part of the abstract data plane.
 This is the algorithm used to process the majority of packets and
 make forwarding decisions.
@@ -115,9 +117,9 @@ egress processing before being forwarded.}
 \label{fg:pipeline_model} 
 \end{figure}
 
-The Steve pipeline can be described in terms of three phases: 
+The Steve pipeline can be described in terms of three overarching stages: 
 1) ingress processing, 2) pipeline processing, and 3) egress processing. 
-The pipeline processing phase can be further decomposed into two kinds
+The pipeline processing stage can be further decomposed into two kinds
 of stages: decoders and flow tables.
 
 %The Steve pipeline processing model can be described in terms of four phases: 1)
@@ -308,10 +310,9 @@ decoder's layout rule.
 \subsection{Enforcing Safe Extractions Through Views} \label{guide:decoder_view}
 
 There are safety issues associated with reinterpreting foreign packet memory
-into local objects within the Steve program. Specifically, a program risks
+into local objects within the Steve program \cite{wripe}. Specifically, a program risks
 reading outside the bounds of the packet, or inadvertently reading outside
 the bounds of a header.
-
 To prevent this,
 Steve ensures that decoders only have constrained
 access to a subset of contiguous bytes in a packet buffer.
@@ -336,11 +337,6 @@ Figure \ref{fg:decoding} demonstrates how decoders extract fields and
 how this view mechanism is applied on an actual packet instance. 
 Here, the Steve application decodes a typical packet 
 containing Ethernet, IPv4, and UDP headers.
- 
-The view index always starts at the beginning of the packet.
-In Figure \ref{fg:view1}, the first header is Ethernet.
-In Figure \ref{fg:view2}, the three fields of the Ethernet header
-are extracted.
 
 \begin{figure}[ht]
 \begin{subfigure}[t, scale=0.5]{.45\textwidth}
@@ -371,6 +367,11 @@ header -- 14 bytes.}
 \caption{A demonstration of the decoding process in action.}
 \label{fg:decoding}
 \end{figure}
+ 
+The view index always starts at the beginning of the packet.
+In Figure \ref{fg:view1}, the first header is Ethernet.
+In Figure \ref{fg:view2}, the three fields of the Ethernet header
+are extracted.
 
 When the compiler generates \textit{(offset, length)} pairs,
 the \emph{offset} value is relative to the view index. The
@@ -525,7 +526,8 @@ There can be certain match patterns supported by a table: exact, prefix, and wil
 
 Prefix match tables use the longest prefix match algorithm to determine
 matches over a bit pattern.
-Wildcard match tables allow for arbitrary wildcarded bits in a bit pattern.
+Wildcard match tables allow for arbitrary 
+``don't-care'' bits in a bit pattern.
 
 \subsection{Actions} \label{action_desc}
 

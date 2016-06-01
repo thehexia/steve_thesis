@@ -129,8 +129,8 @@ controller programming languages.
 
 \subsection{SDN Data Plane Programming and Configuration Languages} \label{rel:p4}
 
-P4 is the most popular protocol oblivious (independent) language for pipeline specification
- \cite{p4_spec, p4_spec2, p42014}.
+P4 is the most popular protocol independent language for pipeline specification
+ \cite{p4_spec, p4_spec2, p42014} on specialized ASIC switches.
 P4 specifies a pipeline of programmable parsers (equivalent to Steve decoders) followed
 by a series of match+action
 tables (equivalent to flow tables). Parsing state is stored in a data structure
@@ -143,11 +143,10 @@ responsible for decoding the fields they match on.
 The POF programming model uses metadata as a ``scratch pad'' for parsing fields,
 requiring that the programmer represent fields as generic \textit{\{offset, length\}} pairs, 
 known as ``search keys''. 
-
 NetASM is an intermediate representation language for programmable data planes
 \cite{shahbaz2015netasm}. It aims to solve the same issues as POF, but also provides a language that is target/device independent.
 
-Steve is inspired by parts of P4 and POF, but also attempts to
+Steve is middle ground between P4 and POF, but also attempts to
 fill in their weaknesses. 
 Steve's pipeline specification syntax is similar to P4.
 P4's high-level, abstract syntax is easy to write and understand. 
@@ -161,13 +160,10 @@ However, Steve's abstract pipeline and decoding model is closer to POF's.
 Steve decoders are placed between tables so fields are only decoded
 as needed. This is similar to how POF tables extract their own fields.
 Similarly, Steve uses POF's search key format for representing extracted fields, but the compiler generates the keys rather than the programmer.
-The benefit of POF's decoding model is full control over what is or is not
-extracted. 
-That is, it allows the programmer to only decode a subset of fields within the header.
+The benefit of POF's decoding model is granular control over which fields from a header get extracted.
 P4, on the other hand, extracts all header fields up-front, which wastes 
 valuable processing time if those fields are not needed.
-
-
+Also unlike P4, Steve allows the user to specify the complete pipeline logic, including pipeline composition, flow entry definitions, and flow entry insertion/removal. Because of this, the Steve compiler is able to reason about the safety of all flow entries which could ever exist and all potential paths that may exist at runtime.
 
 
 %Essentially, fields only get extracted as they are needed, right before matching
@@ -286,7 +282,7 @@ by Flowgrammable \cite{freeflow_software}. The Freeflow virtual machine (FFVM)
 provides a programmable, protocol oblivious, software data plane that 
 supports multi-tenancy. Steve is
 designed to generate code targeting the FFVM runtime environment. A Freeflow data 
-plane loads Steve applications which act as its control plane and programs its packet processing pipeline.
+plane loads Steve applications that act as its control plane and programs its packet processing pipeline.
 P4 can similarly target a software switch called behavioral-model v2 (bmv2) \cite{bmv2_software}. 
 
 Open vSwitch (OVS) is another SDN virtual, software switch which supports programmatic extensions \cite{ovs_man_page, ovs2009extending, ovs2013}. Open vSwitch was designed to work in virtual environments and runs on the hypervisor. It provides a high-level command line interface for re-configuring switches \cite{ovs_man_page}. Its possible a future implementation of Steve may try to program OVS. 

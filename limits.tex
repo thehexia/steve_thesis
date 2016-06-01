@@ -150,16 +150,19 @@ productions of nodes that it leaves behind from its set of accumulated productio
 \textit{Complexity Proof.} The worst case complexity of this algorithm is $O(n!)$ where $n$ is the number of nodes. Assume a DAG has $n$ nodes. There are at most $n-1$ nodes adjacent to the root node. Each node adjacent to the root has at most $n-2$ nodes adjacent to it. This pattern continues until paths end in a sink. Thus the number of paths can be represented as $(n-1)(n-2)...1$ or $(n-1)!$. Therefore, the performance
 is $O(n!)$.
 
-Fortunately, this worse case performance is rarely ever achieved. Only the most dense pipeline graphs, where a node at each level is connected to every other possible node has this kind of performance. Packet processing graphs are typically more sparse because edges (branches) only occur when determining what the next header is. These graphs are generally not very deep either as packets tend to have a very small number of headers.
+Fortunately, this worse case performance is rarely ever achieved. Only the most dense pipeline graphs, where a node at each level is connected to every other possible node has this kind of performance. Packet processing graphs are typically closer to trees as branches only occur when determining what the next header is. These graphs are generally not very deep either as packets tend to have a very small number of headers.
 Additionally, it is acceptable to incur performance penalties at compile time
 to ensure safety at runtime.
 
 \textit{Termination Proof.} This algorithm is guaranteed to terminate on DAGs. By definition, a DAG has a finite number of unique paths that can be taken from source to sink. A unique path, by definition, is an ordered sequence of nodes that is distinct from all other paths.
-Now, with proof by contradiction, assume the algorithm might not terminate. This would imply that this algorithm can visit the same unique path more than once.
+%Now, with proof by contradiction, assume the algorithm might not terminate. This would imply that this algorithm can visit the same unique path more than once.
 Let $V$ be the set of all nodes in the graph $G$.
-For a graph traversal algorithm to visit the same path more than once, for each $v \in V$, it must be possible to traverse from $v$ to a node adjacent to $v$ more than once. 
+For a graph traversal algorithm to visit the same path more than once.
 
-In this algorithm, given any node, $v$, in the graph there is a set of adjacent nodes, $A$. When this algorithm traverses the graph, for each node $a \in A$, the algorithm traverses the edge from $v$ to $a$ exactly once. If this algorithm does not terminate, then the algorithm must be able to traverse from $v$ to any node $a \in A$ more than once. But the algorithm explicitly prevents this, therefore the assumption is false and the algorithm does terminate.
+Consider the base case.
+Let $s$ be the root node for the graph. By Steve semantics, there may only be one start node. Let $A$ be the set of nodes adjacent to $s$. If the edge from $s$ to any $a \in A$ has been traversed, it is not possible to move from $s$ to $a$, therefore, the same path cannot be traversed twice from $s$.
+
+Now considering the recursive case, let $v$ be any other node in the graph. By definition of a DAG, $v$ must be the root of some subgraph $G'$ in $G$ that is also a DAG. Let $A'$ be the set of adjacent nodes to $v$. For each node $a' \in A'$, the $DFS(G',v, p)$ traverses the edge from $v$ to $a'$ exactly once. If this algorithm does not terminate, then the algorithm must be able to traverse from $v$ to any node $a' \in A'$ more than once, which is not the case. Note that is is possible to apply the algorithm to $G'$ multiple times, but because there are a fixed number of paths from $s$ to a sink in $G$, it is executed a fixed number of times.
 
 \section{Why Objects of Layout Type can not Exist.} \label{guide:no_dst}
 

@@ -3,7 +3,7 @@
 To load a Steve application, a switch must expose an application binary interface (ABI) which the Steve program can call to access switch resources and optimized operations. The desire is to push as much of processing logic into the hardware as possible 
 so that the application does not have to know about the underlying switch architecture and optimize for it.
 
-The Steve application also provides an interface so that the switch may use it to configure its pipeline and to access it as a controller.
+The Steve application also provides an interface so that the switch may use it to configure its pipeline, decode packets, and access event handlers.
 The topic of this chapter will be describing these two interfaces.
 
 To validate that this approach works, Steve targets a software data plane called Freeflow Virtual Machine (FFVM) \cite{freeflow_software}. FFVM is programmable and protocol independent. FFVM provides the runtime environment which exposes the ABI that Steve uses to manipulate the switch. FFVM virtualizes switch hardware as depicted in Figure \ref{fig:architecture}. Note that, though Steve targets FFVM, it could also directly target any software or hardware that exposed the same ABI.
@@ -117,11 +117,15 @@ Interface Functions & Functionality \\
 
 \hline
 
-\texttt{configure(dataplane)} & This function is used for configuration when an application gets loaded. Freeflow passes a data plane handle to this function. This function then calls the Freeflow ABI to set up flow tables and flow entries. \\
+\texttt{ff\_load(dataplane)} & This function is used for configuration when an application gets loaded. Freeflow passes a data plane handle to this function. This function then calls the Freeflow ABI to set up flow tables and flow entries. \\
 
 \hline
 
-\texttt{process(context)} & Freeflow sends contexts through this function to start pipeline processing. The application's logic will dictate which decoders and tables are used. Once the application finishes execution, Freeflow executes egress processing described in Section \ref{egress_desc}. \\
+\texttt{ff\_unload(dataplane)} & This function releases all dataplane resources allocated by the application. \\
+
+\hline
+
+\texttt{ff\_process(context)} & Freeflow sends contexts through this function to start pipeline processing. The application's logic will dictate which decoders and tables are used. Once the application finishes execution, Freeflow executes egress processing described in Section \ref{egress_desc}. \\
 
 \hline
 Event Handlers & Event handlers may vary in name, but all accept a context as a parameter. Whenever an event is raised, an event handler with the same name is executed.\\
@@ -164,3 +168,7 @@ Steve compilation is a three stage process.
 In the first stage, high-level network-specific syntax is lowered into primitive code elements such as functions, function calls, variables, system intrinsics, etc.
 In the second stage, Steve is compiled into LLVM IR \cite{llvm_webpage}. The LLVM IR is linked against the Steve runtime library which contains the context data structure. The context data structure is kept in an independent library so that different context formats may be easily swapped out depending on the target architecture.
 In the last stage, the LLVM IR is compiled by the LLVM optimizing compiler into assembly code which is assembled into the DLL.
+
+\section{Application Lifetime} \label{lifetime}
+
+When FFVM loads a Steve application library, it calls \texttt{ff\_load} which initializes flow tables. Once loading is complete, FFVM calls the \texttt{ff\_process} function to dispatch a context to the first decoder. When FFVM wants to remove the application, it calls \texttt{ff\_unload} which releases all resources requested by the application.

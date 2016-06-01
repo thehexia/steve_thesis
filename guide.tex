@@ -1,10 +1,10 @@
 \chapter{The Steve Reference Guide} \label{ch:users_guide}
 
-This chapter serves as a reference manual for Steve programmers. It provides detailed descriptions of Steve language semantics: how features work, type checking, grammar, conventional and illegal uses, etc. It also describes how pipeline safety guarantees are enforced, what constitutes a legal pipeline, and potential pitfalls a programmer might fall into when writing a pipeline.
+This chapter serves as a reference manual for Steve programmers. It should be used as a reference rather than being read
+through. It provides detailed descriptions of Steve language semantics: how features work, type checking, grammar, conventional and illegal uses, etc. It also describes how pipeline safety guarantees are enforced, what constitutes a legal pipeline, and potential pitfalls a programmer might fall into when writing a pipeline.
 There is an expectation that the user has read the Tutorial and has a basic understanding of Steve.
 
-This chapter serves as more of an annotated appendix rather than an actual chapter. It should be used as a reference rather than being read
-through. 
+Grammar in this section is given in Backus-Naur Form (BNF). All non-terminals are given between \texttt{< >}. All terminals appear in mono-spaced font. All optional grammar items are given between \texttt{[ ]}. Grammar items followed by a \texttt{+} indicate that 0 or more of that item may be present. All identifiers are suffixed with \texttt{\textit{-id}} and all names given to declarations are suffixed with \texttt{\textit{-name}}.
 
 \section{Identifiers} \label{guide:identifiers}
 
@@ -671,7 +671,7 @@ Table declarations have the following form:
 \end{grammar}
 \end{minip}
 
-Table declarations cause table objects to be created by the runtime system. After loading a Steve generated application, the runtime system (see \ref{ch:flowpath}) shall receive a number of table allocation requests from the Steve program corresponding to each table declaration. These requests are made as part of load-time configuration (see \ref{config_guide}). Each request shall provide:
+Table declarations cause table objects to be created by the runtime system. After loading a Steve generated application, the runtime system (see \ref{ch:flowpath}) shall receive a number of table allocation requests from the Steve program corresponding to each table declaration. These requests are made as part of load-time configuration (see \ref{lifetime}). Each request shall provide:
 
 \begin{itemize}
 \item A table name.
@@ -860,9 +860,7 @@ Expressions, generally speaking, perform some type of operation or computation w
 \begin{minip}
 \begin{grammar}
 <expression> ::=
-<primary-expression>
-\alt <binary-expression>
-\alt <unary-expression>
+<binary-expression>
 \end{grammar}
 \end{minip}
 
@@ -1039,6 +1037,44 @@ var s1 : char[] = "Hello, world.";
 \end{lstlisting}
 \end{minip}
 
+\subsection{Postfix Expressions} \label{guide:postfix_expr}
+
+Postfix expressions current only include call expressions and array subscript expressions.
+
+\begin{minip}
+\begin{grammar}
+<postfix-expression> ::= 
+<call-expression>
+\alt <subscript-expression>
+\alt <primary-expression>
+\end{grammar}
+\end{minip}
+
+\subsection{Call Expression} \label{guide:call_expr}
+
+Call expressions are used to call a function and returns the result of the function. They have the following form:
+
+\begin{minip}
+\begin{grammar}
+<call-expression> ::= <function-id> "(" [<expression-sequence>] ")"
+\end{grammar}
+\end{minip}
+
+The type of a call expression is the return type of the function referred to by \grd{function}{id}. The number of expressions in \grd{expression}{sequence} must match the number of parameters required. Their types must also match the types of corresponding parameters, or there must exist a conversion to the corresponding type.
+
+\subsection{Array Subscript Expression} \label{guide:subscript_expr}
+
+Array subscript expressions return the value of the element in a given position within an array or block. They have the form:
+
+\begin{minip}
+\begin{grammar}
+<subscript-expression> ::= <variable-id> "[" <expression> "]"
+\end{grammar}
+\end{minip}
+
+The \gr{expression} must have integer type.
+The type of the object referred to by \grd{variable}{id} must be array or block. If \gr{expression} is larger than the extend of the array or block, behavior is undefined.
+
 \subsection{Unary Expressions} \label{guide:unary_expr}
 
 Unary expressions have a single operator and a single operand. They have the following form:
@@ -1048,6 +1084,7 @@ Unary expressions have a single operator and a single operand. They have the fol
 <unary-expression> ::= 
 <not-expression>
 \alt <negative-expression>
+\alt <postfix-expression>
 \end{grammar}
 \end{minip}
 
@@ -1091,6 +1128,7 @@ Binary expressions have a single operator and two operands. They have the follow
 \alt <bitwise-or-expression>
 \alt <logical-and-expression>
 \alt <logical-or-expression>
+\alt <unary-expression>
 \end{grammar}
 \end{minip}
 
@@ -1422,8 +1460,6 @@ The goto action is a stage transition action, similar to the decode action. A go
 \begin{grammar}
 <goto-action> ::=
 "goto" <table-id> [<advance-specifier>] ";"
-
-<advance-specifier> ::= "advance" <expression>
 \end{grammar}
 \end{minip}
 
@@ -1548,7 +1584,7 @@ A raise action is used to raise an event which causes the context to be dispatch
 
 \begin{minip}
 \begin{grammar}
-<raise-action> ::= "raise" <event-id> ";"
+<raise-action> ::= "raise" <event-id> [<advance-specifier>] ";"
 \end{grammar}
 \end{minip}
 

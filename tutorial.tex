@@ -339,7 +339,7 @@ and \texttt{type}).
 Each field declaration has a name and a type that describes valid operations and
 value ranges for that field.
 To reduce errors related to working with byte buffers, Steve allows header fields to
-be represented as arbitrary-precision, signed or unsigned, integer types.
+be represented as fixed-precision, signed or unsigned, integer types.
 The precision denotes the length of the field in bits.
 Here, \texttt{dst} and \texttt{src} fields are 48 bits long and \texttt{type} is
 16 bits long.
@@ -1231,6 +1231,8 @@ raise log_tcp_port;
 
 
 Here, \texttt{log\_tcp\_event} names the event handler which will be executed. Its definition can be found in Section \ref{tut:event}. The execution is asynchronous to the pipeline, meaning the pipeline will not wait for it to complete before executing the next action.
+
+Because an event handler may choose to re-enter the context into the pipeline, the raise action may also use an \texttt{advance} specifier when done in a decoder. However, decoders should rarely, if ever, explicitly raise events.
 
 \section{Exiting the Pipeline} \label{tut:pipeline_exit}
 
