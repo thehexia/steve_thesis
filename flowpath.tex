@@ -1,12 +1,11 @@
 \chapter{Freeflow and Steve Compilation} \label{ch:flowpath}
 
-To load a Steve application, a switch must expose an application binary interface (ABI) which the Steve program can call to access switch resources and optimized operations. The desire is to push as much of processing logic into the hardware as possible 
-so that the application does not have to know about the underlying switch architecture and optimize for it.
+To load a Steve application, a switch must expose an application binary interface (ABI) that the Steve program can call to access switch resources and optimized operations. The desire is to push resource management into the data plane, making it completely opaque to the application, so that the application need not worry about discovering all resources on a device.
 
 The Steve application also provides an interface so that the switch may use it to configure its pipeline, decode packets, and access event handlers.
 The topic of this chapter will be describing these two interfaces.
 
-To validate that this approach works, Steve targets a software data plane called Freeflow Virtual Machine (FFVM) \cite{freeflow_software}. FFVM is programmable and protocol independent. FFVM provides the runtime environment which exposes the ABI that Steve uses to manipulate the switch. FFVM virtualizes switch hardware as depicted in Figure \ref{fig:architecture}. Note that, though Steve targets FFVM, it could also directly target any software or hardware that exposed the same ABI.
+To validate this approach, Steve targets a software data plane called Freeflow Virtual Machine (FFVM) \cite{freeflow_software}. FFVM is programmable and protocol independent. FFVM provides the runtime environment which exposes the ABI that Steve uses to manipulate the switch. FFVM virtualizes switch hardware as depicted in Figure \ref{fig:architecture}. Note that, though Steve targets FFVM, it could also directly target any software or hardware that exposed the same ABI.
 
 %
 %The Freeflow Virtual Machine (FFVM) is a software data plane that is programmable and protocol independent \cite{freeflow_software}. Freeflow provides a runtime environment (FFRT) for networking applications. FFRT is designed to abstract underlying hardware such as ports, memory, and flow tables. It exposes these resources through an interoperable ABI which can be used by almost any language. 
@@ -30,7 +29,7 @@ To validate that this approach works, Steve targets a software data plane called
 
 \section{Freeflow ABI} \label{fp:dp_interface}
 
-The Freeflow Runtime Library is the current ABI which Steve targets. It exposes a set of \emph{system calls} through functions which allow applications to gain controlled access to switch resources. Table \ref{tbl:Freeflow_api} summarizes the common usage of the library.
+The Freeflow Runtime Library is the current ABI which Steve targets. It exposes a set of \emph{system calls} through compiled functions which allow applications to gain controlled access to switch resources. Table \ref{tbl:Freeflow_api} summarizes the common usage of the library.
 
 The runtime library provides four major facilities that the Steve application takes advantage of. The first is the ability to create tables with certain specifications. The second is the ability to add and remove entries from tables to manipulate forwarding logic. The third is the ability to queue up contexts that raised events and the event handlers that will deal with them. The fourth is the ability to forward and drop packets.
 

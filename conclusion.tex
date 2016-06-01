@@ -3,8 +3,7 @@
 The goal of this research was to present a safe and efficient language for writing network applications for SDN switches. Though other languages already exist, Steve sought to improve upon them. First, Steve provides strict compile-time safety guarantees of user-defined packet processing pipelines.
 Steve's type and constraints system make it almost impossible to write a network application which invokes undefined behavior.
 Secondly, the Steve language expands past the basic pipeline specification of most languages and allows the programmer to define protocol independent control plane event handling as well.
-
-\section{Discussion}
+With that being said, there are still issues we have yet to explore.
 
 \subsection{Language Use Cases}
 
@@ -25,14 +24,11 @@ As long as there is the ABI exposes functions, Steve can be compiled to target t
 
 We have proven how Steve enforces pipeline safety, but
 because Steve focuses on being safe over everything else, the language enforces very strict rules about pipeline composition. However, some of these rules can be weakened depending on use cases.
-
 Specifically, the constraint that pipelines cannot have cycles can. It is possible to loosen this restriction so that pipelines may have cycles, but only between decoders. This is useful for recursively decoding an indeterminate number of headers of the same kind (like VLAN). This would not cause an infinite cycle because the view would eventually shift off the end of the packet causing it to be dropped.
 
-The requirement satisfaction property and decoder view mechanism must always be in place. These two features enforce constraints proposed by early Steve work \cite{wripe}. However, checking requirements is expensive, potentially $O(n!)$, especially for larger programs. It may be necessary to look into a better algorithm or to restructure the language in a way that does not require every path in the pipeline be checked.
+\subsection{Distributed Control}
 
-%\subsection{Performance}
-%
-%For a software switch, the performance is actually impressive. 
+It is possible that, rather than compiling one binary application, it is possible for the Steve compiler to produce two: one containing data plane entities, and another containing control plane event handlers. This would be similar to how ASP.NET web forms divide embedded C\# from web page content. The binary containing event handlers could be loaded by another machine and act as distributed controller. The message format could then be the context data structure wrapped by network protocols. Alternatively, since we can process any protocol, including OpenFlow, it is possible to process OpenFlow messages and locally and respond accordingly.
 
 \section{Future Work}
 
@@ -42,19 +38,12 @@ Pushing and popping headers as well as packet construction are the most interest
 
 Device introspection, that is, the ability of the application to learn things about the switch is missing.
 It may be useful for an application to search for a specific port, or to learn about the device's MAC and IP addresses.
-
 Deep packet introspection is similarly useful. Most SDN languages only focus on headers, but being able to look into a payload allows certain security applications to be written on the switch.
 
-Dealing with distributed control is not addressed in this paper. Though Steve focuses on programming a non-distributed SDN switch, it is not impossible for a Steve program to deal with distributed control either. Since OpenFlow protocol can be treated as just another header,
-it is possible for the non-distributed control plane to take actions based on OpenFlow packets received by the switch. 
 
 \section{Conclusion}
 
 Being able to program every component of a network switch is a powerful thing. Just by changing out a program, the entire behavior of the device can change. This is an incredibly powerful thing. It allows enterprises to quickly reconfigure their entire network setup at little to no cost. It also expands the possibilities of how the Internet may one day evolve. As SDN aims to make switches more like general purpose computers, the Internet may too evolve into something better.
-
 With that being said, SDN devices are far from being commonplace. As it stands, SDN is still trades speed for flexibility, making enterprises hesitant to adopt it. 
 
-Steve is just an infant step towards this potential future. This system addresses what a protocol independent, safe, and efficient SDN programming environment looks like. By providing a programming language that is high-level and logically safe, programmers
-can get past worrying about vulnerabilities and instead focus on behavior.
-
-The next steps for this research would be to deploy this environment on real SDN switches and test the performance. After that, the language compiler and runtime will have to adapt to portability concerns. As SDN is still in its infancy, this work will change to reflect future advances in technology. Will this type of programming ever take off and become universally adopted? Only the future can answer that.
+Steve is just an infant step towards this potential future. This system addresses what a protocol independent, safe, and efficient SDN programming environment looks like. This research provides a solid foundation of language features that must exist to implement network applications that can hopefully expand in the future.
