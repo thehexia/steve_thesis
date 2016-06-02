@@ -136,6 +136,12 @@ Interface Functions & Functionality \\
 Event Handlers & Event handlers may vary in name, but all accept a context as a parameter. Whenever an event is raised, an event handler with the same name is executed.\\
 \hline
 
+\texttt{ff\_start(dataplane)}
+\texttt{ff\_stop(dataplane)}
+ & These are used to start and stop the delivery of events. \\
+ 
+\hline
+
 \end{tabular}
 \end{center}
 \label{tbl:steve_api}
@@ -176,4 +182,6 @@ In the last stage, the LLVM IR is compiled by the LLVM optimizing compiler into 
 
 \section{Application Lifetime} \label{lifetime}
 
-When FFVM loads a Steve application library, it calls \texttt{ff\_load} which initializes flow tables. Once loading is complete, FFVM calls the \texttt{ff\_process} function to dispatch a context to the first decoder. When FFVM wants to remove the application, it calls \texttt{ff\_unload} which releases all resources requested by the application.
+When FFVM loads a Steve application library, it calls \texttt{ff\_load} which initializes flow tables. Once loading is complete, FFVM calls the \texttt{ff\_process} function to dispatch a context to the first decoder. 
+FFVM will use \texttt{ff\_start} and \texttt{ff\_stop} to start and stop the delivery of events to the application.
+When FFVM wants to remove the application, it calls \texttt{ff\_unload} which releases all resources requested by the application.
