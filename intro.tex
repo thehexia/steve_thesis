@@ -24,21 +24,21 @@ The problem is that modern switches suffer from a number of issues which make th
 
 Conventional switches are complex and unscalable because they are only designed to deal with very specific sets of well-known protocols and use cases. A router, for example, may be reconfigured with new forwarding rules, but it will never be anything other than a router. The behavior is difficult if not impossible to change, making these devices very rigid.
 Because they may only be reconfigured within a limited use case, they cannot easily adapt to dynamic changes in network traffic and load.
-Even when reconfiguring, network administrators are often forced to do so through clunky, vendor-imposed command line interfaces. 
+Even when reconfiguring, network administrators are often forced to do so through clunky, vendor-imposed command line interfaces.
 
 This model cannot last forever. Future networks will require that network flows be directed in increasingly complex ways. More protocols and information will be carried on packets than ever before, and the modern switch model is not flexible enough to handle it all.
 In order to bypass this inflexibility, it must be possible to implement network functions (routing, firewalls, NAT, etc) through intelligent networking applications implemented in software.
 These applications must be capable of automatically adapting to changing network conditions by modifying switch behavior to optimize forwarding decisions, throughput, resource consumption, etc.
 There must also exist a switch which is capable of installing and running this software.
 
-This is the promise of \emph{software-defined networking} (SDN). 
+This is the promise of \emph{software-defined networking} (SDN).
 SDN aims to make two elements of a conventional network switch programmable: the data plane and the control plane. The \emph{data plane}, sometimes called the \emph{forwarding plane}, is the element which is responsible for quickly forwarding packets between ports on the device. The control plane manages the data plane. It is the element which learns and configures the forwarding logic used by the data plane. It is also capable of processing packets which are too complex or slow for the data plane.
 
 The Open Network
 Foundation (ONF) defines SDN as the ``separation of the network control
 plane from the forwarding [data] plane'' \cite{onf_sdn_def}.
 %Either of these components may then be implemented in regular software.
-%The goal of SDN is to provide highly programmable, scalable, and 
+%The goal of SDN is to provide highly programmable, scalable, and
 %efficient network switches.
 The control plane is replaced by a software application known as a \emph{controller} (software control plane), which manages switch behavior.
 It may be run on any machine, completely separate from its switch and data plane.
@@ -49,7 +49,7 @@ Because it may be run on any machine,
 any programmer can write regular software for common operating
 systems and processors to control the behavior of their networking device.
 
-The \emph{programmable data plane} is implemented with specialized, programmable packet processors. 
+The \emph{programmable data plane} is implemented with specialized, programmable packet processors.
 Software may then be installed to program this hardware.
 A programmable data plane provides
 a key benefit that the SDN controller cannot: \emph{protocol independence}.
@@ -87,8 +87,8 @@ can adapt to new headers easily.
 
 Because the programmable data plane can flexibly deal with any field, the programmer can change its behavior without changing its hardware. One day it could be a bridge and the next it could be a firewall depending on the installed software.
 
-%Intelligence implies that a machine or program is capable of performing a myriad of general purpose computations which one might find on normal CPU. 
-%Consider a router for example. These machines are said to be intelligent because of the algorithms they use to route traffic across multiple networks. They may even support intelligent load and content balancing. But are they really intelligent compared to what modern computers are capable of? 
+%Intelligence implies that a machine or program is capable of performing a myriad of general purpose computations which one might find on normal CPU.
+%Consider a router for example. These machines are said to be intelligent because of the algorithms they use to route traffic across multiple networks. They may even support intelligent load and content balancing. But are they really intelligent compared to what modern computers are capable of?
 %
 %Of course not. Modern devices use specialized hardware to process network traffic at maximum speeds, but as a trade-off, they lose the ability to perform general purpose computation that would support implementing intelligent network functions. Why is this so important?
 %
@@ -117,7 +117,7 @@ Because the programmable data plane can flexibly deal with any field, the progra
 %This model continues to be the most popular for switch development.
 %However,
 %this conventional type of networking has become too rigid, unscalable, and
-%proprietary to support evolving technologies. 
+%proprietary to support evolving technologies.
 %
 %Defining network functionality in firmware is inherently inflexible.
 %Firmware is architecture-dependent, difficult to write, and challenging to
@@ -132,14 +132,14 @@ Because the programmable data plane can flexibly deal with any field, the progra
 %making them difficult to customize for enterprises with special needs.
 %By extension, these black box devices force any network functions
 %defined over them to be extremely architecture dependent.
-%Due to these issues and others, a new paradigm for networking was created. 
+%Due to these issues and others, a new paradigm for networking was created.
 %
 %This new paradigm
-%is called \textit{software-defined networking} (SDN). 
+%is called \textit{software-defined networking} (SDN).
 
 \section{Motivation: A Language for Programming SDN Devices}
 
-In order to pursue programmable SDN devices, there must be a language to write network applications that process packets and implement network functions. 
+In order to pursue programmable SDN devices, there must be a language to write network applications that process packets and implement network functions.
 A number of language solutions arise here.
 Some attempt to solve this problem by providing APIs for existing programming
 languages (specifically C).
@@ -155,14 +155,14 @@ A network application must be safe to execute more than anything else.
 Network applications, especially those running on high-traffic devices, must not
 crash due to logical mistakes or unnoticed undefined behaviors.
 At best, this produces expensive network downtime; at worst, this
-opens the way for security vulnerabilities on the device: 
+opens the way for security vulnerabilities on the device:
 denial of service attacks, buffer overflows, etc.
 
 Typical packet processing programs are written in low-level languages, most
 commonly C. These C programs usually work with data plane programming APIs such
 as Open Data Plane (ODP) \cite{odp_webpage} and the Data Plane Programming Kit
 (DPDK) \cite{dpdk_webpage}. Unfortunately, programming network devices in C can be prone
-to errors stemming from buffer and resource management, or logical mistakes made by the programmer. 
+to errors stemming from buffer and resource management, or logical mistakes made by the programmer.
 These issues are compounded by the fact C is a general
 purpose language not tailored towards packet processing, thus the burden of
 safety
@@ -278,9 +278,9 @@ The data plane raises events when it needs something from the control plane.
 The control plane catches these events with special handlers and modifies the
 forwarding logic accordingly.
 A free benefit of this model is that a single language like Steve may
-be used to define both control and data plane elements for a given 
-device. 
- 
+be used to define both control and data plane elements for a given
+device.
+
 \section{Contribution: The Steve Programming Language}
 
 The Steve programming language was designed to solve the problem of safe and efficient programming of SDN devices.
@@ -312,8 +312,8 @@ mechanism known as a \emph{layout}.
 A layout specifies what fields are in a header, the lengths of those fields,
 and types for those fields.
 
-\textbf{Decoders}. Decoders are pipeline stages used to extract 
-fields from a packet header. 
+\textbf{Decoders}. Decoders are pipeline stages used to extract
+fields from a packet header.
 They conform to user-defined layouts, making them flexible enough
 to deal with any protocol header.
 
@@ -330,8 +330,8 @@ to deal with any protocol header.
 
 \textbf{Flow tables}.
 Flow tables are pipeline stages responsible for the majority of forwarding logic.
-In networking, a \emph{flow} is a group of packets from a source to one 
-or more  destinations. In order to direct these flows, Steve uses \emph{flow tables} (an OpenFlow inspired abstraction). 
+In networking, a \emph{flow} is a group of packets from a source to one
+or more  destinations. In order to direct these flows, Steve uses \emph{flow tables} (an OpenFlow inspired abstraction).
 A flow table is a dynamic
 decision table which classifies packets into groups (flows) using
 decision rules (known as \emph{flow entries}).
@@ -361,9 +361,9 @@ logging, flow table modification, C library calls, etc.
 \subsection{General Purpose Features}
 
 Though Steve is an SDN language, it also supports a number of general purpose
-features. 
-Steve supports functions, variables, arithmetic, branching, 
-looping and a foreign function interface which may be used to call linked C 
+features.
+Steve supports functions, variables, arithmetic, branching,
+looping and a foreign function interface which may be used to call linked C
 library functions.
 
 \section{Contribution: A Language for Defining Safe Pipelines}
@@ -381,12 +381,12 @@ enforce strict safety guarantees so that runtime checks can be avoided as much
 as possible.
 
 The Steve type system ensures that operations on header fields are valid and
-well-defined. 
+well-defined.
 To reduce errors related to working with fields as byte buffers, Steve allows
 for the representation of fields as fixed-width, signed or unsigned
 integers.
 Implicit integer conversions can be applied to these fields to ensure that the correct number of bytes is always being written into the packet, making buffer overflows impossible.
-Additionally, Steve's layouts prevent the programmer from making common mistakes while extracting fields or manipulating protocol headers. 
+Additionally, Steve's layouts prevent the programmer from making common mistakes while extracting fields or manipulating protocol headers.
 
 %Steve does not support pointer types, meaning that the programmer is never
 %concerned with null or invalid pointer addresses. Instead, Steve supports
@@ -406,7 +406,7 @@ Additionally, Steve's layouts prevent the programmer from making common mistakes
 %\item implicit conversions can be applied where necessary (e.g. integer size
 %promotion, unsigned to signed conversions, etc).
 %
-%\item buffer overflow/underflow prevention. 
+%\item buffer overflow/underflow prevention.
 %Writing a new value into a header field \textit{never} causes accidental
 %buffer overflows. The Steve compiler uses implicit conversions to guarantee
 %that
@@ -446,9 +446,9 @@ Steve compiler performs analysis on this graph to enforce the following
 constraints.
 
 \begin{enumerate}
-\item Fields that have not been extracted by a decoder cannot be used. 
+\item Fields that have not been extracted by a decoder cannot be used.
 
-\item The traversal of a packet through a pipeline is always a linear
+\item The traversal of a packet through a pipeline is always a forward
 progression. That is, a packet may never enter a non-terminating cycle
 of decoders and tables.
 \end{enumerate}
@@ -459,7 +459,7 @@ Steve never requires the user to heap allocate resources. The majority of
 allocation is done on the stack, ensuring Steve applications are free of
 memory leakage and faster (as heap allocation tends to be slow).
 
-Steve relies on its runtime environment, Freeflow \cite{freeflow_software}, 
+Steve relies on its runtime environment, Freeflow \cite{freeflow_software},
 to manage system resources such as
 ports, packet reading, and packet buffer allocations.
 This decouples the logic of system resource management from the packet
@@ -472,12 +472,12 @@ processing logic.
 %header they want extracted rather than forcing them to extract the entire
 %thing.
 
-High-level abstractions tend to produce performance penalties in exchange for safety and simplicity. 
-The Steve compiler tries to mitigate abstraction penalties where possible. 
+High-level abstractions tend to produce performance penalties in exchange for safety and simplicity.
+The Steve compiler tries to mitigate abstraction penalties where possible.
 Steve generates LLVM intermediate representation (IR) code
-\cite{llvm_webpage}. 
+\cite{llvm_webpage}.
 The LLVM IR optimizing compiler is used to optimize Steve code as much as possible.
-The LLVM compiler infrastructure can also be modified to support special intrinsics which can be optimized for specific switch architectures. 
+The LLVM compiler infrastructure can also be modified to support special intrinsics which can be optimized for specific switch architectures.
 Right now, it targets an x86 architecture.
 
 %Steve may also customize the LLVM compiler to produce
@@ -487,7 +487,7 @@ Right now, it targets an x86 architecture.
 \section{Contribution: Modules For Freeflow Switches}
 
 In order to validate that our language abstractions work, the Steve compiler builds modules (dynamic link libraries)
-loaded by the Freeflow virtual machine (FFVM). 
+loaded by the Freeflow virtual machine (FFVM).
 FFVM is a software data plane which also provides the Steve runtime environment \cite{freeflow_software}.
 FFVM abstracts underlying switch
 hardware and services and exposes them through an interoperable ABI which may be called by the Steve application.
@@ -510,7 +510,7 @@ Sample networking applications are also presented in
 this chapter. These same samples are presented again in Appendix
 \ref{ap:steve_programs}.
 
-Chapter \ref{ch:limits} elaborates on pipeline safety guarantees, what algorithms enforce them, and the proofs for these algorithms. It also provides explanations about other 
+Chapter \ref{ch:limits} elaborates on pipeline safety guarantees, what algorithms enforce them, and the proofs for these algorithms. It also provides explanations about other
 limitations of the language and why they exist.
 
 Appendix \ref{ch:users_guide} serves as a reference
