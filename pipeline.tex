@@ -399,9 +399,11 @@ This process continues until all decoders are finished.
 
 \subsection{Byte Ordering}
 
-Steve applications automatically convert fields from network byte order
+Steve applications currently make the assumption that all fields are in network byte order.
+Explicit expression of byte order for a field is future work.
+It automatically converts fields from network byte order
 to the native order of the target machine. All operations on packet fields should keep this in mind.
-It should be noted that this conversion is applied consistently across all kinds of fields. If the field was not in network byte order, this may actually produce unexpected results.
+If the field was not in network byte order, this may actually produce unexpected results.
 
 \subsection{Partial and Full Decodes}
 
