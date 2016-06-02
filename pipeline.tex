@@ -34,7 +34,7 @@ data plane to modify pipeline behavior or to re-enter special packets.}
 \label{fg:abstract_switch} 
 \end{figure}
 
-This model is unconventional, as it blurs the separation between control plane and data plane. Because Steve targets SDN switches which are highly programmable but still efficient, a single Steve application can provide entities for both planes and expect the switch to support both. The advantage is that a single language can express the behavior of all elements in the switch.
+This model is unconventional, as it blurs the separation between control plane and data plane. Because Steve targets SDN switches that do not require distributed control, and support control and data plane programmability, a single Steve application can provide entities for both planes. The advantage is that a single language can express the behavior of all elements in the switch.
 
 The packet processing pipeline is part of the abstract data plane.
 This is the algorithm used to process the majority of packets and
