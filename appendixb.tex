@@ -1,5 +1,7 @@
 \section{Steve Programs} \label{ap:steve_programs}
 
+\subsection{Wire}
+
 \begin{lstlisting}
 ///////////////////////////////////////
 //  Wire
@@ -39,6 +41,7 @@ decoder start eth_d(ethernet)
 }
 \end{lstlisting}
 
+\subsection{MAC Bridge}
 
 \begin{lstlisting}
 ///////////////////////////////////////
@@ -109,6 +112,7 @@ exact_table forward(ethernet.dst)
 \end{lstlisting}
 
 
+\subsection{IPv4 Routing}
 
 \begin{lstlisting}
 ///////////////////////////////////////
@@ -272,6 +276,7 @@ def ipv4_checksum(vihl : uint(8), dscp_ecn : uint(8),
 }
 \end{lstlisting}
 
+\subsection{Stateless Firewall}
 
 \begin{lstlisting}
 ///////////////////////////////////////
