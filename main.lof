@@ -4,5 +4,5 @@
 \contentsline {figure}{\numberline {3.3}{\ignorespaces The Steve binding environment maps field names to stacks of \emph {(offset, length)} pairs. This allows multiple fields of the same name to be extracted and also supports fields being rebound with new names.\relax }}{26}
 \contentsline {figure}{\numberline {3.4}{\ignorespaces A demonstration of the decoding process in action.\relax }}{29}
 \contentsline {figure}{\numberline {3.5}{\ignorespaces Kinds of pipeline composition.\relax }}{37}
-\contentsline {figure}{\numberline {6.1}{\ignorespaces An ill-formed pipeline. Table \texttt {T1} requires fields A, B, and C. However, in the path from \texttt {D1} to \texttt {D3} to \texttt {T1}, field C has not been extracted.\relax }}{89}
+\contentsline {figure}{\numberline {6.1}{\ignorespaces An ill-formed pipeline. Table \texttt {T1} requires fields A, B, and C. However, in the path from \texttt {D1} to \texttt {D3} to \texttt {T1}, field C has not been extracted.\relax }}{90}
 \contentsline {figure}{\numberline {7.1}{\ignorespaces The FFVM architecture. FFVM virtualizes the underlying switch hardware and switch OS. Steve programs are loaded by FFVM and instantiates the data plane's pipeline. The Steve program also serves as the device's controller.\relax }}{101}

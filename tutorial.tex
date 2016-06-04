@@ -204,31 +204,30 @@ assume a sequence of bits is a certain field when it truly is not.
 
 Not all header structures are as simple as the Ethernet header. Sometimes one
 must deal with structures encapsulated inside a header. Steve supports composition of layouts to describe such header structures.
-The following presents such a case where the programmer expects a VLAN header
-\cite{vlan_std} inserted before the \texttt{type} field of an Ethernet
-header.
+The following presents an OpenFlow protocol message which contains such a case \cite{openflow_spec}.
 
 \begin{codepage}
 \begin{lstlisting}
-layout ethernet {
-  dst  : uint(48);
-  src  : uint(48);
-  vtag : vlan; 
-  type : uint(16);
-}
+layout ofp_instr_stat_trigger {
+	type : uint(16); 
+	len : uint(16); 
+	flags : uint(32); 
+	threshold : ofp_stats;
+};
 
-layout vlan {
-  ethertype : uint(16);
-  tci : uint(16);
-}
+layout ofp_stats {
+	reserved : uint(16); 
+	length : uint(16); 
+	oxs_field : uint(8);
+	padding : uint(32);
+};
 \end{lstlisting}
 \end{codepage}
 
-In this example, two layouts are declared: \texttt{ethernet} and \texttt{vlan}. 
-To express a VLAN structure within the Ethernet header, a field named \texttt{vtag} is added to
-\texttt{ethernet} and its type is given as the name of another layout (
-\texttt{vlan}). The length of the \texttt{vtag} field would be the sum of
-its fields, in this case, 32 bits (4 bytes).
+In this example, two layouts are presented: \texttt{ofp\_instr\_stat\_trigger} and \texttt{ofp\_stats}. 
+To express the \texttt{ofp\_stats} structure within the OpenFlow message, a field named \texttt{threshold} is added to
+\texttt{ofp\_instr\_stat\_trigger} and its type is given as the name of another layout (\texttt{ofp\_stats}). The length of the \texttt{threshold} field would be the sum of the lengths
+its fields, in this case, 72 bits (9 bytes).
 
 With the way
 layouts are described and written, it is easy to draw the comparison between 
@@ -537,6 +536,62 @@ decoder that has not extracted that field even if a prior decoder extracted that
 header and has no knowledge of previous headers or extractions.
 Field access expressions are not the same as variables and may not be assigned to like one. To modify the
 value of a field, a \texttt{set} action must be used instead.
+
+\subsection{Rebinding Extracted Fields}
+
+The context binding environment
+allows fields to be rebound with different names. This essentially
+allows the a field to be referred to using a different name.
+When extracting multiple fields of the same name, this allows the
+programmer to disambiguate them. 
+
+More commonly it is used to rename fields so that they may be reinterpreted as other fields. For example, assume that an Ethernet
+frame has a VLAN tag. The \texttt{ethertype} field of the VLAN tag is what 
+actually informs the switch what Layer 3 protocol is encapsulated
+by Ethernet. 
+A rebind declaration (\ref{guide:rebind}) is used to alias a field with a new name.
+So for example:
+
+\begin{codepage}
+\begin{lstlisting}
+layout vlan {
+	tci : uint(16);
+	ethertype : uint(16);
+}
+
+decoder start eth_d(ethernet) {
+	extract ethernet.type;
+	match(ethernet.type) {
+		case 0x8100: decode vlan_d;
+	}
+}
+
+decoder start vlan_d(vlan) {
+	extract vlan.ethertype as ethernet.type; // Rebind
+	goto ethtable;
+}
+\end{lstlisting}
+\end{codepage}
+
+In \texttt{vlan\_d}, the \texttt{extract vlan.ethertype as ethernet.type} allows the extraction of \texttt{vlan.ethertype} to be referred to as
+\texttt{ethernet.type} in future stages. The \texttt{vlan.ethertype}
+is the \emph{original} field and \texttt{ethernet.type} is the \emph{alias} field.
+Consider the following table:
+
+\begin{codepage}
+\begin{lstlisting}
+exact_table ethtable(ethernet.type) {
+	{ 0x8100 } -> { ... }
+	{ 0x86dd } -> { ... }
+}
+\end{lstlisting}
+\end{codepage}
+
+Assume that \texttt{vlan.ethertype} has a value of \texttt{0x86dd}.
+When \texttt{vlan\_d} sends the packet to \texttt{ethtable}, it will
+match the flow entry whose match field is \texttt{0x86dd}. Because of
+the rebind \texttt{ethernet.type} refers to the extracted \texttt{vlan.ethertype}.
+
 
 \subsection{Stage Transition} \label{tut:decoder_next}
 

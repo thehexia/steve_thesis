@@ -316,58 +316,6 @@ while (x < 5)
 \end{lstlisting}
 \end{minip}
 
-\subsection{Rebinding Extracted Fields}
-
-One of the benefits of the context binding environment is the it
-allows fields to be rebound with different names. This essentially
-allows the same field to be referred to using two different names.
-When extracting multiple fields of the same name, this allows the
-programmer to disambiguate them. 
-
-More commonly it is used to rename fields so that they may be reinterpreted as other fields. For example, assume that an Ethernet
-frame has a VLAN tag. The \texttt{ethertype} field of the VLAN tag is what 
-actually informs the switch what Layer 3 protocol is encapsulated
-by Ethernet. 
-A rebind declaration (\ref{guide:rebind}) is used to alias a field with a new name.
-So for example:
-
-\begin{codepage}
-\begin{lstlisting}
-decoder start eth_d(ethernet) {
-	extract ethernet.type;
-	match(ethernet.type) {
-		case 0x8100: decode vlan_d;
-	}
-}
-
-decoder start vlan_d(vlan) {
-	extract vlan.ethertype as ethernet.type; // Rebind
-	goto ethtable;
-}
-\end{lstlisting}
-\end{codepage}
-
-In \texttt{vlan\_d}, the \texttt{extract vlan.ethertype as ethernet.type} allows the extraction of \texttt{vlan.ethertype} to be referred to as
-\texttt{ethernet.type} in future stages. The \texttt{vlan.ethertype}
-is the \emph{original} field and \texttt{ethernet.type} is the \emph{alias} field.
-
-When using the extraction later in the program, either name may be used.  
-Both names are added to the decoder's productions (see \ref{guide:requirements}) for constraints checking. 
-Consider the following table:
-
-\begin{codepage}
-\begin{lstlisting}
-exact_table ethtable(ethernet.type) {
-	{ 0x8100 } -> { ... }
-	{ 0x86dd } -> { ... }
-}
-\end{lstlisting}
-\end{codepage}
-
-Assume that \texttt{vlan.ethertype} has a value of \texttt{0x86dd}.
-When \texttt{vlan\_d} sends the packet to \texttt{ethtable}, it will
-match the flow entry whose match field is \texttt{0x86dd}. Because of
-the rebind \texttt{ethernet.type} refers to the extracted \texttt{vlan.ethertype}.
 
 %The extractions which \texttt{N1} can refer to are a subset of the extractions \texttt{N2} can refer to. The aliased name naturally can refer to extractions which are from a different kind of field than the original name. To demonstrate this, the following revision is made to the prior example:
 %
