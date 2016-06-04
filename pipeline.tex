@@ -560,7 +560,7 @@ The original packet continues through pipeline processing as usual.
 \textbf{Insert flow entry \emph{\texttt{<mf> <priority> <properties> <actions> <t>}}}. 
 
 This inserts a flow entry into flow table $t$ with the given match fields ($mf$), priority, optional properties, and action sequence. The type and number of match
-fields must correspond to those of $t$'s key fields. A flow entry should have additional space to store optional named properties that can be used to store stateful information such as timeout. The representation of the flow entry action sequence is implementation specific. Actions may be stored as a list of objects representing each action that get interpreted by a separate execution engine. Alternatively, the action sequence may be implemented as a function which operates over a context and emulates the behavior of applying those actions. 
+fields must correspond to those of $t$'s key fields. A flow entry should have additional space to store optional named properties such as flow timeout. The representation of the flow entry action sequence is implementation specific. Actions may be stored as a list of objects representing each action that get interpreted by a separate execution engine. Alternatively, the action sequence may be implemented as a function which operates over a context and emulates the behavior of applying those actions. 
 Inserting a flow entry that already exists will remove the old one and replace it with the new one. 
 
 \textbf{Remove flow entry \texttt{<match fields> <t>}}. This removes a flow entry from $t$.
