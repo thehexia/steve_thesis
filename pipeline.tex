@@ -643,7 +643,8 @@ To send a packet through pipeline processing, the machine calls \texttt{ff\_proc
 Steve pipeline processing follows a run-to-complete model of execution. Once a
 packet enters the pipeline, each stage is consecutively applied to
 the packet. Once no more stages are applied, the packet exits the pipeline, goes through egress processing, and
-the next packet enters. How a packet transitions between stages is implementation specific. Either the machine passes the context to the next stage, or the application passes the context to the next stage.
+the next packet enters. 
+How a packet transitions between stages is implementation specific. Either the machine controls how the context is passed to the next stage, or the application directly passes the context to the next stage. With the latter, the compiler is able have full, static knowledge of flow control.
 
 The machine may end the application's life cycle by calling \texttt{ff\_unload}. This causes all flow tables, flow entries, and any additional resources used by the application to be released.
 
