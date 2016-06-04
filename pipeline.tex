@@ -1,13 +1,15 @@
 \chapter{THE STEVE ABSTRACT MACHINE} \label{ch:pipeline_model}
 
-This chapter describes the Steve abstract machine. The abstract machine
-describes the packet processing model, program execution semantics, packet operations, and required resources of the Steve programming language.
-A switch must be able to emulate the Steve abstract machine in order to run a Steve program.
+An abstract machine describes the memory model, object model, program execution semantics, operations, the types of objects be operated on, the behavior of operations, and required resources. 
+The Steve abstract machine receives and forwards packets on ports.
+The abstract machine loads Steve applications that define its forwarding decisions.
+This chapter describes the Steve abstract machine.
 Specifically, this chapter describes:
 
 \begin{enumerate}
 \item how a Steve application divides between data and control planes,
-\item what operations and actions these two elements must support for packets, and
+\item application lifetime cycle,
+\item what operations and actions must be supported for packets, and
 \item the \emph{packet processing pipeline} which handles directing packet flow.
 \end{enumerate}
 %
@@ -18,7 +20,7 @@ Specifically, this chapter describes:
 
 \section{Data and Control Plane Elements}
 
-A Steve program is a list of declarations. These declarations describe
+The Steve programming language defines
 packet structure, decoders, flow tables, and event handlers.
 These entities may be split into two categories:
 entities which define data plane processing and
@@ -41,12 +43,12 @@ This is the algorithm used to process the majority of packets and
 make forwarding decisions.
 This will sometimes be referred to as the \emph{fast path} because
 data plane processing is optimized to be simple, fast, and does not incur the overhead of control plane processing. 
-A switch must be able to emulate all components of this pipeline.
+A data plane must be able to support the pipeline model: programmable decoders, reconfigurable flow tables, and all actions required by both.
 The abstract pipeline model is discussed in Section \ref{pipeline_desc}.
 
 The control plane defines control
 and logic over the data plane.
-Event handlers provide an interface for the data plane to interact with
+Event handlers are functions that provide an interface for the data plane to interact with
 the control plane.
 The control plane uses these event handlers
 to process exceptional events raised by the pipeline.
@@ -54,7 +56,7 @@ The control plane is capable of more complex computation than the data plane.
 When the data plane cannot handle a packet because doing so would be too complicated or too slow, it requests that the control plane handle the packet.
 Event handlers are further discussed in Section \ref{events_desc}.
 In order to support Steve, a switch must support a non-distributed control
-plane which is capable of loading a Steve program containing event handlers.
+plane capable of raising events and executing event handlers. Additionally, it must support function calls, variable allocation, and arithmetic.
 
 %The Flowpath runtime environment uses an abstract switch model depicted in
 %Figure \ref{fg:abstract_switch}. The switch model is composed of three major
@@ -117,10 +119,12 @@ egress processing before being forwarded.}
 \label{fg:pipeline_model} 
 \end{figure}
 
-The Steve pipeline can be described in terms of three overarching stages: 
+Packet processing can be described in terms of three basic stages: 
 1) ingress processing, 2) pipeline processing, and 3) egress processing. 
 The pipeline processing stage can be further decomposed into two kinds
-of stages: decoders and flow tables.
+of stages: decoders and flow tables. Additionally, all packets must reach
+a final state known as \textit{termination}, where all processing for a packet
+has completed. Termination happens after egress processing or prematurely through certain actions. Termination releases all resources used to store a packet and all metadata associated with that packet. 
 
 %The Steve pipeline processing model can be described in terms of four phases: 1)
 %\emph{ingress processing}, 2) \emph{decoding stages}, 3) \emph{table
@@ -286,11 +290,11 @@ A packet is a chunk of raw uninterpreted binary data.
 In order to make meaningful decisions, the program needs to
 recover protocol headers whose fields contain the control
 information needed to forward the packet.
-Decoders are functions responsible for determining which
+Decoders are functions which operate over context objects. They are responsible for determining which
 groups of bits are a header, and which subsets of that header form fields. 
-The decoder then extracts those fields for usage by later stages.
+Decoders extract these fields, allowing them to be reinterpreted as local objects with a specified type within the decoder or by later stages of the pipeline.
 Since a packet is composed of a sequence of headers, those headers and fields
-may be extracted by a series of decoders linked together in a Steve pipeline.
+may be extracted by calling a series of decoders.
 
 A decoder operates on exactly one header.
 It knows where fields are in that header by conforming to a header \emph{layout}.
@@ -310,7 +314,7 @@ decoder's layout rule.
 \subsection{Enforcing Safe Extractions Through Views} \label{guide:decoder_view}
 
 There are safety issues associated with reinterpreting foreign packet memory
-into local objects within the Steve program \cite{wripe}. Specifically, a program risks
+into local objects within the Steve program described in prior Steve work \cite{wripe}. Specifically, a program risks
 reading outside the bounds of the packet, or inadvertently reading outside
 the bounds of a header.
 To prevent this,
@@ -338,7 +342,7 @@ how this view mechanism is applied on an actual packet instance.
 Here, the Steve application decodes a typical packet 
 containing Ethernet, IPv4, and UDP headers.
 
-\begin{figure}[ht]
+\begin{figure}
 \begin{subfigure}[t, scale=0.5]{.45\textwidth}
   \centering
   \includegraphics[width=\linewidth]{view1}
@@ -439,7 +443,8 @@ favor one paradigm over another.
 Tables stages are used by the pipeline to make forwarding decisions.
 A network \emph{flow} is a series of packets from a source to a set of one or
 more destinations.
-Table stages use the mechanism known as \emph{flow tables} to direct these
+A table stage is a function which operates over a context. It retrieves data from the context and performs lookup against an object known as a \emph{flow table}.
+\emph{Flow tables} are used to direct
 flows \cite{openflow_spec} based on header content. 
 Flow tables are modeled as decision tables which classify packets into
 groups (flows) based on field values found in their headers. 
@@ -473,8 +478,8 @@ destination port.}
 \end{table}
 
 
-A flow table has a \emph{key} and a set of \emph{flow entries}. A
-key specifies a set of fields from a packet, called \emph{key fields}, that a table matches
+A flow table has a \emph{key} and a set of \emph{flow entries}. The type of a flow table is determined by its match pattern and its key. A
+key specifies a set of typed fields from a packet, called \emph{key fields}, that a table matches
 against (or classifies with). They are the equivalent of decision attributes.
 Table \ref{tbl:flow_table} has two key fields: IP destination and TCP
 destination port.
@@ -524,12 +529,11 @@ matching keys.
 
 \subsection{Table Match Patterns} \label{tut:match_patterns}
 
-There can be certain match patterns supported by a table: exact, prefix, and wildcard. Steve currently only handles the exact match pattern. The exact match pattern means the value of the packet field must be exactly equal to the value of the match field. A logical-XOR of the two bit-patterns should produce a result equivalent to 0.
+There can be certain match patterns supported by a table: exact, prefix, and wildcard. Steve currently only handles the exact match pattern, but plans to extend in the future. The exact match pattern means the value of the packet field must be exactly equal to the value of the match field. A logical-XOR of the two bit-patterns should produce a result equivalent to 0.
 
 Prefix match tables use the longest prefix match algorithm to determine
 matches over a bit pattern.
-Wildcard match tables allow for arbitrary 
-``don't-care'' bits in a bit pattern.
+Wildcard match tables allow for arbitrary ``don't-care'' bits in a bit pattern.
 
 \subsection{Actions} \label{action_desc}
 
@@ -538,47 +542,36 @@ expected to support a limited common set of \emph{actions}.
 Actions may modify a packet, forward it, move it to a new stage, or modify a
 flow table. 
 Actions are primarily applied by flow tables, but may also appear in decoders
-and event handlers.
+and event handlers. All actions implicitly operate on the current packet.
 
-\begin{itemize}
 
-\item \textbf{Output}. This is used to forward a copy of a packet to a designated port.
+\textbf{Output \emph{\texttt{<p>}}}. This forwards a copy of the packet to port $p$.
 
-\item \textbf{Drop}. This forces a device to drop a packet and delete its context.
+\textbf{Drop}. This terminates packet processing on a packet and releases packet and context memory. Egress processing is skipped.
 
-\item \textbf{Decode}. This action is a \emph{transition action}. It sends the
-packet from the current stage to another decoder.
+\textbf{Decode \emph{\texttt{<d>}}}. This action transitions the packet to another decoder. That is, it executes the decoder $d$ on the context.
 
-\item \textbf{Goto}. This action transitions a packet from the current stage
-to another flow table matching stage.
+\textbf{Goto \emph{\texttt{<t>}}}. This action transitions a packet from to be match against the flow table $t$. 
 
-\item \textbf{Raise}. This action sends a copy of a packet and context to
-be executed by a control plane event handler. 
+\textbf{Raise \emph{\texttt{<e>}}}. This action sends a copy of a packet and context to
+be executed by a control plane event handler $e$. 
 The original packet continues through pipeline processing as usual.
 
-\item \textbf{Insert flow entry}. This inserts a flow entry into
-a given flow table.
-Inserting a flow entry that already exists will
-remove the old one and replace it with the new one. 
+\textbf{Insert flow entry \emph{\texttt{<mf> <priority> <properties> <actions> <t>}}}. 
 
-\item \textbf{Remove flow entry}. This removes a flow entry from a flow table.
+This inserts a flow entry into flow table $t$ with the given match fields ($mf$), priority, optional properties, and action sequence. The type and number of match
+fields must correspond to those of $t$'s key fields. A flow entry should have additional space to store optional named properties that can be used to store stateful information such as timeout. The representation of the flow entry action sequence is implementation specific. Actions may be stored as a list of objects representing each action that get interpreted by a separate execution engine. Alternatively, the action sequence may be implemented as a function which operates over a context and emulates the behavior of applying those actions. 
+Inserting a flow entry that already exists will remove the old one and replace it with the new one. 
+
+\textbf{Remove flow entry \texttt{<match fields> <t>}}. This removes a flow entry from $t$.
 If the entry does not exist, nothing is done.
 
-\item \textbf{Set.} This is used to modify a field in the packet. This action enforces that the same number of bytes being written matches the size of a field to prevent buffer overflowing. The Steve application is responsible for providing bytes in the correct byte ordering.
+\textbf{Set \emph{\texttt{<f> <v>}}.} This is used to overwrite a field, $f$, in the packet with bytes given by $v$. This action enforces that the same number of bytes being written matches the size of a field to prevent buffer overflowing. The Steve application is responsible for providing bytes in the correct byte ordering.
 
-\item \textbf{Write.} This allows actions to be appended to the context's
-action list. Only set and output actions may be written.
+\textbf{Write Action \emph{\texttt{<action>}}.} This allows actions to be appended to the context's
+action list. Only set and output actions may be written. Actions appended to the list are executed during egress processing and may have different behavior when executed. Specifically, a written output action modifies the context's egress port field rather than forwarding a copy of the packet.
 
-\item \textbf{Clear.} The clear action removes all actions from the action list.
-
-\end{itemize}
-
-\subsection{Pipeline Execution}
-
-Steve pipeline programs follow a run-to-complete model of execution. Once a
-packet enters the pipeline, each stage is consecutively applied to
-the packet. Once no more stages are applied, the packet exits the pipeline and
-the next packet enters.
+\textbf{Clear.} The clear action removes all actions from the action list.
 
 \subsection{Pipeline Composition} \label{pipeline_comp_desc}
 
@@ -610,7 +603,7 @@ certain field within the packet using a simple conditional statement
 (if-statement, etc).
 \end{enumerate}
 
-\begin{figure}[ht]
+\begin{figure}
 \begin{subfigure}[t]{\linewidth}
   \centering
   \includegraphics[scale=0.65]{pipeline1}
@@ -639,7 +632,20 @@ pipeline and enters egress processing.
 First, all actions written the context's action list are executed. Then the data
 plane will check the egress port field in the context. If this has been set,
 then the data plane will queue the packet up to be forwarded through that port.
-Otherwise, the packet is dropped. The context is then destroyed.
+At this point, processing on the packet has terminated.
+Otherwise, the packet is dropped and processing terminates on that packet.
+
+\section{Application Life Cycle and Execution}
+
+The life of the Steve application begins when it is loaded by the abstract machine. The machine and application communicate through an ABI described in Chapter \ref{ch:flowpath}. The machine calls \texttt{ff\_load} which statically constructs and initializes flow tables and their respective entries.
+
+To send a packet through pipeline processing, the machine calls \texttt{ff\_process}, passing it the context constructed during ingress processing.
+Steve pipeline processing follows a run-to-complete model of execution. Once a
+packet enters the pipeline, each stage is consecutively applied to
+the packet. Once no more stages are applied, the packet exits the pipeline, goes through egress processing, and
+the next packet enters. How a packet transitions between stages is implementation specific. Either the machine passes the context to the next stage, or the application passes the context to the next stage.
+
+The machine may end the application's life cycle by calling \texttt{ff\_unload}. This causes all flow tables, flow entries, and any additional resources used by the application to be released.
 
 \section{Event Handling} \label{events_desc}
 
@@ -662,7 +668,24 @@ pipeline, logging through use of C library functions, etc.
 Since the control plane is not bound by the same processor limitations
 it may execute a wider range of operations supported by general purpose processors (albeit slower) such as those found in a typical C program. However, it is not a guarantee that all switch control planes have the full range of general purpose CPU operations.
 
-\section{Steve Compilation} \label{compile_desc}
+\section{Ports} \label{port_desc}
 
-A Steve program compiles into an executable module with multiple entry points
-that may be loaded by a switch. The Steve program expects that a switch exposes a specific interface which provides access to hardware resources. This interface is summarized in Chapter \ref{ch:flowpath}. In turn, Steve provides its own interface which the switch may use to access decoders, configure tables, and communicate with event handlers.
+A switch must have a number of ports to send and receive data. Ports may be \emph{physical} or \texttt{logical}. A physical port is a hardware interface on the system. A logical port is a software defined port which may map to multiple physical ports and include additional abstractions.
+Additionally, a switch must support a number of \emph{reserved ports} in order to run a Steve application. Reserved ports are named ports which must always be present on the system. The required ones are:
+
+\begin{itemize}
+\item \textbf{Drop}. Forwarding to this port causes the packet to be dropped. Its resources are released.
+
+\item \textbf{All}. Forwarding to this port causes a copy of the packet to be forwarded to every non-reserved port on the system.
+
+\item \textbf{Flood}. Forwarding to this port causes a copy of the packet to be forwarded to every non-reserved port on the system other than the packet's ingress port.
+
+\item \textbf{Controller}. This port acts as a logical communication channel between data plane and control plane. When raising an event, the packet is dispatched to this port, which then dispatches the packet tot he appropriate event handler.
+
+\item \textbf{Reflow}. Forwarding to this port sends a packet back into ingress processing. All of its context data is released and reconstructed.
+\end{itemize} 
+
+%\section{Steve Compilation} \label{compile_desc}
+%
+%A Steve program compiles into an executable module with multiple entry points
+%that may be loaded by a switch. The Steve program expects that a switch exposes a specific interface which provides access to hardware resources. This interface is summarized in Chapter \ref{ch:flowpath}. In turn, Steve provides its own interface which the switch may use to access decoders, configure tables, and communicate with event handlers.

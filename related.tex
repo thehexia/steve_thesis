@@ -25,7 +25,7 @@ Though OpenFlow is widely accepted and has driven the majority of SDN research,
 it has its flaws.
 OpenFlow is protocol dependent and unscalable, a compromise which resulted from targeting non-programmable switch processors. However, modern programmable switch processors have rapidly caught up in performance \cite{bosshart2013forwarding}, making arbitrary packet processing more realizable. However, with OpenFlow, protocol independent research like Steve becomes artificially constrained.
 
-Research into Steve used OpenFlow as a guide post for what an abstract
+Research into Steve used OpenFlow as a guidepost for what an abstract
 packet processing machine might look like and what language features may be
 necessary to support such a machine. However, by no means did this research
 strictly adhere to OpenFlow principles or semantics.
@@ -98,7 +98,7 @@ resides on the same switch as the data plane.
 %on a special internal Flowpath ``controller'' thread rather than relying on an
 %external controller.
 
-\section{Early Steve Work}
+\section{Prior Steve Work}
 
 Due to the sensitive nature of network applications, the program must be provably safe to execute.
 Early development of Steve focused on the safe interpretation of packet memory as local objects.
@@ -136,8 +136,8 @@ by a series of match+action
 tables (equivalent to flow tables). Parsing state is stored in a data structure
 called a ``parsed representation.''
 
-Huawei's Protocol-Oblivious Forwarding (POF) \cite{pof_fis, pof, pof_impl} provides a
-low-level, assembly-like, instruction set for POF SDN switches.
+Protocol Oblivious Forwarding (POF) \cite{pof_fis, pof, pof_impl} provides a
+an assembly-like instruction set for POF SDN switches.
 The POF pipeline is a series of match tables which are also
 responsible for decoding the fields they match on. 
 The POF programming model uses metadata as a ``scratch pad'' for parsing fields,
@@ -267,11 +267,10 @@ NetKAT is similar to NetCore except it uses Kleene algebra \cite{kozen2014netkat
 
 \section{Packet Parsers and Header Specifications}
 
-Steve requires that a user specify the structure of their header.
-Some early DSLs focused on binary header specification languages which inspired Steve syntax \cite{binpac, packet_types, datascript}.
+Other early DSLs focused on binary header specification languages which inspired Steve header specification syntax \cite{binpac, packet_types, datascript}.
 Gibb, et al. described the design principles for parsing fields using header specifications
 \cite{parser2013gibb}. Steve decoders may be described as a non-streaming programmable parsers according to Gibb, et al.
-Some other examples of programmable packet parsers are Kangaroo \cite{kangaroo} and Berkley Packet Filter \cite{bpf1993mccanne}.
+Some other examples of programmable packet parsers are Kangaroo \cite{kangaroo} and Berkley Packet Filter (BPF) \cite{bpf1993mccanne}. BPF also provides a language for filtering packets. It is possible for Steve programs to similarly act as a packet filter language rather than a packet forwarding language.
 
 \section{Software Switches}
 \label{rel:freeflow}
@@ -284,9 +283,7 @@ supports multi-tenancy. Steve is
 designed to generate code targeting the FFVM runtime environment. A Freeflow data 
 plane loads Steve applications that act as its control plane and programs its packet processing pipeline.
 P4 can similarly target a software switch called behavioral-model v2 (bmv2) \cite{bmv2_software}. 
-
-Open vSwitch (OVS) is another SDN virtual, software switch which supports programmatic extensions \cite{ovs_man_page, ovs2009extending, ovs2013}. Open vSwitch was designed to work in virtual environments and runs on the hypervisor. It provides a high-level command line interface for re-configuring switches \cite{ovs_man_page}. Its possible a future implementation of Steve may try to program OVS. 
-
+Open vSwitch (OVS) is another SDN virtual, software switch which supports programmatic extensions \cite{ovs_man_page, ovs2009extending, ovs2013} and reconfiguration. Open vSwitch was designed to work in virtual environments and runs on the hypervisor.
 
 
 

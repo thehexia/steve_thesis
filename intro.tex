@@ -19,14 +19,14 @@ services:
 cloud services, web services, Internet of Things, etc. As the world grows
 more reliant on services provided over a network, so must the communication network evolve.
 
-The backbone of all networks is the \emph{switch}. The term switch is used here to mean any device capable of making forwarding decisions across multiple layers of the OSI stack \cite{osi_model}. The term switch thus incorporates bridges, routers, hardware firewalls, etc.
+The backbone of all networks is the \emph{switch}. The term ``switch'' is used here to mean any device capable of making forwarding decisions across multiple layers of the OSI stack \cite{osi_model}. It thus incorporates bridges, routers, hardware firewalls, etc.
 The problem is that modern switches suffer from a number of issues which make them difficult to use in an industry where networks are becoming increasingly elaborate.
 
 Conventional switches are complex and unscalable because they are only designed to deal with very specific sets of well-known protocols and use cases. A router, for example, may be reconfigured with new forwarding rules, but it will never be anything other than a router. The behavior is difficult if not impossible to change, making these devices very rigid.
 Because they may only be reconfigured within a limited use case, they cannot easily adapt to dynamic changes in network traffic and load.
 Even when reconfiguring, network administrators are often forced to do so through clunky, vendor-imposed command line interfaces.
 
-This model cannot last forever. Future networks will require that network flows be directed in increasingly complex ways. More protocols and information will be carried on packets than ever before, and the modern switch model is not flexible enough to handle it all.
+However, future networks will require that network flows be directed in increasingly complex ways. More protocols and information will be carried on packets than ever before, and the modern switch model is not flexible enough to handle it all.
 In order to bypass this inflexibility, it must be possible to implement network functions (routing, firewalls, NAT, etc) through intelligent networking applications implemented in software.
 These applications must be capable of automatically adapting to changing network conditions by modifying switch behavior to optimize forwarding decisions, throughput, resource consumption, etc.
 There must also exist a switch which is capable of installing and running this software.
@@ -137,19 +137,15 @@ Because the programmable data plane can flexibly deal with any field, the progra
 %This new paradigm
 %is called \textit{software-defined networking} (SDN).
 
-\section{Motivation: A Language for Programming SDN Devices}
+\section{Motivation: A Specialized Language for Programming SDN Switches}
 
-In order to pursue programmable SDN devices, there must be a language to write network applications that process packets and implement network functions.
-A number of language solutions arise here.
-Some attempt to solve this problem by providing APIs for existing programming
-languages (specifically C).
+Some attempt to program SDN switches using C.
 Others attempt to produce domain-specific languages (DSLs) for SDN devices.
-
 The focus of this thesis is one such DSL, \emph{Steve}, a language for the safe
 and
 efficient specification of packet processing and network flow direction
-for programmable SDN switches. DSL provide one key benefit that low-level
-languages cannot: safety.
+for programmable SDN switches. DSL provide key benefits that low-level
+languages cannot: safety, expressiveness, and efficiency.
 
 A network application must be safe to execute more than anything else.
 Network applications, especially those running on high-traffic devices, must not
@@ -158,13 +154,10 @@ At best, this produces expensive network downtime; at worst, this
 opens the way for security vulnerabilities on the device:
 denial of service attacks, buffer overflows, etc.
 
-Typical packet processing programs are written in low-level languages, most
-commonly C. These C programs usually work with data plane programming APIs such
-as Open Data Plane (ODP) \cite{odp_webpage} and the Data Plane Programming Kit
-(DPDK) \cite{dpdk_webpage}. Unfortunately, programming network devices in C can be prone
+Unfortunately, programming network devices in C can be prone
 to errors stemming from buffer and resource management, or logical mistakes made by the programmer.
 These issues are compounded by the fact C is a general
-purpose language not tailored towards packet processing, thus the burden of
+purpose language not tailored towards expressing packet processing, thus the burden of
 safety
 is left to the programmer, with no compiler to double check their work.
 Specifically, C programs risks errors such as:
@@ -204,7 +197,11 @@ through ports. This process should be decoupled from the packet processing logic
 for modularity. Packet processing logic should be architecture
 independent
 whereas port management is a architecture dependent problem.
+
+\item vendor optimizations. Having a specialized SDN language allows the compiler to map high-level abstractions down to specific architectures and vendor provided libraries.
 \end{itemize}
+
+Additionally, a C programmer is significantly more likely to write inefficient code. By providing a DSL, the programmer is only concerned with the logic of the network application; the role of the compiler is to ensure efficient code generation. 
 
 % Low-level packet processing code can be very light on easy to understand
 % abstraction and very heavy on gritty implementation details. The programmer
@@ -254,12 +251,11 @@ whereas port management is a architecture dependent problem.
 % language focuses the programmer on writing the packet processing pipeline and
 % makes the grittier details opaque
 
-\section{Motivation: Programming a Single Network Device}
-
+The Steve programming provides these benefits.
 Steve focuses on the language features required for programming a single device. There must be a well-designed abstract machine for programming network applications on one switch before expanding to incorporate distributed control.
 
 There are flaws in distributed control that a single device does not have to deal with.
-Specifically, communicating with a distributed controller is slow.
+Specifically, distributed control is slow.
 The switch has to send messages over a network, the controller must process the message, then send more messages back to modify switch behavior. This latency is unnecessary for simple network functions.
 The trade-off is that it allows for control over an
 entire network.
@@ -295,7 +291,7 @@ It also provides the ability to define \emph{event handlers} --
 control plane functions which process unexpected packets and
 modify the data plane when necessary.
 
-\subsection{Packet Processing Pipelines}
+\subsection{Language Features}
 
 The packet processing pipeline is a data plane algorithm that
 uses multiple, smaller processing stages to decode packet content and make
@@ -304,7 +300,7 @@ The Steve pipeline is a generalization
 of the pipeline model defined by OpenFlow \cite{openflow_spec}.
 Steve provides high-level language features for specifying
 stages in this pipeline and how these stages connect.
-Specifically, Steve allows for the definition of:
+Specifically, this thesis describes the following contributions towards language features:
 
 \textbf{Header Structures}.
 A programmer may define the structure of any protocol header using an abstract
@@ -330,7 +326,7 @@ to deal with any protocol header.
 
 \textbf{Flow tables}.
 Flow tables are pipeline stages responsible for the majority of forwarding logic.
-In networking, a \emph{flow} is a group of packets from a source to one
+A \emph{flow} is a group of packets from a source to one
 or more  destinations. In order to direct these flows, Steve uses \emph{flow tables} (an OpenFlow inspired abstraction).
 A flow table is a dynamic
 decision table which classifies packets into groups (flows) using
@@ -348,8 +344,7 @@ stages: decoders and flow tables.
 Steve provides languages features for describing how these stages are linked
 together. It also provides safety guarantees on the pipeline.
 
-\subsection{Event Handling and Control}
-
+\textbf{Event Handlers}.
 The pipeline may raise events to the control plane when
 it cannot handle a packet. Steve allows for the definition of
 \emph{event handlers} -- control plane functions which deal
@@ -358,23 +353,23 @@ Unlike the pipeline, event handlers can execute a wider range of
 operations that are too slow or complex for a data plane such as:
 logging, flow table modification, C library calls, etc.
 
-\subsection{General Purpose Features}
+%\subsection{General Purpose Features}
+%
+%Though Steve is an SDN language, it also supports a number of general purpose
+%features.
+%Steve supports functions, variables, arithmetic, branching,
+%looping and a foreign function interface which may be used to call linked C
+%library functions.
 
-Though Steve is an SDN language, it also supports a number of general purpose
-features.
-Steve supports functions, variables, arithmetic, branching,
-looping and a foreign function interface which may be used to call linked C
-library functions.
-
-\section{Contribution: A Language for Defining Safe Pipelines}
-
-The Steve language provides a type and constraints system to ensure the safety
-of all Steve-defined packet operations and pipelines.
-In addition, Steve uses an optimizing compiler to ensure efficient code
-generation
-and a runtime environment to abstract hardware resources (ports, memory, etc).
-
-\subsection{Type Safety}
+\subsection{Language Safety}
+%
+%The Steve language provides a type and constraints system to ensure the safety
+%of all Steve-defined packet operations and pipelines.
+%In addition, Steve uses an optimizing compiler to ensure efficient code
+%generation
+%and a runtime environment to abstract hardware resources (ports, memory, etc).
+%
+%\subsection{Type Safety}
 
 Steve is a statically-typed language. The compiler performs additional work to
 enforce strict safety guarantees so that runtime checks can be avoided as much
@@ -438,10 +433,10 @@ Additionally, Steve's layouts prevent the programmer from making common mistakes
 % a field which they have not extracted yet.
 % \end{itemize}
 
-\subsection{Pipeline Constraints System}
+%\subsection{Pipeline Constraints System}
 
 The Steve compiler ensures certain guarantees about the correctness of a Steve
-pipeline. Steve pipelines may be represented as directed graphs. The
+pipeline through a specialized constraints system. Steve pipelines may be represented as directed graphs. The
 Steve compiler performs analysis on this graph to enforce the following
 constraints.
 
@@ -453,11 +448,10 @@ progression. That is, a packet may never enter a non-terminating cycle
 of decoders and tables.
 \end{enumerate}
 
-\subsection{Resource Safety}
-
-Steve never requires the user to heap allocate resources. The majority of
-allocation is done on the stack, ensuring Steve applications are free of
-memory leakage and faster (as heap allocation tends to be slow).
+Additionally, Steve is resource safe, that is, it 
+never requires the user to heap allocate resources or manage device resources. 
+All memory allocation in Steve is done on the stack, ensuring Steve applications are free of
+memory leakage and faster.
 
 Steve relies on its runtime environment, Freeflow \cite{freeflow_software},
 to manage system resources such as
@@ -465,17 +459,16 @@ ports, packet reading, and packet buffer allocations.
 This decouples the logic of system resource management from the packet
 processing logic.
 
-\subsection{Efficiency}
+\subsection{Compiler}
 
 %Steve's programmable decoders provide the user the chance at certain
 %optimizations. Steve allows the user to specify exactly which fields from a
 %header they want extracted rather than forcing them to extract the entire
 %thing.
 
-High-level abstractions tend to produce performance penalties in exchange for safety and simplicity.
-The Steve compiler tries to mitigate abstraction penalties where possible.
-Steve generates LLVM intermediate representation (IR) code
-\cite{llvm_webpage}.
+The Steve compiler implements these safety guarantees as well as ensuring efficient code generation for network applications.
+It generates LLVM intermediate representation (IR) code
+\cite{llvm_webpage} from Steve syntax. LLVM was chosen because it is architecture-independent, extensible, and well-supported.
 The LLVM IR optimizing compiler is used to optimize Steve code as much as possible.
 The LLVM compiler infrastructure can also be modified to support special intrinsics which can be optimized for specific switch architectures.
 Right now, it targets an x86 architecture.
@@ -484,7 +477,7 @@ Right now, it targets an x86 architecture.
 %specialized instructions that are optimized for the architecture running
 %the application. This would be future work.
 
-\section{Contribution: Modules For Freeflow Switches}
+%\section{Contribution: Modules For Freeflow Switches}
 
 In order to validate that our language abstractions work, the Steve compiler builds modules (dynamic link libraries)
 loaded by the Freeflow virtual machine (FFVM).
@@ -513,9 +506,6 @@ this chapter. These same samples are presented again in Appendix
 Chapter \ref{ch:limits} elaborates on pipeline safety guarantees, what algorithms enforce them, and the proofs for these algorithms. It also provides explanations about other
 limitations of the language and why they exist.
 
-Appendix \ref{ch:users_guide} serves as a reference
-manual which includes semantic, grammar, and typing rules for the language. References to this appendix are made throughout this thesis as needed.
-
 Chapter \ref{ch:flowpath} describes the interface which must be exposed by the switch for Steve applications to run. To validate this approach, this chapter also summarizes Freeflow, a virtual data plane which exposes this interface to Steve \cite{freeflow_software}. It also describes the interface which a Steve application exposes to the switch.
 
 Chapter \ref{ch:experiments} provides experiments using sample Steve
@@ -523,3 +513,6 @@ applications. Packet capture (pcap) files are run through Steve applications to 
 rate and raw packet rate that each application is capable of running at on a
 Linux machine.
 Chapter \ref{ch:conclusion} provides discussion, details future work for Steve, and provides concluding remarks about the project.
+
+Appendix \ref{ch:users_guide} serves as a reference
+manual which includes semantic, grammar, and typing rules for the language. References to this appendix are made throughout this thesis as needed.
