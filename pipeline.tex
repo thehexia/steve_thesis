@@ -8,7 +8,7 @@ Specifically, this chapter describes:
 
 \begin{enumerate}
 \item how a Steve application divides between data and control planes,
-\item application lifetime cycle,
+\item application life cycle,
 \item what operations and actions must be supported for packets, and
 \item the \emph{packet processing pipeline} which handles directing packet flow.
 \end{enumerate}
@@ -56,7 +56,7 @@ The control plane is capable of more complex computation than the data plane.
 When the data plane cannot handle a packet because doing so would be too complicated or too slow, it requests that the control plane handle the packet.
 Event handlers are further discussed in Section \ref{events_desc}.
 In order to support Steve, a switch must support a non-distributed control
-plane capable of raising events and executing event handlers. Additionally, it must support function calls, variable allocation, and arithmetic.
+plane capable of registering events and executing event handlers. Additionally, it must support function calls, variable allocation, and arithmetic.
 
 %The Flowpath runtime environment uses an abstract switch model depicted in
 %Figure \ref{fg:abstract_switch}. The switch model is composed of three major
@@ -193,7 +193,7 @@ order that they were appended.
 
 A binding environment is a data structure which maps object names to
 corresponding storage locations at runtime \cite{compilers1}.
-The storage location of fields is represented using an \emph{(offset, length)} pair, where \textit{offset} is the absolute offset of the field.
+The storage location of fields is represented using an \emph{(offset, length)} pair, where \textit{offset} is the absolute offset of the field within the packet.
 These mappings are known as \emph{bindings}. Figure \ref{fg:context1} 
 depicts the abstract structure of a binding environment while Figure \ref{fg:context2}
 depicts the contents of a binding environment during the decoding of an IP-in-IP packet.
@@ -222,7 +222,7 @@ depicts the contents of a binding environment during the decoding of an IP-in-IP
 \end{figure}
 
 Since any given packet can contain one or more of any field or header with the
-same name, a binding environment maintains a stack for every field and header.
+same name, a binding environment maintains a stack of \emph{(offset, length)} pair for every field and header.
 These stacks are called \emph{binding stacks}. A binding environment is thus a 
 mapping of field names to binding stacks. 
 When the value of a field is needed, 
@@ -440,11 +440,11 @@ favor one paradigm over another.
 
 \subsection{Flow Table Stages} \label{table_desc}
 
-Tables stages are used by the pipeline to make forwarding decisions.
+Tables stages are used by the pipeline to make decisions about a packet based on its content.
+A table stage is a function which operates over a context. It retrieves data from the context and performs lookup against an object known as a \emph{flow table}.
 A network \emph{flow} is a series of packets from a source to a set of one or
 more destinations.
-A table stage is a function which operates over a context. It retrieves data from the context and performs lookup against an object known as a \emph{flow table}.
-\emph{Flow tables} are used to direct
+\emph{Flow tables} are used to direct network
 flows \cite{openflow_spec} based on header content. 
 Flow tables are modeled as decision tables which classify packets into
 groups (flows) based on field values found in their headers. 
@@ -485,8 +485,8 @@ Table \ref{tbl:flow_table} has two key fields: IP destination and TCP
 destination port.
 
 A flow entry is equivalent to a rule in a decision table. Each flow entry is
-composed of \emph{match fields}, a \emph{priority}, a set of
-\emph{actions}, and miscellaneous additional metadata (called
+composed of \emph{match fields}, a \emph{priority}, an
+\emph{action sequence}, and miscellaneous additional metadata (called
 \emph{properties}). Table \ref{tbl:flow_table} has three sample flow entries
 (with properties omitted).
 
@@ -503,7 +503,7 @@ In this example, the first flow entry's match fields are
 
 When a packet is being matched
 against a table, the fields given by the table's key are extracted from the
-context. These extracted fields, together, are called the \emph{packet} or \emph{query key}.
+context. These extracted fields, together, are called the \emph{packet key} or \emph{query key}.
 Each match field is then compared against the corresponding packet field.
 If all fields match, then the flow entry's actions are executed on the packet.
 Actions may modify the packet, context, or flow tables and are discussed in Section
@@ -518,6 +518,9 @@ entry is applied to the packet instead. By default, a miss case will drop the
 packet, but the behavior can be user defined. Miss cases always have the lowest
 possible priority amongst flow entries and each match field can be considered a
 wildcard.
+
+Flow entries must be able to carry additional data (or properties). For example, the timeout property indicates how long a flow entry may remain in a flow table.
+Properties are current predefined within the language, but the abstract machine should be able to support arbitrary properties.
 
 %The mechanic of table matching is also analogous to that of relational or SQL
 %tables (which coincidentally can be used to implement decision tables). In fact,
@@ -542,28 +545,27 @@ expected to support a limited common set of \emph{actions}.
 Actions may modify a packet, forward it, move it to a new stage, or modify a
 flow table. 
 Actions are primarily applied by flow tables, but may also appear in decoders
-and event handlers. All actions implicitly operate on the current packet.
+and event handlers. All actions implicitly operate on the current context object and packet.
 
 
 \textbf{Output \emph{\texttt{<p>}}}. This forwards a copy of the packet to port $p$.
 
 \textbf{Drop}. This terminates packet processing on a packet and releases packet and context memory. Egress processing is skipped.
 
-\textbf{Decode \emph{\texttt{<d>}}}. This action transitions the packet to another decoder. That is, it executes the decoder $d$ on the context.
+\textbf{Decode \emph{\texttt{<d>}}}. This action is a \emph{transition action}. It transitions the context to another decoder. That is, it executes the decoder $d$ on the context.
 
-\textbf{Goto \emph{\texttt{<t>}}}. This action transitions a packet from to be match against the flow table $t$. 
+\textbf{Goto \emph{\texttt{<t>}}}. This transition action sends a context from the current stage to the flow table $t$. 
 
-\textbf{Raise \emph{\texttt{<e>}}}. This action sends a copy of a packet and context to
-be executed by a control plane event handler $e$. 
-The original packet continues through pipeline processing as usual.
+\textbf{Raise \emph{\texttt{<e>}}}. This action sends a copy of the context to a control plane event handler $e$. 
+The original context continues through pipeline processing as usual.
 
 \textbf{Insert flow entry \emph{\texttt{<mf> <priority> <properties> <actions> <t>}}}. 
 
 This inserts a flow entry into flow table $t$ with the given match fields ($mf$), priority, optional properties, and action sequence. The type and number of match
-fields must correspond to those of $t$'s key fields. A flow entry should have additional space to store optional named properties such as flow timeout. The representation of the flow entry action sequence is implementation specific. Actions may be stored as a list of objects representing each action that get interpreted by a separate execution engine. Alternatively, the action sequence may be implemented as a function which operates over a context and emulates the behavior of applying those actions. 
-Inserting a flow entry that already exists will remove the old one and replace it with the new one. 
+fields must correspond to those of $t$'s key fields. The representation of the flow entry action sequence is implementation specific. Actions may be stored as a list of objects representing each action that get interpreted by a separate execution engine. Alternatively, the action sequence may be implemented as a function which operates over a context and emulates the behavior of applying those actions. 
+Inserting a flow entry whose match fields conflict with an existing entry will cause the old one to be removed and replaced by the new one. 
 
-\textbf{Remove flow entry \texttt{<match fields> <t>}}. This removes a flow entry from $t$.
+\textbf{Remove flow entry \texttt{<mf> <t>}}. This removes a flow entry with the given match fields from $t$.
 If the entry does not exist, nothing is done.
 
 \textbf{Set \emph{\texttt{<f> <v>}}.} This is used to overwrite a field, $f$, in the packet with bytes given by $v$. This action enforces that the same number of bytes being written matches the size of a field to prevent buffer overflowing. The Steve application is responsible for providing bytes in the correct byte ordering.
@@ -637,9 +639,9 @@ Otherwise, the packet is dropped and processing terminates on that packet.
 
 \section{Application Life Cycle and Execution}
 
-The life of the Steve application begins when it is loaded by the abstract machine. The machine and application communicate through an ABI described in Chapter \ref{ch:flowpath}. The machine calls \texttt{ff\_load} which statically constructs and initializes flow tables and their respective entries.
+The life of the Steve application begins when it is loaded by the abstract machine. The machine and application communicate through an ABI described in Chapter \ref{ch:flowpath}. The machine calls the application function \texttt{ff\_load} which statically constructs and initializes flow tables and their respective entries.
 
-To send a packet through pipeline processing, the machine calls \texttt{ff\_process}, passing it the context constructed during ingress processing.
+To send a packet through pipeline processing, the machine calls the application function \texttt{ff\_process}, passing it the context constructed during ingress processing.
 Steve pipeline processing follows a run-to-complete model of execution. Once a
 packet enters the pipeline, each stage is consecutively applied to
 the packet. Once no more stages are applied, the packet exits the pipeline, goes through egress processing, and
@@ -659,7 +661,7 @@ event as an argument and performs some processing.
 Event handlers may then choose to make calls back into the data plane's
 pipeline to modify its behavior to accommodate for future packets.
 
-An event is not guaranteed to execute in the typical run-to-complete model.
+An event handler is not guaranteed to execute in the typical run-to-complete model.
 It is designed to be executed asynchronously by the runtime environment.
 Certain slower operations which can
 bottleneck the run-to-completion pipeline are typically performed in event
@@ -671,7 +673,7 @@ it may execute a wider range of operations supported by general purpose processo
 
 \section{Ports} \label{port_desc}
 
-A switch must have a number of ports to send and receive data. Ports may be \emph{physical} or \texttt{logical}. A physical port is a hardware interface on the system. A logical port is a software defined port which may map to multiple physical ports and include additional abstractions.
+A switch must have a number of ports to send and receive data. Ports may be \emph{physical} or \textit{logical}. A physical port is a hardware interface on the system. A logical port is a software defined port which may map to multiple physical ports and include additional abstractions.
 Additionally, a switch must support a number of \emph{reserved ports} in order to run a Steve application. These ports must always be present on the system. The required ones are:
 
 \begin{itemize}
@@ -681,7 +683,7 @@ Additionally, a switch must support a number of \emph{reserved ports} in order t
 
 \item \textbf{Flood}. Forwarding to this port causes a copy of the packet to be forwarded to every non-reserved port on the system other than the packet's ingress port.
 
-\item \textbf{Controller}. This port acts as a logical communication channel between data plane and control plane. When raising an event, the packet is dispatched to this port, which then dispatches the packet to the appropriate event handler.
+\item \textbf{Controller}. This port acts as a logical communication channel between data plane and control plane. When raising an event, the context is dispatched to this port, which then dispatches the context to the appropriate event handler.
 
 \item \textbf{Reflow}. Forwarding to this port sends a packet back into ingress processing. All of its context data is released and reconstructed.
 \end{itemize} 

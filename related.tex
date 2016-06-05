@@ -111,12 +111,12 @@ capabilities of switches they ran on
 
 \section{SDN Programming Languages}
 
-Many other projects have tackles the idea of an SDN programming language.
+Many other projects have tackled the idea of an SDN programming language.
 These languages may be further categorized into languages that program or configure
 data plane elements, and languages which program the control plane or controller.
 
 Languages which target the data plane all have the common idea of a pipeline.
-These languages typically provide syntax packet decoding rules, table configuration,
+These languages typically provide syntax for expressing packet decoding rules, table configuration,
 and packet manipulation.
 Controller languages tend to focus more on high-level, distributed control
 of networks, designing network topology, and setting up forwarding policies
@@ -140,13 +140,13 @@ Protocol Oblivious Forwarding (POF) \cite{pof_fis, pof, pof_impl} provides a
 an assembly-like instruction set for POF SDN switches.
 The POF pipeline is a series of match tables which are also
 responsible for decoding the fields they match on. 
-The POF programming model uses metadata as a ``scratch pad'' for parsing fields,
+The POF programming model uses metadata as a ``scratch pad'' for decoding fields,
 requiring that the programmer represent fields as generic \textit{\{offset, length\}} pairs, 
 known as ``search keys''. 
 NetASM is an intermediate representation language for programmable data planes
 \cite{shahbaz2015netasm}. It aims to solve the same issues as POF, but also provides a language that is target/device independent.
 
-Steve is middle ground between P4 and POF, but also attempts to
+Steve is an approach between P4 and POF, but also attempts to
 fill in their weaknesses. 
 Steve's pipeline specification syntax is similar to P4.
 P4's high-level, abstract syntax is easy to write and understand. 
@@ -163,7 +163,7 @@ Similarly, Steve uses POF's search key format for representing extracted fields,
 The benefit of POF's decoding model is granular control over which fields from a header get extracted.
 P4, on the other hand, extracts all header fields up-front, which wastes 
 valuable processing time if those fields are not needed.
-Also unlike P4, Steve allows the user to specify the complete pipeline logic, including pipeline composition, flow entry definitions, and flow entry insertion/removal. Because of this, the Steve compiler is able to reason about the safety of all flow entries which could ever exist and all potential paths that may exist at runtime.
+Also unlike P4, Steve allows the user to specify the complete pipeline logic, including pipeline composition, flow entry definitions, and flow entry insertion/removal. Because of this, the Steve compiler is able to reason about the safety of all flow entries which could ever exist and all potential execution paths that may exist at runtime.
 
 
 %Essentially, fields only get extracted as they are needed, right before matching
