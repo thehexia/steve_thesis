@@ -78,11 +78,11 @@ Protocol independence means that a networking device is not required, by default
 a suite of well-known protocols (Ethernet, IPv4, TCP, etc).
 Rather than relying on specialized hardware or firmware tailored towards
 parsing/decoding
-these protocols, the data plane supports processors
+these protocol headers, the data plane supports processors
 and generic instructions that can be used operate on
 any header and field.
-This allows users to support any future protocols in addition to
-supporting current, well-known protocols. This makes the data plane scalable, that is, it
+This allows users to support any future protocol headers in addition to
+supporting current, well-known ones. This makes the data plane scalable, that is, it
 can adapt to new headers easily.
 
 Because the programmable data plane can flexibly deal with any field, the programmer can change its behavior without changing its hardware. One day it could be a bridge and the next it could be a firewall depending on the installed software.
