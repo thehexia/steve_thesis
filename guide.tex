@@ -88,7 +88,7 @@ Field names used as expressions become \textit{field access expressions} (see \r
 \section{Scope} \label{guide:scope}
 
 Steve scope semantics work like all C-based block-structured languages (including C++, Java, C\#, etc). 
-\textit{Declarations} are used throughout program text to introduce \textit{names} which refer to an entities (see \ref{guide:identifiers}). 
+\textit{Declarations} are used throughout program text to introduce \textit{names} which refer to an entity (see \ref{guide:identifiers}). 
 
 A \textit{name} is only \textit{valid} within parts of program text called the \textit{scope} of that name. A particular name is only considered valid if an \textit{entity} with that name can be found using an \textit{unqualified name lookup} (see \ref{guide:unqlfd_lookup}).
 
@@ -447,7 +447,7 @@ At certain points, the type of an expression may be implicitly converted to anot
 \subsection{Reference to Value Conversion} \label{guide:reftoval_conv}
 
 Given an assignment statement (see \ref{guide:assign_stmt}) \texttt{E1 = E2},
-an expression of type \texttt{T\&} which can appear as \texttt{E1} or in \texttt{E2} is traditionally called an \textit{lvalue}. Lvalues are objects which persist past a single expression. These are typically identifiers which refer to non-temporary objects. Expressions which may only appear in \texttt{E2} are known as \textit{rvalues}. Rvalues do not persist past the expression which creates them such as: literals, arithmetic expressions, comparison expressions, etc.
+an expression of type \texttt{T\&} which can appear as \texttt{E1} or in \texttt{E2} is traditionally called an \textit{lvalue} in C/C++ \cite{cpp_std}. Lvalues are objects which persist past a single expression. These are typically identifiers which refer to non-temporary objects. Expressions which may only appear in \texttt{E2} are known as \textit{rvalues}. Rvalues do not persist past the expression which creates them such as: literals, arithmetic expressions, comparison expressions, etc.
 
 When an lvalue of type \texttt{T\&} appears in \texttt{E2}, it must go through implicit reference to value conversion (also known as lvalue to rvalue conversion). The reference is replaced with the object it refers.
 

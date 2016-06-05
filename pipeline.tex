@@ -672,7 +672,7 @@ it may execute a wider range of operations supported by general purpose processo
 \section{Ports} \label{port_desc}
 
 A switch must have a number of ports to send and receive data. Ports may be \emph{physical} or \texttt{logical}. A physical port is a hardware interface on the system. A logical port is a software defined port which may map to multiple physical ports and include additional abstractions.
-Additionally, a switch must support a number of \emph{reserved ports} in order to run a Steve application. Reserved ports are named ports which must always be present on the system. The required ones are:
+Additionally, a switch must support a number of \emph{reserved ports} in order to run a Steve application. These ports must always be present on the system. The required ones are:
 
 \begin{itemize}
 \item \textbf{Drop}. Forwarding to this port causes the packet to be dropped. Its resources are released.
@@ -681,7 +681,7 @@ Additionally, a switch must support a number of \emph{reserved ports} in order t
 
 \item \textbf{Flood}. Forwarding to this port causes a copy of the packet to be forwarded to every non-reserved port on the system other than the packet's ingress port.
 
-\item \textbf{Controller}. This port acts as a logical communication channel between data plane and control plane. When raising an event, the packet is dispatched to this port, which then dispatches the packet tot he appropriate event handler.
+\item \textbf{Controller}. This port acts as a logical communication channel between data plane and control plane. When raising an event, the packet is dispatched to this port, which then dispatches the packet to the appropriate event handler.
 
 \item \textbf{Reflow}. Forwarding to this port sends a packet back into ingress processing. All of its context data is released and reconstructed.
 \end{itemize} 
