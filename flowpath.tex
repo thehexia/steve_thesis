@@ -36,8 +36,7 @@ The topic of this chapter will be describing these two interfaces.
 \section{Freeflow ABI} \label{fp:dp_interface}
 
 The Freeflow runtime environment exposes a set of \emph{system calls} through compiled functions which allow applications to gain controlled access to switch resources. Table \ref{tbl:Freeflow_api} summarizes the common usage of the library.
-
-The runtime library provides four major facilities that the Steve application takes advantage of. The first is the ability to create tables with certain specifications. The second is the ability to add and remove entries from tables to manipulate forwarding logic. The third is the ability to queue up contexts that raised events and the event handlers that will deal with them. The fourth is the ability to forward and drop packets.
+Specifically, the ABI provides access to flow table allocation, flow entry manipulation, and ports.
 
 \begin{table}
 \caption{The Freeflow ABI that may be used by applications. The ABI and its function implementations are subject to change, so specific parameters and return types are not given.}

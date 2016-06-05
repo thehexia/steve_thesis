@@ -7,11 +7,11 @@ With that being said, there are still issues we have yet to explore.
 
 \subsection{Language Use Cases}
 
-As we are not network programming specialists, we were never completely sure of which language features were needed to support rich network applications. We chose to use OpenFlow \cite{openflow_spec} as our guide post of what was, at minimum, required. From there, we expanded on it from other languages such as POF \cite{pof, pof_fis, pof_impl} and P4 \cite{pof, p42014, p4_spec}. Steve may expand as the need for new use cases grow.
+As we are not network programming specialists, we were never certain of which language features were needed to support rich network applications. We chose to use OpenFlow \cite{openflow_spec} as our guidepost of what was, at minimum, required. From there, we expanded on it from other languages such as POF \cite{pof, pof_fis, pof_impl} and P4 \cite{pof, p42014, p4_spec}. Steve may expand as the need for new use cases grow.
 
 \subsection{Portability}
 
-Portability is another major issue closely related to use cases. We do not own the SDN hardware capable of running Steve due to cost. We are also unaware of how many SDN switches are actually fully capable of all the Steve features. At the time of writing, these devices are rather exotic and lack standardization. This is why we choose to target the interoperable ABI from the Freeflow rather than compiling for specific switch instructions.
+Portability is another major issue closely related to use cases. We do not own the SDN hardware capable of running Steve due to cost. Tests were performed on general purpose processors instead. We are also unaware of how many SDN switches are actually fully capable of all the Steve features. At the time of writing, these devices are rather exotic and lack standardization. This is why we choose to target the interoperable ABI from the Freeflow rather than compiling for specific switch instructions.
 
 First the virtual machine, Freeflow \cite{freeflow_software} or some alternative software, would have to be ported to the target device to expose the ABI which Steve depends on. Then the Steve compiler would have to be rewritten to target the appropriate processor architecture. We suspect this is rare because LLVM already supports the most common ones.
 
@@ -24,7 +24,7 @@ As long as there is the ABI exposes functions, Steve can be compiled to target t
 
 We have proven how Steve enforces pipeline safety, but
 because Steve focuses on being safe over everything else, the language enforces very strict rules about pipeline composition. However, some of these rules can be weakened depending on use cases.
-Specifically, the constraint that pipelines cannot have cycles can. It is possible to loosen this restriction so that pipelines may have cycles, but only between decoders. This is useful for recursively decoding an indeterminate number of headers of the same kind (like VLAN). This would not cause an infinite cycle because the view would eventually shift off the end of the packet causing it to be dropped.
+Specifically, the constraint that pipelines cannot have cycles can be relaxed. It is possible to loosen this restriction so that pipelines may have cycles, but only between decoders. This is useful for recursively decoding an indeterminate number of headers of the same kind (like VLAN). This would not cause an infinite cycle because the view would eventually shift off the end of the packet causing it to be dropped.
 
 \subsection{Distributed Control}
 
@@ -44,6 +44,6 @@ Deep packet introspection is similarly useful. Most SDN languages only focus on 
 \section{Conclusion}
 
 Being able to program every component of a network switch is a powerful thing. Just by changing out a program, the entire behavior of the device can change. This is an incredibly powerful thing. It allows enterprises to quickly reconfigure their entire network setup at little to no cost. It also expands the possibilities of how the Internet may one day evolve. As SDN aims to make switches more like general purpose computers, the Internet may too evolve into something better.
-With that being said, SDN devices are far from being commonplace. As it stands, SDN is still trades speed for flexibility, making enterprises hesitant to adopt it. 
+With that being said, SDN devices are far from being commonplace. As it stands, SDN trades speed for flexibility and lacks standardization, making enterprises hesitant to adopt it. 
 
 Steve is just an infant step towards this potential future. This system addresses what a protocol independent, safe, and efficient SDN programming environment looks like. This research provides a solid foundation of language features that must exist to implement network applications that can hopefully expand in the future.

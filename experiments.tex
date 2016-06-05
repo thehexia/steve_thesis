@@ -9,7 +9,7 @@ Specifically, two questions are evaluated.
 \begin{enumerate}
 %\item How fast can these applications process packets on a general purpose CPU? Comparison of these numbers against a real switch is excluded because it is unfair. Real programmable switches have specialized hardware to speed up table matching and decoding. Instead, these numbers are used to compare how certain use cases and packet structures affect a Steve application's performance.
 
-\item Does partial decodes produce measurable gains over full decodes? Steve was designed to support partial decodes, so for the design choice to be valid, this must be true.
+\item Do partial decodes produce measurable gains over full decodes? Steve was designed to support partial decodes, so for the design choice to be valid, this must be true.
 
 \item What is the performance of each individual action or operation on a general purpose CPU? Knowing this allows the programmer to make certain optimization choices when writing code.
 \end{enumerate}
@@ -212,6 +212,6 @@ Write output action & 108.92 \\
 To reiterate the conclusion of Section \ref{exp:decode_comparison}, the average time it takes to decode a field is about 23 nanoseconds (ns). This translates to approximately 0.23 seconds of processing time per extra field extracted every 10 million packets. This is a non-negligible difference as many networking devices do expect such heavy traffic.
 
 As mentioned in earlier sections, inserting and removing flow entries are the most expensive operations a pipeline can perform. They do notably bottleneck the pipeline and are best performed asynchronously.
-It is also worth noting that writing actions to an action list is more expensive than one might anticipate (being slightly slower than even table matching). This may be a result of the current implementation dynamically allocating memory to store the action.
+It is also worth noting that writing actions to an action list is more expensive than one might anticipate (being only slightly faster than table matching). This may be a result of the current implementation dynamically allocating memory to store the action.
 
 The goto action (which also invokes table matching) is also relatively expensive compared to other operations. It is for this reason that users should strive to reduce table matches as much as possible. The developers of POF came to a similar conclusion \cite{pof_impl}. They suggest using as few tables as possible. Multiple tables can be combined into a single table. When appropriate, a user should also consider replacing a table with a conditional statement.

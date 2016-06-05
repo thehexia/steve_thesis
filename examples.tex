@@ -157,7 +157,7 @@ IPv4 addresses.
 
 To start, the layouts must be defined. The Ethernet layout
 from the MAC bridge in Section \ref{tut:learning_switch} can be reused. 
-In addition, the IPv4 layout is also needed. The \texttt{options} field is omitted because Steve currently does not support dynamic-length fields.
+In addition, the IPv4 layout is also needed. The \texttt{options} field is omitted because Steve currently does not support dynamic-length fields. Also note fields that are not byte-aligned are merged to achieve byte-alignment because Steve currently only supports byte-aligned fields. For example, \texttt{version} and \texttt{ihl} (both 4 bit fields) have been merged into one field. Bit manipulation operations may be used to recover their values.
 
 \begin{codepage}
 \begin{lstlisting}

@@ -17,7 +17,7 @@ These properties are checked by first converting a Steve pipeline into a directe
 
 Let the set of nodes $N$ represent stages in the pipeline: decoders, flow tables, flow entries, event handlers, egress processing, and termination.
 Flow entries and inserted flow entries are treated as independent nodes because they are separate branches in pipeline logic.
-Added flows cannot violate pipeline properties either, regardless of when they get added.
+Added flows cannot violate pipeline guarantees, regardless of when they get added.
 For each flow entry within a flow table or that would be inserted into a table, let there be a directed edge from the flow table to the flow entry.
 
 For every \texttt{decode}, \texttt{goto}, and \texttt{raise} action found in a stage 
@@ -27,10 +27,10 @@ This edge is added even if the action is encapsulated by a conditional statement
 because its impossible to determine during compile time whether or not that edge 
 is reachable during runtime.
 
-Let there be a node in $e \in N$ which represents egress processing. For each stage which is not guaranteed to execute a stage transition, let there be an edge from that stage to $e$. Let there be a node $t \in N$ which represents termination. There exists an edge from $e$ to $t$. For any \texttt{drop} action found within a stage, let there be an edge from that stage to $t$. 
+Let there be a node in $e \in N$ which represents egress processing. For each stage which is not guaranteed to execute a stage transition action (\texttt{decode}, \texttt{goto}, and \texttt{raise}), let there be an edge from that stage to $e$. Let there be a node $t \in N$ which represents termination. There exists an edge from $e$ to $t$. For any \texttt{drop} action found within a stage, let there be an edge from that stage to $t$. 
 
 Every pipeline graph must have exactly one root node (the starting decoder) and exactly one sink (termination).
-If there exists a node where there is no path from the source to that node, it is
+If there exists a node where there is no path from the root to that node, it is
 considered disconnected from the graph and ignored.
 
 \subsection{Progress} \label{guide:progress}
@@ -51,7 +51,7 @@ A Steve program is well-formed if and only if the graph representation of the pi
 
 \subsection{Requirements Satisfaction} \label{guide:requirements}
 
-\textit{Requirement Satisfaction} checks that a field is accessed on after it has been extracted. This prevents accidental access of fields that have not been discovered or that do not exist. For example, consider the pipeline graph in Figure \ref{fig:bad_graph} which demonstrates an ill-formed pipeline where a field is required but not extracted.
+\textit{Requirement Satisfaction} checks that a field is accessed only after it has been extracted. This prevents accidental access of fields that have not been discovered or that do not exist. For example, consider the pipeline graph in Figure \ref{fig:bad_graph} which demonstrates an ill-formed pipeline where a field is required but not extracted.
 
 \begin{figure}[ht]
 \includegraphics[width=0.85\textwidth]{bad_graph}
@@ -70,7 +70,7 @@ A \textit{production} is a field that has been extracted or created by the node'
 A \emph{requirement} is a field which must be extracted before reaching a node on
 this graph. An event handler's requirements are listed in its
 \texttt{requires} specifier. A table's requirements are given by its
-key fields, and it may also have a \texttt{requires} specifier.
+key fields, and it may also have a \texttt{requires} specifier. Decoders have no requirements.
 
 Let $G$ be the transition graph representing the Steve pipeline.
 Let $P$ be the set of all paths from the root node (representing the starting decoder) to a node $n \in G$. 
@@ -84,7 +84,7 @@ satisfied, then the program is well-formed, otherwise it is ill-formed.
 \textit{Theorem.} Accessing a field can not happen before it has been extracted.
 
 \textit{Proof.} 
-Within a decoder, a field may only be accessed after an extract declaration. Within a flow entry, a field may only be accessed if it appears in the table's key's or \texttt{requires} specifier. Within an event handler, a field may only be accessed if it appears within the \texttt{requires} clause. In order to prove that these accesses are valid, it must be shown that field access can only happen if a node has its requirements satisfied.
+Within a decoder, a field may only be accessed after an extract declaration. Within a flow entry, a field may only be accessed if it appears in the table's key fields or \texttt{requires} specifier. Within an event handler, a field may only be accessed if it appears within the \texttt{requires} clause. In order to prove that these accesses are valid, it must be shown that field access can only happen if a node has its requirements satisfied.
 
 With a proof by contradiction, assume that field access happened within a node whose requirements were not satisfied, therefore the field has not been extracted. By definition of requirement satisfaction, the pipeline is ill-formed. Therefore, field access could not happen.
 
@@ -109,7 +109,7 @@ With a proof by contradiction, assume that field access happened within a node w
 
 \subsection{Requirements Checking} \label{guide:dfs_desc}
 
-To confirm that all nodes have their requirements satisfied, the Steve compier uses depth-first traversal with backtracking to evaluate all possible paths in a pipeline graph (see Algorithm \ref{alg:dfs}). 
+To confirm that all nodes have their requirements satisfied, the Steve compiler uses depth-first traversal with backtracking to evaluate all possible paths in a pipeline graph (see Algorithm \ref{alg:dfs}). 
 
 This algorithm assumes that the graph is confirmed to be a DAG first.
 As the algorithm traverses a path in the graph, it accumulates a set of productions at each node. That node's requirements are checked against the accumulating set of productions to confirm the \textit{requirement satisfaction} property holds true. Any node which fails immediately indicates the program is ill-formed and further traversal along that path stops.
@@ -177,7 +177,7 @@ to ensure safety at runtime.
 It was mentioned in an earlier chapter than objects of layout type may not exist.
 This is necessary for two reasons.
 First, Steve does not currently support creating new packets or pushing new headers. 
-It can only processing existing ones. 
+It can only process existing ones. 
 Objects of layout type are not strictly necessary without this ability.
 Second, there are a number of concerns related to construction objects whose
 types are dynamically sized.
@@ -267,10 +267,10 @@ Then $rel(E1, E2)=rel(E1', E2') + \sum_{x \in precede(E2',E2)}{} len(x)$
 
 \item If $rel(E1, E2)$ results in a number greater than the length of the field, then the packet is malformed and dropped.
 
-\item Given a field name of the form \texttt{E1.E2} and the current view index (see \ref{guide:decoder_view}), $i$, the \textit{absolute offset} of the field being extracted is this $abs(E1, E2) = i + rel(E1, E2)$.
+\item Given a field name of the form \texttt{E1.E2} and the current view index (see \ref{guide:decoder_view}), $i$, the \textit{absolute offset} of the field being extracted is $abs(E1, E2) = i + rel(E1, E2)$.
 If the result of $abs(E1, E2)$ is greater than the length of the packet, then the packet is malformed and dropped.
 
-\item The location of an extracted field is its absolute offset, that is, the number of bytes it is away from the beginning of the packet. The pair stored by the binding environment is $(abs(E1, E2), len(E2))$.
+\item The location of an extracted field is its absolute offset, that is, the number of bits (or bytes) it is away from the beginning of the packet. The pair stored by the binding environment is $(abs(E1, E2), len(E2))$.
 
 \end{enumerate}
 

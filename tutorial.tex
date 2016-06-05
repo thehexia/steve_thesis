@@ -12,7 +12,7 @@ The Steve Programming Language provides features for
 defining and connecting the pipeline processing stages and event handlers. Together, these components comprise a network application.
 
 %After the first example, this chapter will delve into all the individual pieces of a Steve program with additional details and use cases.
-This chapter will describe all of the language features for Steve in greater detail with use cases.
+This chapter will more carefully break down syntax from examples in Chapter \ref{ch:examples}. It will also describe all of the language features for Steve in greater detail with additional use cases. 
 Specifically, this chapter will discuss how headers are represented (Section \ref{tut:layout}), how to
 write decoders (Section \ref{tut:decoder}), how to write flow tables (Section \ref{tut:table}), how to apply actions to packets (Section \ref{tut:action}), and how to write event handlers (Section \ref{tut:event}).
 
@@ -388,7 +388,7 @@ the fields \texttt{ethernet.dst} and \texttt{ethernet.type}.
 The compiler generates \textit{(offset, length)} pairs 
 denoting the relative offset and length of the field within the decoder's view using the given field names and layout rule. 
 
-Only field names which refer to fields in the layout rule may be used. It obviously make no sense to extract a field not in the header. 
+Only field names which refer to fields in the layout rule may be used. It makes no sense to extract a field not in the header. 
 For example, it would not be possible to extract \texttt{ipv4.protocol} in the \texttt{eth\_d} decoder. 
 
 \subsection{Accessing Extracted Fields} \label{tut:decoder_access}
@@ -531,7 +531,7 @@ decoder ipv4_decode(ipv4) {
 
 A field access expression can only be used \textit{after} an extract declaration
 is made for that field since it is impossible to recover the value of a
-field which has not been extracted. By extensions, they cannot be used inside a
+field which has not been extracted. By extension, they cannot be used inside a
 decoder that has not extracted that field even if a prior decoder extracted that field. A decoder focuses on exactly one
 header and has no knowledge of previous headers or extractions.
 Field access expressions are not the same as variables and may not be assigned to like one. To modify the
@@ -660,7 +660,7 @@ finishes executing without either action being executed.
 These two actions are similar in semantics to a function return
 in that the stage will not execute anything after them.
 If no stage transition happens at all,
-the packet exits the pipeline and enters egress processing.
+the packet exits pipeline processing and enters egress processing.
 
 Actions appended to the context's action list are executed before a forwarding decision is made.
 The original packet is forwarded based on the egress port field stored
@@ -697,7 +697,7 @@ This is an exact match table (Steve currently only supports exact
 match tables).
 
 A table's \textit{key} provides a comma-separated list of field names, known as
-\textit{key fields}, which indicate which protocol fields a table matches on.
+\textit{key fields}, which indicate which fields a table matches on.
 They are the equivalent of decision attributes. 
 The \texttt{tcp\_filter} table matches on a single field (\texttt{tcp.dst}).
 
@@ -747,7 +747,7 @@ The third flow entry is a special entry known as the \textit{miss case}. The mis
 case uses the keyword \texttt{miss} rather than providing match fields. If no 
 other flow entry in a table can match a packet, the miss case is used. A table 
 may only have one miss case. If one is not given, an implicit one exists which 
-is the equivalent to the second flow entry in the example. That is, by default 
+is the equivalent to the one in the example. That is, by default 
 miss cases drop a packet.
 
 Flow entries declared within a flow table body are known
@@ -811,7 +811,7 @@ insert into tcp_filter
 Within the inserted flow entry, there is the \texttt{output in\_port} action.
 The problem is that the meaning of \texttt{in\_port} is ambiguous. 
 Does it refer to the current packet's ingress port, or the ingress port of
-future packets that will match this flow entry? Because the packet is
+future packets that will match this flow entry? Because the context is
 an implicit object within all of these stages, this ambiguity can
 arise.
 
@@ -1004,7 +1004,7 @@ drop;
 \subsection{Insert Flow Action} \label{tut:insert_flow_action}
 
 This action is for inserting flow entries into a table.
-This allows forwarding decisions to evolve at runtime.
+This allows forwarding decisions to evolve at runtime. The syntax is intentionally similar to SQL so that users are immediately familiar with the concept.
 
 Flow entries can be inserted with constant key values and no properties. Here,
 a flow entry is inserted into the table presented in Section
