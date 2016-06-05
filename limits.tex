@@ -6,52 +6,74 @@ briefly mentioned in the tutorial from Chapter \ref{ch:tutorial}.
 
 \section{Pipeline Guarantees and Constraints} \label{guide:pipeline_checking}
 
-Steve makes guarantees about the logical correctness and safety of pipeline 
-composition using a constraints system. These guarantees are enforced by ensuring each Steve pipeline has two  properties: \textit{progress} and \textit{requirement satisfaction}. Any 
-pipeline which does not have these properties is ill-formed. 
+Steve makes guarantees about the logical correctness and safety of pipeline
+composition using a constraints system. These guarantees are enforced by ensuring each Steve pipeline has two properties: \textit{progress} and \textit{requirement satisfaction}. Any
+pipeline which does not have these properties is ill-formed.
 Pipelines that cannot ensure these properties risk crashes or undefined behavior.
 
 \subsection{Pipeline to Graph Conversion} \label{guide:pipeline_graph}
 
-These properties are checked by first converting a Steve pipeline into a directed graph, known as a \emph{transition graph}. Each property thus becomes a graph evaluation algorithm on the pipeline graph. 
+To check these properties, a \emph{transition graph} is constructed over stage transitions within the pipeline.
+Each property thus becomes a graph evaluation algorithm on the pipeline graph.
 
-Let the set of nodes $N$ represent stages in the pipeline: decoders, flow tables, flow entries, event handlers, egress processing, and termination.
-Flow entries and inserted flow entries are treated as independent nodes because they are separate branches in pipeline logic.
-Added flows cannot violate pipeline guarantees, regardless of when they get added.
-For each flow entry within a flow table or that would be inserted into a table, let there be a directed edge from the flow table to the flow entry.
+%Let the set of vertices $N$ represent stages in the pipeline: decoders, flow tables, flow entries, event handlers, egress processing, and termination.
+Let the transition graph $G=(V, E)$ be defined as follows. $V$ is the set of vertices representing declarations of stages in the program: decoders, flow tables, and event handlers. $E$ is the set of edges derived as follows.
+For \texttt{decode}, \texttt{goto}, and \texttt{raise} actions found in those definitions, there exists a directed edge $(s, d)$, where $s$ is the stage containing the action and $d$ is the destination stage.
 
-For every \texttt{decode}, \texttt{goto}, and \texttt{raise} action found in a stage 
-(or flow entry within a table), let there be a directed edge from the stage 
-to the destination specified by the action. 
-This edge is added even if the action is encapsulated by a conditional statement 
-because its impossible to determine during compile time whether or not that edge 
-is reachable during runtime.
+%Flow entries and inserted flow entries are treated as independent vertices because they are separate branches in pipeline logic.
+%Added flows cannot violate pipeline guarantees, regardless of when they get added.
+%For each flow entry within a flow table or that would be inserted into a table, let there be a directed edge from the flow table to the flow entry.
+%
+%For every \texttt{decode}, \texttt{goto}, and \texttt{raise} action found in a stage
+%(or flow entry within a table), let there be a directed edge from the stage
+%to the destination specified by the action.
+%This edge is added even if the action is encapsulated by a conditional statement
+%because its impossible to determine during compile time whether or not that edge
+%is reachable during runtime.
+%
+%Let there be a vertex in $e \in N$ which represents egress processing. For each stage which is not guaranteed to execute a stage transition action (\texttt{decode}, \texttt{goto}, and \texttt{raise}), let there be an edge from that stage to $e$. Let there be a vertex $t \in N$ which represents termination. There exists an edge from $e$ to $t$. For any \texttt{drop} action found within a stage, let there be an edge from that stage to $t$.
 
-Let there be a node in $e \in N$ which represents egress processing. For each stage which is not guaranteed to execute a stage transition action (\texttt{decode}, \texttt{goto}, and \texttt{raise}), let there be an edge from that stage to $e$. Let there be a node $t \in N$ which represents termination. There exists an edge from $e$ to $t$. For any \texttt{drop} action found within a stage, let there be an edge from that stage to $t$. 
-
-Every pipeline graph must have exactly one root node (the starting decoder) and exactly one sink (termination).
-If there exists a node where there is no path from the root to that node, it is
-considered disconnected from the graph and ignored.
+The Steve language defines exactly one entry point to the packet processing pipeline -- the starting decoder. Any vertex not reachable from the starting decoder is excluded from analysis since it will never be executed.
 
 \subsection{Progress} \label{guide:progress}
 
-The \textit{progress} property says that a packet always moves to a later stage in a pipeline and can never move, or risk moving, to a previously visited stage.
-This guarantees termination when processing a packet.
-Progress is the fundamental nature of the pipeline abstraction. 
+The \textit{progress} property guarantees that packet processing always terminates.
+Progress is the fundamental nature of the pipeline abstraction.
 
-A Steve program is well-formed if and only if the graph representation of the pipeline is a directed acyclic graph (DAG). This property can be easily confirmed using topological sorting.
+Steve programs can be checked to confirm termination.
+A Steve program is well-formed if and only if the transition graph is a directed acyclic graph (DAG), otherwise it contains cycles between stages which potentially results in non-termination.
+To confirm this, perform a topological sorting of the transition graph. If no such order can be constructed, then the graph contains a cycle.
 
-\textit{Proof.} By definition of a DAG and the transition graph, it is obvious that all execution paths end in termination. Note that while loops and function calls may actually result in non-termination.
+\emph{Proof.} It is obvious from the definition of a DAG that pipeline processing must terminate. Note that while loops and function calls may actually result in non-termination.
 
-%First of all, table nodes are assigned a hidden, unique, incremented integer identifier in the order with which they are declared. For example, the first table declared in a Steve program is given the integer identifier 0, the second table declare is given the identifier 1, and so on. Conventionally, tables are expected to be declared in the order with which they are expected to occur in a pipeline.
+%First of all, table vertices are assigned a hidden, unique, incremented integer identifier in the order with which they are declared. For example, the first table declared in a Steve program is given the integer identifier 0, the second table declare is given the identifier 1, and so on. Conventionally, tables are expected to be declared in the order with which they are expected to occur in a pipeline.
 %
 %The \textit{table identifiers} rule says that at no point in the pipeline can a packet reach a target table if it has already visited a table stage whose integer identifier is higher than or equal to that of the target table. In other words, a packet can only go forward through tables, never backwards. This is compliant with the OpenFlow specification for tables \cite{openflow_spec}. Because of this table identifiers rule, it is impossible for any number of table stages to form a cycle with each other.
 %
 %\textit{Proof.} A cycle can only be formed if the next table has either been visited, or is contained within a path to a table that has been visited. This can only happen if the next table has an identifier less than or equal to that of the current largest identifier visited. This property is enforced by the way tables are numbered. Since the table identifiers rule prevents a packet from being sent to these tables, it is thus impossible to form a cycle.
 
-\subsection{Requirements Satisfaction} \label{guide:requirements}
+\subsection{Memory Safety} \label{guide:requirements}
 
-\textit{Requirement Satisfaction} checks that a field is accessed only after it has been extracted. This prevents accidental access of fields that have not been discovered or that do not exist. For example, consider the pipeline graph in Figure \ref{fig:bad_graph} which demonstrates an ill-formed pipeline where a field is required but not extracted.
+The \emph{memory safety} property ensures that memory locations that are not declared or allocated by the program are not accessed. For packets, this means that packet memory must be checked to guarantee existence and valid construction. This work focuses on existence; previous Steve work focused on construction \cite{wripe}.
+
+To check a Steve program for packet memory safety, the compiler must confirm: 1) that memory may be used locally within a stage, and 2) that all fields required by the stage have been previously extracted.
+
+For a field to be accessed locally within a stage, name lookup on that field must succeed. The field name must be in scope, otherwise the program is ill-formed.
+The scope of a field name in a decoder's body begins at the extract declaration for that field and ends at the closing brace.
+The scope of field names that appear in the \texttt{requires} specifier of an event handler is the body of the event handler.
+The scope of field names which appear in a flow table's key and \texttt{requires} specifier is the body of flow entries within the table and the body of flow entries being inserted into the table.
+
+
+%Within a decoder, a field may only be accessed after an extract declaration. Within a flow entry, a field may only be accessed if it appears in the table's key fields or \texttt{requires} specifier. Within an event handler, a field may only be accessed if it appears within the \texttt{requires} clause. In order to prove that these accesses are valid, it must be shown that field access can only happen if a vertex has its requirements satisfied.
+
+
+%\textit{Requirement Satisfaction} checks that a field is accessed only after it has been extracted. This prevents accidental access of fields that have not been discovered or that do not exist. For example, consider the pipeline graph in Figure \ref{fig:bad_graph} which demonstrates an ill-formed pipeline where a field is required but not extracted.
+
+For local field access to succeed, the field must have been extracted first.
+For a decoder, this is verified through name lookup. For flow tables, fields within the table's key and \texttt{requires} specifier must be extractions of prior stages. For event handlers, fields within its \texttt{requires} specifier must be extractions of prior stages. 
+
+If a field is required but not extracted, the program is ill-formed.
+For example, Figure \ref{fig:bad_graph} depicts one such ill-formed pipeline.
 
 \begin{figure}[ht]
 \includegraphics[width=0.85\textwidth]{bad_graph}
@@ -59,34 +81,31 @@ A Steve program is well-formed if and only if the graph representation of the pi
 \label{fig:bad_graph}
 \end{figure}
 
-The Steve compiler enforces this
-property rather than asking the Steve programmer to check for it.
-It avoids runtime checks and reduces the opportunity for programmer error.
-To check this property, 
-every node in a pipeline graph is associated with a set of \textit{productions} and \textit{requirements}.
+To check this, the transition graph must be analyzed using the algorithm described in Section \ref{guide:dfs_desc}.
+Every vertex in a pipeline graph is associated with a set of \textit{productions} and \textit{requirements}.
 
-A \textit{production} is a field that has been extracted or created by the node's respective stage. Currently only decoding stages are capable of have productions because they are the only ones which can extract fields. If a field were pushed (i.e. created) onto the packet, that would also constitute a production (Steve does not currently support this action).
+A \textit{production} is a field that has been extracted or created by the vertex's respective stage. Currently only decoding stages have productions because they are the only ones which can extract fields. If a field were pushed onto the packet, that would also constitute a production (Steve does not currently support this action).
 
-A \emph{requirement} is a field which must be extracted before reaching a node on
+A \emph{requirement} is a field which must be extracted before reaching a vertex on
 this graph. An event handler's requirements are listed in its
 \texttt{requires} specifier. A table's requirements are given by its
 key fields, and it may also have a \texttt{requires} specifier. Decoders have no requirements.
 
 Let $G$ be the transition graph representing the Steve pipeline.
-Let $P$ be the set of all paths from the root node (representing the starting decoder) to a node $n \in G$. 
-For a path $p \in P$, let $S$ be the union of all productions of nodes in $p$. 
-For $p$ to \emph{satisfy} the requirements of $n$, 
+Let $P$ be the set of all paths from the root vertex (representing the starting decoder) to a vertex $v \in G$.
+For a path $p \in P$, let $S$ be the union of all productions of vertices in $p$.
+For $p$ to \emph{satisfy} the requirements of $v$,
 all requirements of $n$ must be a subset of $S$.
 If any $p \in P$ does not satisfy the requirements of $n$, then the program
-is ill-formed. If all $n \in G$ have their requirements
+is ill-formed. If all $v \in G$ have their requirements
 satisfied, then the program is well-formed, otherwise it is ill-formed.
 
-\textit{Theorem.} Accessing a field can not happen before it has been extracted.
-
-\textit{Proof.} 
-Within a decoder, a field may only be accessed after an extract declaration. Within a flow entry, a field may only be accessed if it appears in the table's key fields or \texttt{requires} specifier. Within an event handler, a field may only be accessed if it appears within the \texttt{requires} clause. In order to prove that these accesses are valid, it must be shown that field access can only happen if a node has its requirements satisfied.
-
-With a proof by contradiction, assume that field access happened within a node whose requirements were not satisfied, therefore the field has not been extracted. By definition of requirement satisfaction, the pipeline is ill-formed. Therefore, field access could not happen.
+%\textit{Theorem.} Accessing a field can not happen before it has been extracted.
+%
+%\textit{Proof.}
+%Within a decoder, a field may only be accessed after an extract declaration. Within a flow entry, a field may only be accessed if it appears in the table's key fields or \texttt{requires} specifier. Within an event handler, a field may only be accessed if it appears within the \texttt{requires} clause. In order to prove that these accesses are valid, it must be shown that field access can only happen if a vertex has its requirements satisfied.
+%
+%With a proof by contradiction, assume that field access happened within a vertex whose requirements were not satisfied, therefore the field has not been extracted. By definition of requirement satisfaction, the pipeline is ill-formed. Therefore, field access could not happen.
 
 %The objective is to prevent field access on fields that have not been extracted. Field access can only be done in three cases. In case 1, the decoder accesses the field.
 %In case 2, a flow entry within a table accesses the field. In case 3, an event
@@ -94,7 +113,7 @@ With a proof by contradiction, assume that field access happened within a node w
 %
 %In case 1, a decoder can only use a field after an extract declaration with
 %that field name has been made inside that decoder. This innately prevents field access from happening on
-%un-extracted fields within a decoder. Since a decoder can only access fields it has decoded, it also has no requirements that must be satisfied by other nodes.
+%un-extracted fields within a decoder. Since a decoder can only access fields it has decoded, it also has no requirements that must be satisfied by other vertices.
 %
 %In case 2, the Steve language semantics prevent a flow entry from using
 %fields that are not part of the containing flow table's key fields or
@@ -107,33 +126,33 @@ With a proof by contradiction, assume that field access happened within a node w
 %that are not listed in the \texttt{requires} specifier. If all paths
 %leading to an event handler satisfy its requirements, then by definition, it is guaranteed that field has been extracted at least once.
 
-\subsection{Requirements Checking} \label{guide:dfs_desc}
+\subsection{Requirements Checking Algorithm} \label{guide:dfs_desc}
 
-To confirm that all nodes have their requirements satisfied, the Steve compiler uses depth-first traversal with backtracking to evaluate all possible paths in a pipeline graph (see Algorithm \ref{alg:dfs}). 
+To confirm that all vertices have their requirements satisfied, the Steve compiler uses depth-first traversal with backtracking to evaluate all possible paths in a pipeline graph (see Algorithm \ref{alg:dfs}).
 
 This algorithm assumes that the graph is confirmed to be a DAG first.
-As the algorithm traverses a path in the graph, it accumulates a set of productions at each node. That node's requirements are checked against the accumulating set of productions to confirm the \textit{requirement satisfaction} property holds true. Any node which fails immediately indicates the program is ill-formed and further traversal along that path stops.
+As the algorithm traverses a path in the graph, it accumulates a set of productions at each vertex. That vertex's requirements are checked against the accumulating set of productions to confirm the \textit{requirement satisfaction} property holds true. Any vertex which fails immediately indicates the program is ill-formed and further traversal along that path stops.
 
-%At any point in a given path, if a node's edge is directed toward a previously visited node in the path, e.g. a cycle is found, traversal past that node immediately stops and the program is considered ill-formed. This ensures that the \textit{progress} property is met.
+%At any point in a given path, if a vertex's edge is directed toward a previously visited vertex in the path, e.g. a cycle is found, traversal past that vertex immediately stops and the program is considered ill-formed. This ensures that the \textit{progress} property is met.
 
 Once the algorithm reaches the end of a path successfully, it backtracks to previous
-nodes and explores other paths. When backtracking, the algorithm removes the productions of nodes that were left behind.
+vertices and explores other paths. When backtracking, the algorithm removes the productions of vertices that were left behind.
 
 \begin{algorithm}[ht]
- \caption{Depth-first traversal with backtracking used to check requirement satisfaction.}
+ \caption{Depth-first traversal with backtracking used to check if the program is ill-formed because a field is accessed but not extracted.}
  \label{alg:dfs}
  \begin{algorithmic}
  \State
- \State \textit{Input}: Let \textit{G} be the pipeline transition graph. Let \textit{n} be a node in \textit{G}. Let \textit{p} be a set of productions.
- \State \textit{Output}: Whether or not the current stage violates the progress or requirements satisfaction property. If any property fails, output a compiler error.
+ \State \textit{Input}: Let \textit{G} be the pipeline transition graph. Let \textit{v} be a vertex in \textit{G}. Let \textit{p} be a set of productions.
+ \State \textit{Output}: If the program is ill-formed because a field is accessed but not extracted.
  \State
 
- \Function{DFS}{$G, n, p$}
- 	\State n.visited = true
- 	\State difference = p $\setminus$ n.productions
- 	\State p = p $\cup$ n.productions
- 	\If{n.requirements $\subseteq$ p} \Comment{Check for requirement satisfaction.}
- 		\For{\textit{all} a \textit{in} G.adjacentNodes(n)}
+ \Function{DFS}{$G, v, p$}
+ 	\State v.visited = true
+ 	\State difference = p $\setminus$ v.productions
+ 	\State p = p $\cup$ v.productions
+ 	\If{v.requirements $\subseteq$ p} \Comment{Check for requirement satisfaction.}
+ 		\For{\textit{all} a \textit{in} G.adjacentNodes(v)}
  			\If{a.visited == false}
  				\State \Call{DFS}{G, a, p}
  			\Else
@@ -143,53 +162,53 @@ nodes and explores other paths. When backtracking, the algorithm removes the pro
 	\Else
  		\State \Return ill-formed
  	\EndIf
- 	
-	
- 	\State n.visited = false \Comment{Reset the visited property so we can come down this node again in a different path.}
 
- 	\State p = p $\setminus$ difference \Comment{Remove the productions of this node from the set of productions when backtracking.}
+
+ 	\State v.visited = false \Comment{Reset the visited property so we can come down this vertex again in a different path.}
+
+ 	\State p = p $\setminus$ difference \Comment{Remove the productions of this vertex from the set of productions when backtracking.}
  \EndFunction
  \end{algorithmic}
 
 \end{algorithm}
 
-\textit{Theorem.} The worst case complexity of this algorithm is $O(n!)$ where $n$ is the number of nodes.
+\textit{Theorem.} The worst case complexity of this algorithm is $O(v!)$ where $v$ is the number of vertices.
 
-\textit{Complexity Proof.}  Assume a DAG has $n$ nodes. There are at most $n-1$ nodes adjacent to the root node. Each node adjacent to the root has at most $n-2$ nodes adjacent to it. This pattern continues until paths end in a sink. Thus the number of paths can be represented as $(n-1)(n-2)...1$ or $(n-1)!$. Therefore, the performance
-is $O(n!)$.
+\textit{Complexity Proof.}  Assume a DAG has $v$ vertices. There are at most $v-1$ vertices adjacent to the root vertex. Each vertex adjacent to the root has at most $v-2$ vertices adjacent to it. This pattern continues until paths end in a sink. Thus the number of paths can be represented as $(v-1)(v-2)...1$ or $(v-1)!$. Therefore, the performance
+is $O(v!)$.
 
-Fortunately, this worst case performance is rarely ever achieved. Only the most dense pipeline graphs, where a node at each level is connected to every other possible node has this kind of performance. Packet processing graphs are typically closer to trees as branches only occur when determining what the next header is. These graphs are generally not very deep either as packets tend to have a very small number of headers.
+Fortunately, this worst case performance is rarely ever achieved. Only the most dense pipeline graphs, where a vertex at each level is connected to every other possible vertex has this kind of performance. Packet processing graphs are typically closer to trees as branches only occur when determining what the next header is. These graphs are generally not very deep either as packets tend to have a very small number of headers.
 Additionally, it is acceptable to incur performance penalties at compile time
 to ensure safety at runtime.
 
 \textit{Termination Proof.} By definition, a DAG has a finite number of unique paths that can be taken from source to sink, therefore, it must terminate if it takes every unique path exactly once.
-%A unique path, by definition, is an ordered sequence of nodes that is distinct from all other paths.
-%Let $V$ be the set of all nodes in the graph $G$.
+%A unique path, by definition, is an ordered sequence of vertices that is distinct from all other paths.
+%Let $V$ be the set of all vertices in the graph $G$.
 %For a graph traversal algorithm to visit the same path more than once.
 %
 %Consider the base case.
-%Let $s$ be the root node for the graph. By Steve semantics, there may only be one start node. Let $A$ be the set of nodes adjacent to $s$. If the edge from $s$ to any $a \in A$ has been traversed, it is not possible to move from $s$ to $a$, therefore, the same path cannot be traversed twice from $s$.
+%Let $s$ be the root vertex for the graph. By Steve semantics, there may only be one start vertex. Let $A$ be the set of vertices adjacent to $s$. If the edge from $s$ to any $a \in A$ has been traversed, it is not possible to move from $s$ to $a$, therefore, the same path cannot be traversed twice from $s$.
 %
-%Now considering the recursive case, let $v$ be any other node in the graph. By definition of a DAG, $v$ must be the root of some subgraph $G'$ in $G$ that is also a DAG. Let $A'$ be the set of adjacent nodes to $v$. For each node $a' \in A'$, the $DFS(G',v, p)$ traverses the edge from $v$ to $a'$ exactly once. If this algorithm does not terminate, then the algorithm must be able to traverse from $v$ to any node $a' \in A'$ more than once, which is not the case. Note that is is possible to apply the algorithm to $G'$ multiple times, but because there are a fixed number of paths from $s$ to a sink in $G$, it is executed a fixed number of times.
+%Now considering the recursive case, let $v$ be any other vertex in the graph. By definition of a DAG, $v$ must be the root of some subgraph $G'$ in $G$ that is also a DAG. Let $A'$ be the set of adjacent vertices to $v$. For each vertex $a' \in A'$, the $DFS(G',v, p)$ traverses the edge from $v$ to $a'$ exactly once. If this algorithm does not terminate, then the algorithm must be able to traverse from $v$ to any vertex $a' \in A'$ more than once, which is not the case. Note that is is possible to apply the algorithm to $G'$ multiple times, but because there are a fixed number of paths from $s$ to a sink in $G$, it is executed a fixed number of times.
 
 \section{Why Objects of Layout Type can not Exist.} \label{guide:no_dst}
 
 It was mentioned in an earlier chapter than objects of layout type may not exist.
 This is necessary for two reasons.
-First, Steve does not currently support creating new packets or pushing new headers. 
-It can only process existing ones. 
+First, Steve does not currently support creating new packets or pushing new headers.
+It can only process existing ones.
 Objects of layout type are not strictly necessary without this ability.
 Second, there are a number of concerns related to construction objects whose
 types are dynamically sized.
 
 Allocating objects of dynamically-sized types (DST) on the stack produce a number of concerns which have not been solved.
-The only language which actually supports user-defined DSTs, Rust, only allows it under 
+The only language which actually supports user-defined DSTs, Rust, only allows it under
 very limited circumstance \cite{rust_dst_std}.
 Allocating DST objects on the heap is, of course, what dynamic allocation was made for, but
 it is expensive and does not help when reinterpreting existing packet memory.
-Allocating a single DST object on the stack is not actually a difficult thing to achieve. 
+Allocating a single DST object on the stack is not actually a difficult thing to achieve.
 It is done by allocating memory by pushing the stack pointer forward using the intrinsic
-\texttt{alloca}. 
+\texttt{alloca}.
 Now consider what happens when this DST object appears at the end of a class/record
 type. For example:
 
@@ -200,7 +219,7 @@ struct Ipv4 {
 	ihl : uint(4);
 	// ...
 	// options has dynamically-sized type predicated on ihl.
-	options : DST(ihl); 
+	options : DST(ihl);
 }
 
 var x : Ipv4 = ...;
@@ -227,7 +246,7 @@ struct FooClass {
 
 Only \texttt{x} can be allocated at first. The value of \texttt{x} has to be evaluated
 and only then could \texttt{y} and \texttt{z} be allocated. It becomes impossible
-for the compiler to reason about the actual position of \texttt{z} in memory. This 
+for the compiler to reason about the actual position of \texttt{z} in memory. This
 makes member access on \texttt{z} an extremely expensive runtime computation.
 Then consider that an object of type \texttt{FooClass} may also appear in
 another class, making it even more difficult to manage.
@@ -251,7 +270,7 @@ First, let the field name have the form \texttt{E1.E2} where \texttt{E1} is the 
 \begin{enumerate}
 \item The length of the extracted field is calculated by a function $len(E2)$. The result of $len(E2)$ is the \textit{size} of an object of $E2$'s type.
 
-\item  Let $precede(E1, E2)$ be a function that returns the sequence of all field declarations preceding \texttt{E2} in \texttt{E1}. 
+\item  Let $precede(E1, E2)$ be a function that returns the sequence of all field declarations preceding \texttt{E2} in \texttt{E1}.
 
 \item The function used to calculate the \textit{relative offset} of $E2$ is given as $rel(E1, E2)$ and is defined as:
 
@@ -305,7 +324,7 @@ Assuming an arbitrary example where the beginning of the current view for \textt
 \subsection{Extracting the Same Field More Than Once}
 
 A common misunderstand happens when an extract appears within a loop.
-A decoder is only ever looking at one header of a packet at once. Using an extract declaration with the same field name more than once in the same decoder will result in the same instance of that field being extracted multiple times, which is completely redundant. Though legal, this should be avoided in most cases. For example: 
+A decoder is only ever looking at one header of a packet at once. Using an extract declaration with the same field name more than once in the same decoder will result in the same instance of that field being extracted multiple times, which is completely redundant. Though legal, this should be avoided in most cases. For example:
 
 \begin{minip}
 \begin{lstlisting}
@@ -323,7 +342,7 @@ while (x < 5)
 %	extract L1.a;
 %	if (L1.a == 0)
 %		goto T1;
-%	
+%
 %	decode d2;
 %}
 %
@@ -340,7 +359,7 @@ while (x < 5)
 %
 %// Key field L1.a will refer to the last extraction of L1.a.
 %// If D1 sends the packet to T1, then it will be the L1.a field.
-%// 
+%//
 %// If D2 sends the packet to T1, then L1.a shall refer to an
 %// extraction of L2.c instead.
 %exact_table T1(L1.a) {
@@ -350,12 +369,12 @@ while (x < 5)
 %\end{lstlisting}
 %\end{minip}
 %
-%This example presents decoders \texttt{D1} and \texttt{D2}. If a packet is sent directly to table \texttt{T1} from decoder \texttt{D1}, the value of the last extraction of \texttt{L1.a} will be \texttt{0} (based on the \texttt{if} condition). In this scenario, the packet is dropped. 
+%This example presents decoders \texttt{D1} and \texttt{D2}. If a packet is sent directly to table \texttt{T1} from decoder \texttt{D1}, the value of the last extraction of \texttt{L1.a} will be \texttt{0} (based on the \texttt{if} condition). In this scenario, the packet is dropped.
 %
 %However, if the packet is sent from decoder \texttt{D2}, the field \texttt{L2.c} has been aliased as \texttt{L1.a}. The field \texttt{L2.c} has its value set to \texttt{1}. \texttt{L1.a} refers to the same value as L2.c because of the rebinding, therefore, the value of L1.a is also \texttt{1}.
 %When the packet is matched against \texttt{T1}'s flow entries, the packet shall be flooded.
 %
-%Supposing table \texttt{T1} from the prior example were replaced with the following version of \texttt{T1}, then the \texttt{goto T1} action in decoder \texttt{D1} would actually produce a compiler error for violating requirements satisfaction (see \ref{guide:requirements}). 
+%Supposing table \texttt{T1} from the prior example were replaced with the following version of \texttt{T1}, then the \texttt{goto T1} action in decoder \texttt{D1} would actually produce a compiler error for violating requirements satisfaction (see \ref{guide:requirements}).
 %
 %\begin{minip}
 %\begin{lstlisting}
@@ -364,4 +383,3 @@ while (x < 5)
 %\end{minip}
 %
 %This version of \texttt{T1} uses \texttt{L2.c} as a key field. However, \texttt{L1.a} is not the same field as \texttt{L2.c} and has not been aliased as such.
-

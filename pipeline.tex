@@ -56,7 +56,7 @@ The control plane is capable of more complex computation than the data plane.
 When the data plane cannot handle a packet because doing so would be too complicated or too slow, it requests that the control plane handle the packet.
 Event handlers are further discussed in Section \ref{events_desc}.
 In order to support Steve, a switch must support a non-distributed control
-plane capable of registering events and executing event handlers. Additionally, it must support function calls, variable allocation, and arithmetic.
+plane capable of registering events and executing event handlers. Additionally, it must support function calls, automatic storage for local variables, integer arithmetic, and branching.
 
 %The Flowpath runtime environment uses an abstract switch model depicted in
 %Figure \ref{fg:abstract_switch}. The switch model is composed of three major
@@ -124,7 +124,7 @@ Packet processing can be described in terms of three basic stages:
 The pipeline processing stage can be further decomposed into two kinds
 of stages: decoders and flow tables. Additionally, all packets must reach
 a final state known as \textit{termination}, where all processing for a packet
-has completed. Termination happens after egress processing or prematurely through certain actions. Termination releases all resources used to store a packet and all metadata associated with that packet. 
+has completed. Processing is terminated after egress, but certain actions may terminate processing earlier (see \ref{action_desc}). Termination releases all resources used to store a packet and all metadata associated with that packet. 
 
 %The Steve pipeline processing model can be described in terms of four phases: 1)
 %\emph{ingress processing}, 2) \emph{decoding stages}, 3) \emph{table
@@ -559,13 +559,13 @@ and event handlers. All actions implicitly operate on the current context object
 \textbf{Raise \emph{\texttt{<e>}}}. This action sends a copy of the context to a control plane event handler $e$. 
 The original context continues through pipeline processing as usual.
 
-\textbf{Insert flow entry \emph{\texttt{<mf> <priority> <properties> <actions> <t>}}}. 
+\textbf{Insert flow entry \emph{\texttt{<match fields> <properties> <action>+ <t>}}}. 
 
-This inserts a flow entry into flow table $t$ with the given match fields ($mf$), priority, optional properties, and action sequence. The type and number of match
-fields must correspond to those of $t$'s key fields. The representation of the flow entry action sequence is implementation specific. Actions may be stored as a list of objects representing each action that get interpreted by a separate execution engine. Alternatively, the action sequence may be implemented as a function which operates over a context and emulates the behavior of applying those actions. 
+This inserts a flow entry into flow table $t$ with the given match fields, optional properties, and action sequence. The type and number of match
+fields must correspond to those of $t$'s key fields. Properties include priority, timeout, and other additional information. The representation of the flow entry action sequence (\emph{\texttt{<action>+}}) is implementation specific. Actions may be stored as a list of objects representing each action that get interpreted by a separate execution engine. Alternatively, the action sequence may be implemented as a function which operates over a context and emulates the behavior of applying those actions. 
 Inserting a flow entry whose match fields conflict with an existing entry will cause the old one to be removed and replaced by the new one. 
 
-\textbf{Remove flow entry \texttt{<mf> <t>}}. This removes a flow entry with the given match fields from $t$.
+\textbf{Remove flow entry \emph{\texttt{<match fields> <t>}}}. This removes a flow entry with the given match fields from $t$.
 If the entry does not exist, nothing is done.
 
 \textbf{Set \emph{\texttt{<f> <v>}}.} This is used to overwrite a field, $f$, in the packet with bytes given by $v$. This action enforces that the same number of bytes being written matches the size of a field to prevent buffer overflowing. The Steve application is responsible for providing bytes in the correct byte ordering.
