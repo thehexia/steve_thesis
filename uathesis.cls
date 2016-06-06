@@ -466,7 +466,7 @@
 \newlength{\@chtocnum}
 \settowidth{\@chtocnum}{III.}
 %\addtolength{\@chtocnum}{1.00em}
-\addtolength{\@chtocnum}{0.50em}
+\addtolength{\@chtocnum}{0.80em}
 %\renewcommand*{\l@chapter}{\@dottedtocline{1}{1.50em}{\@chtocnum}}
 \renewcommand*{\l@chapter}{\@dottedtocline{0}{0.0em}{\@chtocnum}}
 \newlength{\@apptocnum}
@@ -481,7 +481,7 @@
 %\newcommand*{\l@appendices}{\@dottedtocline{2}{1.50em}{\@apptocnum}}
 \newlength{\@sectocnum}
 \settowidth{\@sectocnum}{77}
-\addtolength{\@sectocnum}{1.00em}
+\addtolength{\@sectocnum}{1.20em}
 %\renewcommand*{\l@section}{\@dottedtocline{2}{3.00em}{\@sectocnum}}
 %\renewcommand*{\l@section}{\@dottedtocline{2}{2.50em}{\@sectocnum}}
 \renewcommand*{\l@section}{\@dottedtocline{2}{2.00em}{\@sectocnum}}
