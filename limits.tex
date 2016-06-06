@@ -7,18 +7,17 @@ briefly mentioned in the tutorial from Chapter \ref{ch:tutorial}.
 \section{Pipeline Guarantees and Constraints} \label{guide:pipeline_checking}
 
 Steve makes guarantees about the logical correctness and safety of pipeline
-composition using a constraints system. These guarantees are enforced by ensuring each Steve pipeline has two properties: \textit{progress} and \textit{requirement satisfaction}. Any
+composition using a constraints system. These guarantees are enforced by ensuring each Steve pipeline has two properties: \textit{progress} and \textit{memory safety}. Any
 pipeline which does not have these properties is ill-formed.
-Pipelines that cannot ensure these properties risk crashes or undefined behavior.
 
 \subsection{Pipeline to Graph Conversion} \label{guide:pipeline_graph}
 
-To check these properties, a \emph{transition graph} is constructed over stage transitions within the pipeline.
-Each property thus becomes a graph evaluation algorithm on the pipeline graph.
+To check these properties, a directed graph, known as a \emph{transition graph}, is constructed over stage transitions within the pipeline.
+Each property thus becomes a graph evaluation algorithm on this graph.
 
 %Let the set of vertices $N$ represent stages in the pipeline: decoders, flow tables, flow entries, event handlers, egress processing, and termination.
-Let the transition graph $G=(V, E)$ be defined as follows. $V$ is the set of vertices representing declarations of stages in the program: decoders, flow tables, and event handlers. $E$ is the set of edges derived as follows.
-For \texttt{decode}, \texttt{goto}, and \texttt{raise} actions found in those definitions, there exists a directed edge $(s, d)$, where $s$ is the stage containing the action and $d$ is the destination stage.
+Let the transition graph $G=(V, E)$ be defined as follows. $V$ is the set of vertices representing declarations of stages in the program: decoders, flow tables, and event handlers. $E$ is the set of edges derived from
+\texttt{decode}, \texttt{goto}, and \texttt{raise} actions found in those definitions. There exists a directed edge $(s, d)$, where $s$ is the stage containing the action and $d$ is the destination stage.
 
 %Flow entries and inserted flow entries are treated as independent vertices because they are separate branches in pipeline logic.
 %Added flows cannot violate pipeline guarantees, regardless of when they get added.
@@ -37,14 +36,13 @@ The Steve language defines exactly one entry point to the packet processing pipe
 
 \subsection{Progress} \label{guide:progress}
 
-The \textit{progress} property guarantees that packet processing always terminates.
-Progress is the fundamental nature of the pipeline abstraction.
+The \textit{progress} property guarantees that packet processing always terminates. Though the syntax allows the programmer to construct pipelines that would not terminate, construction is restricted semantically.  Such guarantees are excluded for while loops and function calls due to the halting problem.
 
-Steve programs can be checked to confirm termination.
-A Steve program is well-formed if and only if the transition graph is a directed acyclic graph (DAG), otherwise it contains cycles between stages which potentially results in non-termination.
-To confirm this, perform a topological sorting of the transition graph. If no such order can be constructed, then the graph contains a cycle.
+A Steve program terminates if and only if the transition graph is a directed acyclic graph (DAG), otherwise it contains cycles between stages which potentially result in non-termination.
+%Steve transition graphs can be checked to determine that they terminate. 
+To check this, simply generate a topological ordering of vertices in the stage transition graph. If no such order can be constructed, the pipeline does not guarantee progress (i.e., the graph admits a cycle), and the program is ill-formed.
 
-\emph{Proof.} It is obvious from the definition of a DAG that pipeline processing must terminate. Note that while loops and function calls may actually result in non-termination.
+%\emph{Proof.} It is obvious from the definition of DAG that pipeline processing must terminate.
 
 %First of all, table vertices are assigned a hidden, unique, incremented integer identifier in the order with which they are declared. For example, the first table declared in a Steve program is given the integer identifier 0, the second table declare is given the identifier 1, and so on. Conventionally, tables are expected to be declared in the order with which they are expected to occur in a pipeline.
 %
@@ -56,12 +54,17 @@ To confirm this, perform a topological sorting of the transition graph. If no su
 
 The \emph{memory safety} property ensures that memory locations that are not declared or allocated by the program are not accessed. For packets, this means that packet memory must be checked to guarantee existence and valid construction. This work focuses on existence; previous Steve work focused on construction \cite{wripe}.
 
-To check a Steve program for packet memory safety, the compiler must confirm: 1) that memory may be used locally within a stage, and 2) that all fields required by the stage have been previously extracted.
+For a Steve program to be memory safe entails two properties:
 
-For a field to be accessed locally within a stage, name lookup on that field must succeed. The field name must be in scope, otherwise the program is ill-formed.
-The scope of a field name in a decoder's body begins at the extract declaration for that field and ends at the closing brace.
-The scope of field names that appear in the \texttt{requires} specifier of an event handler is the body of the event handler.
-The scope of field names which appear in a flow table's key and \texttt{requires} specifier is the body of flow entries within the table and the body of flow entries being inserted into the table.
+\begin{enumerate}
+\item Within a processing stage, a header field shall not be accessed unless it is required or extracted.
+\item For each node in the transition graph, the requirements of the node shall have been previously extracted.
+\end{enumerate}
+
+In the first case, for a field to be used within a stage, the name must be in scope.
+In a decoder, a field name is in scope if an extract declaration for that field has been written, ensuring that field has been extracted.
+Fields whose names are listed in an event handler's \texttt{requires} specifier are required by the stage. The scope of these names is the body of the event handler.
+Similarly, field names listed in a flow table's key and \texttt{requires} specifier are required by the stage, and the scope of these names is the body of initial and inserted flow entries for that table.
 
 
 %Within a decoder, a field may only be accessed after an extract declaration. Within a flow entry, a field may only be accessed if it appears in the table's key fields or \texttt{requires} specifier. Within an event handler, a field may only be accessed if it appears within the \texttt{requires} clause. In order to prove that these accesses are valid, it must be shown that field access can only happen if a vertex has its requirements satisfied.
@@ -69,11 +72,8 @@ The scope of field names which appear in a flow table's key and \texttt{requires
 
 %\textit{Requirement Satisfaction} checks that a field is accessed only after it has been extracted. This prevents accidental access of fields that have not been discovered or that do not exist. For example, consider the pipeline graph in Figure \ref{fig:bad_graph} which demonstrates an ill-formed pipeline where a field is required but not extracted.
 
-For local field access to succeed, the field must have been extracted first.
-For a decoder, this is verified through name lookup. For flow tables, fields within the table's key and \texttt{requires} specifier must be extractions of prior stages. For event handlers, fields within its \texttt{requires} specifier must be extractions of prior stages. 
-
-If a field is required but not extracted, the program is ill-formed.
-For example, Figure \ref{fig:bad_graph} depicts one such ill-formed pipeline.
+In the second case, if a stage requires a field, it must be extracted in all paths leading to that stage.
+For example, Figure \ref{fig:bad_graph} depicts an ill-formed pipeline where one path violates this property.
 
 \begin{figure}[ht]
 \includegraphics[width=0.85\textwidth]{bad_graph}
@@ -81,22 +81,17 @@ For example, Figure \ref{fig:bad_graph} depicts one such ill-formed pipeline.
 \label{fig:bad_graph}
 \end{figure}
 
-To check this, the transition graph must be analyzed using the algorithm described in Section \ref{guide:dfs_desc}.
-Every vertex in a pipeline graph is associated with a set of \textit{productions} and \textit{requirements}.
-
-A \textit{production} is a field that has been extracted or created by the vertex's respective stage. Currently only decoding stages have productions because they are the only ones which can extract fields. If a field were pushed onto the packet, that would also constitute a production (Steve does not currently support this action).
-
-A \emph{requirement} is a field which must be extracted before reaching a vertex on
-this graph. An event handler's requirements are listed in its
-\texttt{requires} specifier. A table's requirements are given by its
-key fields, and it may also have a \texttt{requires} specifier. Decoders have no requirements.
+To check this,
+every vertex in the transition graph is associated with a set of \textit{productions} and \textit{requirements}.
+A production is a field that has been extracted or created by the vertex's respective stage. Only decoding stages have productions. If a field were pushed onto the packet, that would also constitute a production; however, this is not currently supported.
+Fields in a stage's requirements are described in the first case. 
 
 Let $G$ be the transition graph representing the Steve pipeline.
 Let $P$ be the set of all paths from the root vertex (representing the starting decoder) to a vertex $v \in G$.
 For a path $p \in P$, let $S$ be the union of all productions of vertices in $p$.
 For $p$ to \emph{satisfy} the requirements of $v$,
-all requirements of $n$ must be a subset of $S$.
-If any $p \in P$ does not satisfy the requirements of $n$, then the program
+the requirements of $v$ must be a subset of $S$.
+If any $p \in P$ does not satisfy the requirements of $v$, then the program
 is ill-formed. If all $v \in G$ have their requirements
 satisfied, then the program is well-formed, otherwise it is ill-formed.
 
@@ -126,12 +121,11 @@ satisfied, then the program is well-formed, otherwise it is ill-formed.
 %that are not listed in the \texttt{requires} specifier. If all paths
 %leading to an event handler satisfy its requirements, then by definition, it is guaranteed that field has been extracted at least once.
 
-\subsection{Requirements Checking Algorithm} \label{guide:dfs_desc}
+%\subsection{Requirements Checking Algorithm} \label{guide:dfs_desc}
 
 To confirm that all vertices have their requirements satisfied, the Steve compiler uses depth-first traversal with backtracking to evaluate all possible paths in a pipeline graph (see Algorithm \ref{alg:dfs}).
-
-This algorithm assumes that the graph is confirmed to be a DAG first.
-As the algorithm traverses a path in the graph, it accumulates a set of productions at each vertex. That vertex's requirements are checked against the accumulating set of productions to confirm the \textit{requirement satisfaction} property holds true. Any vertex which fails immediately indicates the program is ill-formed and further traversal along that path stops.
+This algorithm assumes that a graph is a DAG.
+As the algorithm traverses a path, it accumulates a set of productions at each vertex, then confirms that the vertex's requirements are satisfied. Any vertex which fails immediately indicates the program is ill-formed and further traversal along that path stops.
 
 %At any point in a given path, if a vertex's edge is directed toward a previously visited vertex in the path, e.g. a cycle is found, traversal past that vertex immediately stops and the program is considered ill-formed. This ensures that the \textit{progress} property is met.
 
@@ -143,18 +137,18 @@ vertices and explores other paths. When backtracking, the algorithm removes the 
  \label{alg:dfs}
  \begin{algorithmic}
  \State
- \State \textit{Input}: Let \textit{G} be the pipeline transition graph. Let \textit{v} be a vertex in \textit{G}. Let \textit{p} be a set of productions.
+ \State \textit{Input}: Let \textit{G} be the pipeline transition graph. Let \textit{v} be a vertex in \textit{G}. Let \textit{S} be the accumulated set of productions.
  \State \textit{Output}: If the program is ill-formed because a field is accessed but not extracted.
  \State
 
- \Function{DFS}{$G, v, p$}
+ \Function{DFS}{$G, v, S$}
  	\State v.visited = true
- 	\State difference = p $\setminus$ v.productions
- 	\State p = p $\cup$ v.productions
- 	\If{v.requirements $\subseteq$ p} \Comment{Check for requirement satisfaction.}
+ 	\State difference = S $\setminus$ v.productions
+ 	\State S = S $\cup$ v.productions
+ 	\If{v.requirements $\subseteq$ S}
  		\For{\textit{all} a \textit{in} G.adjacentNodes(v)}
  			\If{a.visited == false}
- 				\State \Call{DFS}{G, a, p}
+ 				\State \Call{DFS}{G, a, S}
  			\Else
  				\State \Return ill-formed
  			\EndIf
@@ -166,7 +160,7 @@ vertices and explores other paths. When backtracking, the algorithm removes the 
 
  	\State v.visited = false \Comment{Reset the visited property so we can come down this vertex again in a different path.}
 
- 	\State p = p $\setminus$ difference \Comment{Remove the productions of this vertex from the set of productions when backtracking.}
+ 	\State S = S $\setminus$ difference \Comment{Remove the productions of this vertex from the set of productions when backtracking.}
  \EndFunction
  \end{algorithmic}
 
@@ -181,7 +175,7 @@ Fortunately, this worst case performance is rarely ever achieved. Only the most 
 Additionally, it is acceptable to incur performance penalties at compile time
 to ensure safety at runtime.
 
-\textit{Termination Proof.} By definition, a DAG has a finite number of unique paths that can be taken from source to sink, therefore, it must terminate if it takes every unique path exactly once.
+\textit{Termination Proof.} By definition, a DAG has a finite number of unique paths, therefore, it must terminate if it takes every unique path exactly once.
 %A unique path, by definition, is an ordered sequence of vertices that is distinct from all other paths.
 %Let $V$ be the set of all vertices in the graph $G$.
 %For a graph traversal algorithm to visit the same path more than once.

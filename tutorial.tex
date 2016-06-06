@@ -1261,8 +1261,7 @@ write to files through the C standard library, allocate variables, etc., as
 well as execute actions.
 
 To write an event handler, an \textit{event declaration}
-(see \ref{guide:event}) is used. The following is a simple example
-of an event handler.
+(see \ref{guide:event}) is used. The following is a simple example.
 
 \begin{codepage}
 \begin{lstlisting}
@@ -1281,9 +1280,8 @@ Event declarations have a \texttt{requires} specifier
 like tables. An event may only be raised if all fields listed in its
 \texttt{requires} specifier have been extracted.
 
-The \texttt{raise} action described in Section \ref{tut:raise_action}
-sends a copy of the context to the event handler.
-Any changes made in the event handler does not modify the
+The \texttt{raise} action is used to send a copy of a context to an event.
+Any changes made in the event handler do not modify the
 original packet or its context.
 
 Steve provides the advantage of being able to write event handlers
