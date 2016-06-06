@@ -448,7 +448,7 @@ Each filtering table will only allow packets whose destination ports are \texttt
 
 \section{The Wire} \label{tut:wire}
 
-A full-duplex wire is a network function which has two ports. 
+A wire is a network function which has two ports. 
 It receives from one port
 and outputs out of the other port. The only caveat is that the application is
 not aware of the ports comprising the wire at first. It must learn that those
@@ -498,6 +498,6 @@ ports are ``remembered,'' forwarding decisions can be made. If a packet comes fr
 vice-versa. Before both ports are saved, since no other actions are applied, the
 packet finishes pipeline processing and gets dropped.
 
-For a full-duplex wire, it is always advised that one primer packet is sent 
+For a wire, it is always advised that one primer packet is sent 
 through both interfaces before any packets are handled, to ensure the application 
 is immediately aware of both ports.
