@@ -558,7 +558,7 @@ Layout declarations are used to define the physical structure of packets in memo
 \end{minip}
 
 A field declaration \texttt{F : T} introduces the name \texttt{F} into layout scope. \texttt{T} must be of scalar type (see \ref{guide:scalar_type}) or layout type (see \ref{guide:layout_type}).
-\footnote{Though \texttt{bool} and \texttt{char} are valid scalar types and can appear as \gr{type}, they will result in a compiler error if the given field is needed as part of a table's key. This is a limitation that will be adjusted in later revisions.} The type \texttt{T} specifies the length of the field. Because this is the extent of the usage, there is no reason to support more complex user-defined types here.
+\footnote{Though \texttt{bool} and \texttt{char} are valid scalar types, they will result in a compiler error if the given field is needed as part of a table's key. This is a limitation that will be adjusted in later revisions.} The type \texttt{T} specifies the length of the field. Because this is the extent of the usage, there is no reason to support more complex user-defined types here.
 
 Field declarations must occur in the order with which they appear in the an actual instance of a header which the layout represents. Incorrect ordering will result in incorrect extractions by decoders.
 
