@@ -175,7 +175,7 @@ Fortunately, this worst case performance is rarely ever achieved. Only the most 
 Additionally, it is acceptable to incur performance penalties at compile time
 to ensure safety at runtime.
 
-\textit{Termination Proof.} By definition, a DAG has a finite number of unique paths, therefore, it must terminate if it takes every unique path exactly once.
+\textit{Termination Proof.} By definition, a DAG has a finite number of unique paths, therefore, the algorithm must terminate if it takes every unique path exactly once.
 %A unique path, by definition, is an ordered sequence of vertices that is distinct from all other paths.
 %Let $V$ be the set of all vertices in the graph $G$.
 %For a graph traversal algorithm to visit the same path more than once.
@@ -223,7 +223,7 @@ var x : Ipv4 = ...;
 The \texttt{options} member has a length predicated on the value
 of another member in the object. In order to produce an object of type \texttt{Ipv4},
 first the memory for the object must be allocated. Then the value of \texttt{ihl}
-has to be evaluated. Then the memory for that object has to be \emph{extended}
+has to be evaluated. Then the memory for \texttt{options} can be allocated
 using \texttt{alloca}. This is possible because \texttt{options} is the last member in the class. Though tricky, this is still possible and roughly what the Rust does.
 However, now consider what happens when the DST member is \emph{not} at the end
 of the class, but rather the middle. For example:
