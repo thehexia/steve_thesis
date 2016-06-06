@@ -484,7 +484,7 @@
 \addtolength{\@sectocnum}{1.20em}
 %\renewcommand*{\l@section}{\@dottedtocline{2}{3.00em}{\@sectocnum}}
 %\renewcommand*{\l@section}{\@dottedtocline{2}{2.50em}{\@sectocnum}}
-\renewcommand*{\l@section}{\@dottedtocline{2}{2.00em}{\@sectocnum}}
+\renewcommand*{\l@section}{\@dottedtocline{2}{2.30em}{\@sectocnum}}
 \renewcommand*{\l@subsection}{\@dottedtocline{3}{4.50em}{3.50em}}
 \renewcommand*{\l@subsubsection}{\@dottedtocline{4}{6.00em}{4.50em}}
 \renewcommand*{\l@paragraph}{\@dottedtocline{5}{7.50em}{5.00em}}
