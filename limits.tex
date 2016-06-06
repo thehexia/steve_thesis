@@ -62,7 +62,7 @@ For a Steve program to be memory safe entails two properties:
 \end{enumerate}
 
 In the first case, for a field to be used within a stage, the name must be in scope.
-In a decoder, a field name is in scope if an extract declaration for that field has been written, ensuring that field has been extracted.
+In a decoder, a field name is in scope after an extract declaration for that field.
 Fields whose names are listed in an event handler's \texttt{requires} specifier are required by the stage. The scope of these names is the body of the event handler.
 Similarly, field names listed in a flow table's key and \texttt{requires} specifier are required by the stage, and the scope of these names is the body of initial and inserted flow entries for that table.
 
