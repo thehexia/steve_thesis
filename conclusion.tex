@@ -2,12 +2,21 @@
 
 The goal of this research was to present a safe and efficient language for writing network applications for SDN switches. Though other languages already exist, Steve sought to improve upon them. First, Steve provides strict compile-time safety guarantees of user-defined packet processing pipelines.
 Steve's type and constraints system make it almost impossible to write a network application which invokes undefined behavior.
-Secondly, the Steve language expands past the basic pipeline specification of most languages and allows the programmer to define protocol independent control plane event handling as well.
-With that being said, there are still issues we have yet to explore.
+Secondly, the Steve language expands past the basic pipeline specification of most languages and allows the programmer to define protocol independent control plane event handling as well. With that being said, there are still issues we have yet to explore.
+
+\section{Future Work}
+
+Steve is far from a complete and mature language. It is still missing key components that other languages of its kind already support. Dynamically-sized fields, group tables, alternative table matching patterns (prefix, wildcard, etc), pushing and popping headers, packet construction, etc. On top of that, we have yet to determine a programming model for distributed control.
 
 \subsection{Language Use Cases}
 
 As we are not network programming specialists, we were never certain of which language features were needed to support rich network applications. We chose to use OpenFlow \cite{openflow_spec} as our guidepost of what was, at minimum, required. From there, we expanded on it from other languages such as POF \cite{pof, pof_fis, pof_impl} and P4 \cite{pof, p42014, p4_spec}. Steve may expand as the need for new use cases grow.
+
+Pushing and popping headers as well as packet construction are the most interesting. This would allow Steve to become more than purely a packet processing language. The Steve programmer could hypothetically create new packets as a reactive response to certain network traffic.
+
+Device introspection, that is, the ability of the application to learn things about the switch is missing.
+It may be useful for an application to search for a specific port, or to learn about the device's MAC and IP addresses.
+Deep packet introspection is similarly useful. Most SDN languages only focus on headers, but being able to look into a payload allows certain security applications to be written on the switch.
 
 \subsection{Portability}
 
@@ -18,7 +27,7 @@ First the virtual machine, Freeflow \cite{freeflow_software} or some alternative
 \subsection{Runtime ABI}
 
 The runtime ABI is designed to alleviate issues with compiling to other platforms.
-As long as there is the ABI exposes functions, Steve can be compiled to target them. The advantage is that the runtime environment worries about managing hardware acceleration, optimization, etc., rather than the compiled Steve application. In future work, we believe it is possible to provide optimized resources (such as TCAM memory) to the application opaquely through the runtime ABI.
+As long as there is the ABI exposes functions, Steve can be compiled to target them. The advantage is that the runtime environment worries about managing hardware acceleration, optimization, etc., rather than the compiled Steve application. In future work, we believe it is possible to provide optimized resources (such as TCAM) to the application opaquely through the runtime ABI.
 
 \subsection{Language Safety}
 
@@ -28,17 +37,7 @@ Specifically, the constraint that pipelines cannot have cycles can be relaxed. I
 
 \subsection{Distributed Control}
 
-It is possible that, rather than compiling one binary application, it is possible for the Steve compiler to produce two: one containing data plane entities, and another containing control plane event handlers. This would be similar to how ASP.NET web forms divide embedded C\# from web page content. The binary containing event handlers could be loaded by another machine and act as distributed controller. The message format could then be the context data structure wrapped by network protocols. Alternatively, since we can process any protocol, including OpenFlow, it is possible to process OpenFlow messages and locally and respond accordingly.
-
-\section{Future Work}
-
-Steve is far from a complete and mature language. It is still missing key components that other languages of its kind already support. Dynamically-sized fields, group tables, alternative table matching patterns (prefix, wildcard, etc), pushing and popping headers, packet construction, etc. On top of that, we have yet to determine a programming model for distributed control.
-
-Pushing and popping headers as well as packet construction are the most interesting. This would allow Steve to become more than purely a packet processing language. The Steve programmer could hypothetically create new packets as a reactive response to certain network traffic.
-
-Device introspection, that is, the ability of the application to learn things about the switch is missing.
-It may be useful for an application to search for a specific port, or to learn about the device's MAC and IP addresses.
-Deep packet introspection is similarly useful. Most SDN languages only focus on headers, but being able to look into a payload allows certain security applications to be written on the switch.
+It is possible that, rather than compiling one binary application, it is possible for the Steve compiler to produce two: one containing data plane entities, and another containing control plane event handlers. The binary containing event handlers could be loaded by another machine and act as distributed controller. The message format could potentially be the context data structure wrapped by network protocols. Alternatively, since we can process any protocol, including OpenFlow, it is possible to process OpenFlow messages and locally and respond accordingly.
 
 
 \section{Conclusion}
