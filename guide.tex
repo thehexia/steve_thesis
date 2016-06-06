@@ -130,7 +130,7 @@ The scope of a parameter declared in a \grd{function}{declaration} (see \ref{gui
 
 A name is said to be in table scope if its scope is within the \grd{table}{initializer} of a \grd{table}{declaration} (see \ref{guide:tables}). The scope of field names declared by a \grd{key}{declaration} within \grdd{key}{declaration}{sequence} and field names listed in the \grd{requires}{specifier} is the \grd{table}{initializer}.
 
-The field name refers to the \textit{last} extraction made with that field name. This entity may vary during runtime depending on the path through the pipeline which a packet took. Because of requirement satisfaction (see \ref{guide:requirements}), it is always guaranteed that an entity with that name exists.
+The field name refers to the \textit{last} extraction made with that field name. This entity may vary during runtime depending on the path through the pipeline which a packet took. Because of memory safety (see \ref{guide:requirements}), it is always guaranteed that an entity with that name exists.
 
 \subsection{Flow Scope} \label{guide:flow_scope}
 
