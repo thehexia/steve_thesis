@@ -415,7 +415,7 @@
   \chapter*{\normalsize \contentsname
     \@mkboth{%
       \MakeUppercase{\contentsname}}{\MakeUppercase{\contentsname}}}%
-\vskip -\baselineskip
+\vskip -2\baselineskip
   \hfill Page \relax \newline%
   \@starttoc{toc}%
   \if@restonecol\twocolumn\fi
@@ -451,7 +451,7 @@
     \@mkboth{\MakeUppercase{\listfigurename}}%
             {\MakeUppercase{\listfigurename}}}%
   \addcontentsline{toc}{part}{\MakeUppercase{\listfigurename}}%
-\vskip -\baselineskip
+\vskip -2\baselineskip
   \null Figure \hfill Page \relax \newline%
   \@starttoc{lof}%
   \if@restonecol\twocolumn\fi
@@ -553,8 +553,9 @@
   \else
   \renewcommand{\@chptoc}{\MakeUppercase{\@chapapp}\space}%
     \renewcommand{\@append}{appendix}
-%    \addtocontents{toc}{\noindent \MakeUppercase{\@chapapp} \hfill%
-%      \relax \newline} \null
+   \addtocontents{toc}{\noindent
+    %  \MakeUppercase{\@chapapp} \hfill \relax \newline 
+     \protect\setcounter{tocdepth}{1}} \null
   \fi
 }
 
