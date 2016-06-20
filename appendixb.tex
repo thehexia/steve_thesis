@@ -1,5 +1,7 @@
 \section{Steve Programs} \label{ap:steve_programs}
 
+This section contains all Steve applications written throughout this thesis in their entirety.
+
 \subsection{Wire}
 
 \begin{lstlisting}
@@ -7,8 +9,7 @@
 //  Wire
 //////////////////////////////////////
 
-layout ethernet
-{
+layout ethernet {
   dst : uint(48);
   src : uint(48);
   type : uint(16);
@@ -17,8 +18,7 @@ layout ethernet
 Port p1;
 Port p2;
 
-decoder start eth_d(ethernet)
-{
+decoder start eth_d(ethernet) {
 	// Port variables, p1 and p2, "remember" ports.
 
 	// Whenever a packet is handled, check if p1 and p2 are set.
@@ -48,16 +48,13 @@ decoder start eth_d(ethernet)
 //  MAC Learning Switch
 //////////////////////////////////////
 
-layout ethernet
-{
+layout ethernet {
 	dst : uint(48);
 	src : uint(48);
 	type : uint(16);
 }
 
-
-decoder start eth_d(ethernet)
-{
+decoder start eth_d(ethernet) {
 	extract ethernet.dst;
 	extract ethernet.src;
   goto learn;
@@ -72,7 +69,6 @@ event learn_mac
 	// trying to learn something we already have.
 	insert into learn
 	{ ethernet.src } -> [timeout = 60] { goto forward; };
-
 	// Next we insert the src of the current packet
 	// into the forward table.
 	//
@@ -91,9 +87,7 @@ event learn_mac
 	};
 }
 
-
-exact_table learn(ethernet.src)
-{
+exact_table learn(ethernet.src) {
   miss ->
   {
 	raise learn_mac;
@@ -101,9 +95,7 @@ exact_table learn(ethernet.src)
   }
 }
 
-
-exact_table forward(ethernet.dst)
-{
+exact_table forward(ethernet.dst) {
   miss ->
   {
     output flood;
@@ -139,7 +131,6 @@ layout ipv4
   src         : uint(32);
   dst         : uint(32);
 }
-
 
 decoder start eth_d(ethernet)
 {
@@ -193,7 +184,6 @@ decoder ipv4_d(ipv4)
   goto learn advance (ipv4.version_ihl & 0x0f) * 4;
 }
 
-
 // This event handles the actual "learning."
 event learn_ip
   requires(ipv4.src) // It will learn src IP addresses.
@@ -215,7 +205,6 @@ event learn_ip
   };
 }
 
-
 exact_table learn(ipv4.src)
 {
   miss ->
@@ -224,7 +213,6 @@ exact_table learn(ipv4.src)
     goto route;
   }
 }
-
 
 // This ultimately decides where to forward packets based on
 // their destination IP.
@@ -238,7 +226,6 @@ exact_table route(ipv4.dst)
   }
 }
 
-
 def ipv4_checksum(vihl : uint(8), dscp_ecn : uint(8), 
 					len : uint(16),	id : uint(16), frag : uint(16), 
 					ttl : uint(8),  proto : uint(8), src : uint(32), 
@@ -247,29 +234,23 @@ def ipv4_checksum(vihl : uint(8), dscp_ecn : uint(8),
   // Merge fields into 16-bit values.
   var merge1 : uint(16) = vihl << 8;
   merge1 = merge1 | dscp_ecn;
-
   var merge2 : uint(16) = ttl << 8;
   merge2 = merge2 | proto;
-
   // Split fields int 16-bit values.
   var split_src1 : uint(16) = src >> 16;
   // Get the lower 16 bits.
   var split_src2 : uint(16) = src & 0x0000_ffff;
-
   // Get the upper 16 bits.
   var split_dst1 : uint(16) = dst >> 16;
   // Get the lower 16 bits.
   var split_dst2 : uint(16) = dst & 0x0000_ffff;
-
   // Accumulated sum.
   var acc : uint(32) = 0;
   acc = acc + merge1 + len + id + frag + merge2 +
         split_src1 + split_src2 + split_dst1 + split_dst2;
-
   // Perform the 1's complement sum wraparound.
   var acc1 : uint(16) = acc >> 16;
   var acc2 : uint(16) = acc & 0x0000_ffff;
-
   acc2 = acc1 + acc2;
   acc2 = acc2 ^ 0xffff_ffff;
   return acc2;
@@ -290,7 +271,6 @@ layout eth
   type : uint(16);
 }
 
-
 layout ipv4
 {
   version_ihl : uint(8);
@@ -306,7 +286,6 @@ layout ipv4
   // Ignore options.
 }
 
-
 layout udp
 {
   src      : uint(16);
@@ -314,7 +293,6 @@ layout udp
   len      : uint(16);
   checksum : uint(16);
 }
-
 
 layout tcp
 {
@@ -329,7 +307,6 @@ layout tcp
   // Ignore options.
 }
 
-
 decoder start eth_d(eth)
 {
   extract eth.type;
@@ -341,7 +318,6 @@ decoder start eth_d(eth)
   }
   // Don't worry about other kinds of packets.
 }
-
 
 decoder ipv4_d(ipv4)
 {
@@ -394,13 +370,11 @@ decoder udp_d(udp)
   goto udp_filter;
 }
 
-
 decoder tcp_d(tcp)
 {
   extract tcp.dst;
   goto tcp_filter;
 }
-
 
 // Only route if the port# is 80 or 443
 // Log the ip src address of all blocked and all allowed.
@@ -423,7 +397,6 @@ exact_table udp_filter(udp.dst)
   }
 }
 
-
 // Only route if the port# is 80 or 443
 // Log the IP address of all blocked and all allowed.
 exact_table tcp_filter(tcp.dst)
@@ -444,7 +417,6 @@ exact_table tcp_filter(tcp.dst)
     drop;
   }
 }
-
 
 // This event handles the actual "learning."
 event learn_ip
@@ -467,7 +439,6 @@ event learn_ip
   };
 }
 
-
 // Learning table.
 exact_table learn(ipv4.src)
 {
@@ -478,7 +449,6 @@ exact_table learn(ipv4.src)
   }
 }
 
-
 // This ultimately decides where to forward packets based on
 // their destination IP.
 exact_table route(ipv4.dst)
@@ -488,7 +458,6 @@ exact_table route(ipv4.dst)
     output flood; // Flood on all unlearned addresses.
   }
 }
-
 
 def ipv4_checksum(vihl : uint(8), dscp_ecn : uint(8), 
 					len : uint(16),	id : uint(16), frag : uint(16), 

@@ -19,7 +19,6 @@ The first step in writing any Steve application is defining the layouts.
 Layouts, which are the topic of Section \ref{tut:layout}, are a way of defining the structure of a header.
 A bridge only concerns itself with the Ethernet header.
 
-\begin{codepage}
 \begin{lstlisting}
 layout ethernet {
 	dst  : uint(48);
@@ -27,13 +26,11 @@ layout ethernet {
 	type : uint(16);
 }
 \end{lstlisting}
-\end{codepage}
 
 The next step is writing a decoder, which is the topic of Section \ref{tut:decoder}.
 Since this application is only concerned with the
 Ethernet header, it will only need an Ethernet decoder. 
 
-\begin{codepage}
 \begin{lstlisting}
 decoder start eth_d(ethernet) {
 	extract ethernet.dst;
@@ -41,7 +38,6 @@ decoder start eth_d(ethernet) {
 	goto learn; // Proceed to the first table stage.
 }
 \end{lstlisting}
-\end{codepage}
 
 The layout rule for this decoder is \texttt{ethernet}. This decoder chooses to extract the source \texttt{ethernet.src} and destination \texttt{ethernet.dst} MAC addresses.
 There is no reason to extract \texttt{ethernet.type} because this application does not need to know about the Layer 3 protocol. The \texttt{start} keyword indicates that this is the first pipeline stage every packet will go through.
@@ -53,7 +49,6 @@ tables will start out with nothing but a miss case. After all, before an
 application runs, it has not learned anything yet. 
 The learning table (\texttt{learn}), will look like the following.
 
-\begin{codepage}
 \begin{lstlisting}
 // This table will cause new addresses to be learned.
 exact_table learn(ethernet.src) {
@@ -63,7 +58,6 @@ exact_table learn(ethernet.src) {
   }
 }
 \end{lstlisting}
-\end{codepage}
 
 The learning table is responsible for observing and learning which
 source MAC addresses map to which port interfaces.
@@ -77,7 +71,6 @@ Inserting and removing flow entries will typically be done through event handler
 After this event is raised, the learning table sends the packet to the
 forwarding table (\texttt{forward}).
 
-\begin{codepage}
 \begin{lstlisting}
 // This table ultimately decides which packet to forward on.
 exact_table forward(ethernet.dst) {
@@ -85,7 +78,6 @@ exact_table forward(ethernet.dst) {
   miss -> { output flood; }
 }
 \end{lstlisting}
-\end{codepage}
 
 The forwarding table contains flow entries which map MAC addresses to ports. It will lookup destination MAC addresses and ultimately forward the packet. The forwarding table thus
 matches on \texttt{ethernet.dst}. If the table has yet to learn the MAC address, it floods the packet to all ports.
@@ -94,7 +86,6 @@ The \texttt{learn\_mac} event handler is where the actual
 learning happens, and is thus the most important snippet of code in this
 application. Event handlers in Steve must explicitly state what fields are extracted before the corresponding event can be raised. This event will require \texttt{ethernet.src} -- the address being learned.
 
-\begin{codepage}
 \begin{lstlisting}
 event learn_mac requires(ethernet.src) {
 	// Prevent the learn table from raising this event twice
@@ -112,7 +103,6 @@ event learn_mac requires(ethernet.src) {
 	};
 }
 \end{lstlisting}
-\end{codepage}
 
 Within the body of the event handler, \texttt{ethernet.src} is used like a variable. All extracted fields can be used this way inside decoders, tables/flow entries, and event handlers under certain circumstances described throughout Chapter \ref{ch:tutorial}.
 
@@ -159,7 +149,6 @@ To start, the layouts must be defined. The Ethernet layout
 from the MAC bridge in Section \ref{tut:learning_switch} can be reused. 
 In addition, the IPv4 layout is also needed. The \texttt{options} field is omitted because Steve currently does not support dynamic-length fields. Also note fields that are not byte-aligned are merged to achieve byte-alignment because Steve currently only supports byte-aligned fields. For example, \texttt{version} and \texttt{ihl} (both 4 bit fields) have been merged into one field. Bit manipulation operations may be used to recover their values.
 
-\begin{codepage}
 \begin{lstlisting}
 layout ipv4 {
   version_ihl : uint(8);
@@ -174,13 +163,11 @@ layout ipv4 {
   dst         : uint(32);
 }
 \end{lstlisting}
-\end{codepage}
 
 An Ethernet decoder is needed again, however, this time the MAC
 addresses are not needed. Instead, the \texttt{ethernet.type} field is needed to confirm
 this is an IPv4 packet. If it is, the packet is sent to the IPv4 decoder.
 
-\begin{codepage}
 \begin{lstlisting}
 decoder start eth_d(ethernet) {
 	extract ethernet.type;
@@ -188,16 +175,13 @@ decoder start eth_d(ethernet) {
 	    match (ethernet.type) {
 	      case 0x800: decode ipv4_d;
 	    }
-	// ...
 }
 \end{lstlisting}
-\end{codepage}
 
 The IPv4 decoder will need  \texttt{ipv4.src} and \texttt{ipv4.dst} in
 order to learn them, \texttt{ipv4.version\_ihl} to
 correctly advance past the IPv4 header, and \texttt{ipv4.ttl} to decrement. The rest are extracted to verify the checksum.
 
-\begin{codepage}
 \begin{lstlisting}
 decoder ipv4_d(ipv4) {
   extract ipv4.version_ihl; // Use this to get header length.
@@ -232,7 +216,6 @@ decoder ipv4_d(ipv4) {
   goto learn advance (ipv4.version_ihl & 0x0f) * 4;
 }
 \end{lstlisting}
-\end{codepage}
 
 This decoder will drop all packets with bad checksums or whose time-to-live has 
 expired. The function used to calculate the checksum
@@ -286,7 +269,6 @@ are needed just like in the MAC bridge example. Their purposes
 remains largely unchanged, except instead of MAC addresses they
 will work with IPv4 addresses.
 
-\begin{codepage}
 \begin{lstlisting}
 exact_table learn(ipv4.src) {
 	miss -> {
@@ -295,7 +277,6 @@ exact_table learn(ipv4.src) {
 	}
 }
 \end{lstlisting}
-\end{codepage}
 
 Here, the \texttt{learn} table matches on \texttt{ipv4.src}. 
 It will raise the event which causes the IPv4 address to be learned. 
@@ -307,18 +288,16 @@ address to port mappings. It will forward all packets whose destination IPv4
 address it has learned. Any IPv4 addresses not yet learned are flooded by
 default.
 
-\begin{codepage}
 \begin{lstlisting}
 exact_table forward(ipv4.dst) {
 	miss -> { output flood; }
 }
 \end{lstlisting}
-\end{codepage}
 
 Lastly, the \texttt{learn\_ip} event must be defined. It is
 largely the same as the \texttt{learn\_mac} event from the learning switch.
 
-\begin{codepage}
+
 \begin{lstlisting}
 event learn_ip requires(ipv4.src) {
 	// This first entry prevents the same address from causing
@@ -334,7 +313,6 @@ event learn_ip requires(ipv4.src) {
 	};
 }
 \end{lstlisting}
-\end{codepage}
 
 The first inserted flow entry prevents the same IPv4 address from being learned
 more than once. The second flow entry inserts the forwarding rule into the
@@ -354,7 +332,6 @@ The \texttt{ethernet} and \texttt{ipv4} layouts from the IPv4 switch will remain
 In addition to these, two transport layer layouts must also be defined: UDP and TCP.
 The UDP header contains four fields: source port, destination port, header length, and checksum \cite{udp_std}. The UDP layout is defined as follows.
 
-\begin{codepage}
 \begin{lstlisting}
 layout udp {
   src      : uint(16);
@@ -363,7 +340,6 @@ layout udp {
   checksum : uint(16);
 }
 \end{lstlisting}
-\end{codepage}
 
 The TCP header contains eight fields: source port, destination 
 port, a sequence number, an acknowledgment number, control information (combining 
@@ -371,7 +347,6 @@ data offset and TCP flags), a window size, a checksum, and an urgent pointer
 number \cite{tcp_std}. 
 The dynamic length options field is excluded. The TCP layout is defined as follows.
 
-\begin{codepage}
 \begin{lstlisting}
 layout tcp {
   src : uint(16);
@@ -385,15 +360,12 @@ layout tcp {
   urgent_ptr : uint(16);
 }
 \end{lstlisting}
-\end{codepage}
 
 The final line of the IPv4 decoder, \texttt{ipv4\_d}, from Section \ref{tut:learning_router} will be replaced so that the packet is now sent to a TCP or UDP decoder rather than to the learning table.
 
-\begin{codepage}
 \begin{lstlisting}
 decoder ipv4_d(ipv4) {
   // ipv4 decoder code from before...
-  
   // Changing the final line to dispatch to new decoders.
   var hdr_len : uint(8) =  (ipv4.version_ihl & 0x0f) * 4;
   match (ipv4.protocol) {
@@ -402,13 +374,11 @@ decoder ipv4_d(ipv4) {
   }
 }
 \end{lstlisting}
-\end{codepage} 
 
 A \texttt{match} statement is used on the \texttt{ipv4.protocol} field. If it is equal to \texttt{0x06}, then the next header to be decoded is TCP. If it is \texttt{0x11}, then the next header is UDP. A flow table may have also been used to make this decision, however, here it is not strictly necessary.
 
 The TCP and UDP decoders are trivial. All this firewall is concerned with is their destination port. This firewall will ignore performing checksum validation for the sake of simplicity. 
 
-\begin{codepage}
 \begin{lstlisting}
 decoder udp_d(udp) {
   extract udp.dst;
@@ -420,14 +390,12 @@ decoder tcp_d(tcp) {
   goto tcp_filter;
 }
 \end{lstlisting}
-\end{codepage}
 
 Once the destination port is extracted, each decoder will send the packet to 
 a filtering table. Here, the \texttt{advance} specifier is not attached to the 
 \texttt{goto tcp\_filter} action. Normally, it would be, however, if one does 
 not expect another decoder later on, it is acceptable to leave it off.
 
-\begin{codepage}
 \begin{lstlisting}
 // Only learn/route if the port# is 80 or 443
 exact_table udp_filter(udp.dst) {
@@ -442,7 +410,6 @@ exact_table tcp_filter(tcp.dst) {
   miss -> { raise log_tcp_port; drop; }
 }
 \end{lstlisting}
-\end{codepage}
 
 Each filtering table will only allow packets whose destination ports are \texttt{80} (HTTP) and \texttt{443} (HTTPS) to be forwarded. All others are logged by an event handler (whose definition can be found in Section \ref{tut:event}) and dropped. Additional flow entries may be added depending on the purpose of the firewall.  From here, the firewall will send to the learning and forwarding tables defined earlier in Section \ref{tut:learning_router}.
 
@@ -458,18 +425,15 @@ This example demonstrates a number of more unintuitive features related to
 ports. First, two uninitialized port variables named \texttt{p1} and
 \texttt{p2} are declared. Uninitialized port variables always compare equal to 0.
 
-\begin{codepage}
 \begin{lstlisting}
-Port p1; .
+Port p1;
 Port p2;
 \end{lstlisting}
-\end{codepage}
 
 The Ethernet layout from prior examples can be used to write a starting decoder. The
 special thing about this decoder is that it does not care about any of the fields.
 It only needs the ingress port.
 
-\begin{codepage}
 \begin{lstlisting}
 decoder start eth_d(ethernet) {
 	// Whenever a packet is handled, check if p1 and p2 are set.
@@ -489,7 +453,6 @@ decoder start eth_d(ethernet) {
 	// If both are not set yet, do nothing and implicitly drop.
 }
 \end{lstlisting}
-\end{codepage}
 
 Here, the two port variables are used to remember what ports exist. The decoder
 looks at the ingress port and saves it into one of the two variables. Once two

@@ -206,7 +206,6 @@ It is done by allocating memory by pushing the stack pointer forward using the i
 Now consider what happens when this DST object appears at the end of a class/record
 type. For example:
 
-\begin{codepage}
 \begin{lstlisting}
 struct Ipv4 {
 	version : uint(4);
@@ -218,7 +217,6 @@ struct Ipv4 {
 
 var x : Ipv4 = ...;
 \end{lstlisting}
-\end{codepage}
 
 The \texttt{options} member has a length predicated on the value
 of another member in the object. In order to produce an object of type \texttt{Ipv4},
@@ -228,7 +226,6 @@ using \texttt{alloca}. This is possible because \texttt{options} is the last mem
 However, now consider what happens when the DST member is \emph{not} at the end
 of the class, but rather the middle. For example:
 
-\begin{codepage}
 \begin{lstlisting}
 struct FooClass {
 	x : int;
@@ -236,7 +233,6 @@ struct FooClass {
 	z : int;
 }
 \end{lstlisting}
-\end{codepage}
 
 Only \texttt{x} can be allocated at first. The value of \texttt{x} has to be evaluated
 and only then could \texttt{y} and \texttt{z} be allocated. It becomes impossible
@@ -289,7 +285,6 @@ If the result of $abs(E1, E2)$ is greater than the length of the packet, then th
 
 Consider the following example. Two layouts, \texttt{L} and \texttt{N}, and a decoder, \texttt{D}, are provided.
 
-\begin{minip}
 \begin{lstlisting}
 layout L {
 	a : uint;
@@ -305,7 +300,6 @@ decoder D(L) {
 	extract L.c.f;
 }
 \end{lstlisting}
-\end{minip}
 
 \texttt{L} has three fields: \texttt{a}, \texttt{b}, and \texttt{c}.  \texttt{N} has two fields: \texttt{d} and \texttt{f}. Field \texttt{L.c} has layout type \texttt{N} and is thus a nested layout. \texttt{D} decodes \texttt{L} and extracts \texttt{L.a} and \texttt{L.c.f}.
 
@@ -320,13 +314,10 @@ Assuming an arbitrary example where the beginning of the current view for \textt
 A common misunderstand happens when an extract appears within a loop.
 A decoder is only ever looking at one header of a packet at once. Using an extract declaration with the same field name more than once in the same decoder will result in the same instance of that field being extracted multiple times, which is completely redundant. Though legal, this should be avoided in most cases. For example:
 
-\begin{minip}
 \begin{lstlisting}
 while (x < 5)
 	extract L1.f1;
 \end{lstlisting}
-\end{minip}
-
 
 %The extractions which \texttt{N1} can refer to are a subset of the extractions \texttt{N2} can refer to. The aliased name naturally can refer to extractions which are from a different kind of field than the original name. To demonstrate this, the following revision is made to the prior example:
 %

@@ -69,12 +69,10 @@ Steve allows for the allocation of both local and global variables.
 A variable named \texttt{x} which holds an integer \texttt{10} is written
 as follows. 
 
-\begin{codepage}
 \begin{lstlisting}
 var x : int = 10;
 x = 9; // Assign a new value.
 \end{lstlisting}
-\end{codepage}
 
 \subsection{Conditional and Loop Statements} \label{tut:condition}
 
@@ -91,7 +89,6 @@ words, after the execution of a \texttt{case} statement, control jumps out of th
 The condition and labels must be integers just like in C. 
 A \texttt{match} statement can be written as follows.
 
-\begin{codepage}
 \begin{lstlisting}
 match (x) {
   case 0: x = x + 1;
@@ -105,7 +102,6 @@ match (x) {
   miss: x = 0;
 }
 \end{lstlisting}
-\end{codepage}
 
 Steve also supports the \texttt{while} loop which is the same as C-like languages. 
 It also supports the \texttt{break} and \texttt{continue} statements for limited
@@ -119,15 +115,12 @@ A function named \texttt{sum} which takes two
 integers, \texttt{a} and \texttt{b}, and returned their sum is written as follows.
 The return type follows the \texttt{->} in Steve functions.
 
-\begin{codepage}
 \begin{lstlisting}
 def sum(a : int, b : int) -> int {
   return a + b;
 }
-
 sum(1, 2);
 \end{lstlisting}
-\end{codepage}
 
 \subsection{Foreign Functions} \label{tut:foreign}
 
@@ -137,13 +130,11 @@ Steve programmers may call functions in linked libraries by first declaring
 them in the Steve application using a \emph{foreign function} with the same
 function signature.
 
-\begin{codepage}
 \begin{lstlisting}
 foreign def puts(input : char[]) -> int;
 
 puts("Hello, World.");
 \end{lstlisting}
-\end{codepage}
 
 Here, this foreign function links to the C standard \texttt{puts} function
 for text output. It may be called like any other function.
@@ -168,7 +159,6 @@ A \emph{layout declaration} (see \ref{guide:layout}) is used to write a layout.
 The simplest example to begin with is the Ethernet frame header \cite{eth_std}.
 The corresponding layout would look like the following.  
 
-\begin{codepage}
 \begin{lstlisting}
 layout ethernet {
 	dst  : uint(48); // 48 bits.
@@ -176,7 +166,6 @@ layout ethernet {
 	type : uint(16); // 16 bits.
 }
 \end{lstlisting}
-\end{codepage}
 
 Every layout has a name (\texttt{ethernet}) and a sequence of field declarations
 which describe the fields contained within the header.
@@ -206,23 +195,21 @@ Not all header structures are as simple as the Ethernet header. Sometimes one
 must deal with structures inside a header. Steve supports composition of layouts to describe such header structures.
 The following presents an OpenFlow protocol message which contains such a case \cite{openflow_spec}.
 
-\begin{codepage}
 \begin{lstlisting}
 layout ofp_instr_stat_trigger {
 	type : uint(16); 
 	len : uint(16); 
 	flags : uint(32); 
 	threshold : ofp_stats;
-};
+}
 
 layout ofp_stats {
 	reserved : uint(16); 
 	length : uint(16); 
 	oxs_field : uint(8);
 	padding : uint(32);
-};
+}
 \end{lstlisting}
-\end{codepage}
 
 In this example, two layouts are presented: \texttt{ofp\_instr\_stat\_trigger} and \texttt{ofp\_stats}. 
 To express the \texttt{ofp\_stats} structure within the OpenFlow message, a field named \texttt{threshold} is added to
@@ -245,13 +232,11 @@ Second, the most important distinction is that \textit{objects of layout type
 can never be created}. Layouts may not appear as the type of parameters, nor may
 they appear as return types. All of the following are considered ill-formed.
 
-\begin{codepage}
 \begin{lstlisting}
 layout L1 { f1 : uint; f2 : uint(16); }
 var x : L1 = 0; // Error.
 def foo(y : L1) -> L1 { ... } // Error.
 \end{lstlisting}
-\end{codepage}
 
 Layouts are distinct from the headers that they describe.
 The sole purpose of layouts is to allow decoders to reason about the logical 
@@ -281,7 +266,6 @@ This is further discussed in Section \ref{guide:no_dst}.
 
 The following example presents a case where some of these limitations become relevant -- the IPv4 layout.
 
-\begin{codepage}
 \begin{lstlisting}
 layout ipv4 {
   version_ihl : uint(8); // Non-byte aligned fields are merged
@@ -297,7 +281,6 @@ layout ipv4 {
   // Options field omitted because it is a DST.
 }
 \end{lstlisting}
-\end{codepage}
 
 In this example, \texttt{version} (a 4 bit field) has to be
 merged with \texttt{ihl} (internet header length) (also a 4 bit field) to
@@ -338,11 +321,9 @@ A decoder is written using a \textit{decoder declaration} (see \ref{guide:decode
 The most common decoder written is likely the Ethernet decoder. The following
 is the basic form of an Ethernet decoder.
 
-\begin{codepage}
 \begin{lstlisting}
 decoder start eth_d(ethernet) { ... }
 \end{lstlisting}
-\end{codepage}
 
 A decoder declaration has four important parts: 
 1) a name (\texttt{eth\_d}), 
@@ -370,7 +351,6 @@ for short, may then be used by the program as a variable.
 The following example expands the body of the \texttt{eth\_d} decoder 
 with extract declarations.
 
-\begin{codepage}
 \begin{lstlisting}
 decoder start eth_d(ethernet) {
 	extract ethernet.dst;
@@ -378,7 +358,6 @@ decoder start eth_d(ethernet) {
 	// ...
 }
 \end{lstlisting}
-\end{codepage}
 
 Each extract declaration gives a \emph{field name} (see \ref{guide:field_name}) 
 which tells the decoder which field is being extracted. 
@@ -407,7 +386,6 @@ by the value stored in \texttt{ethernet.type}.
 The following example demonstrates how the value of the \texttt{ethernet.type} 
 extraction might be used.
 
-\begin{codepage}
 \begin{lstlisting}
 decoder start eth_d(ethernet) {
   extract ethernet.dst;
@@ -420,8 +398,6 @@ decoder start eth_d(ethernet) {
   }
 }
 \end{lstlisting}
-\end{codepage}
-
 
 The IEEE Ethernet standard says that \texttt{ethernet.type} fields greater than 
 or equal to \texttt{0x600} indicate the next header's protocol \cite{eth_std}. 
@@ -436,7 +412,6 @@ operations, bitwise operations, function calls,
 and can be stored and assigned to variables. The following example presents
 a trivial IPv4 decoder demonstrating some of these basic operations.
 
-\begin{codepage}
 \begin{lstlisting}
 decoder ipv4_d(ipv4) {
   extract ipv4.version_ihl; // Use this to get header length.
@@ -456,7 +431,6 @@ decoder ipv4_d(ipv4) {
   // ...
 }
 \end{lstlisting}
-\end{codepage}
 
 This example presents a solution for recovering non-byte aligned
 fields. A bitwise-AND (see \ref{guide:bitwise_expr}) is used on \texttt{ipv4.version\_ihl}
@@ -467,7 +441,6 @@ Extractions can be passed to functions as well. A convenient use case is
 calculating the checksum for the IPv4 header. 
 The following example extends the IPv4 decoder with a few more operations.
 
-\begin{codepage}
 \begin{lstlisting}
 decoder ipv4_d(ipv4) {
   // ...
@@ -490,7 +463,6 @@ decoder ipv4_d(ipv4) {
                   ipv4.protocol, ipv4.src, ipv4.dst);
 }
 \end{lstlisting}
-\end{codepage}
 
 Fields from the IPv4 header are passed to a function named 
 \texttt{ipv4\_checksum} (whose definition has been elided for brevity). The 
@@ -508,7 +480,6 @@ header, the checksum must be recalculated and set with the new checksum.
 Field access expressions do have a number of limitations. The following example
 demonstrates some of them.
 
-\begin{codepage}
 \begin{lstlisting}
 decoder start eth_d(ethernet) {
   // Error: Cannot use eth.type before its extracted.
@@ -527,7 +498,6 @@ decoder ipv4_decode(ipv4) {
   if (ethernet.type == 0x800) { }
 }
 \end{lstlisting}
-\end{codepage}
 
 A field access expression can only be used \textit{after} an extract declaration
 is made for that field since it is impossible to recover the value of a
@@ -552,7 +522,6 @@ by Ethernet.
 A rebind declaration (\ref{guide:rebind}) is used to alias a field with a new name.
 So for example:
 
-\begin{codepage}
 \begin{lstlisting}
 layout vlan {
 	tci : uint(16);
@@ -571,21 +540,18 @@ decoder start vlan_d(vlan) {
 	goto ethtable;
 }
 \end{lstlisting}
-\end{codepage}
 
 In \texttt{vlan\_d}, the \texttt{extract vlan.ethertype as ethernet.type} allows the extraction of \texttt{vlan.ethertype} to be referred to as
 \texttt{ethernet.type} in future stages. The \texttt{vlan.ethertype}
 is the \emph{original} field and \texttt{ethernet.type} is the \emph{alias} field.
 Consider the following table:
 
-\begin{codepage}
 \begin{lstlisting}
 exact_table ethtable(ethernet.type) {
 	{ 0x8100 } -> { ... }
 	{ 0x86dd } -> { ... }
 }
 \end{lstlisting}
-\end{codepage}
 
 Assume that \texttt{vlan.ethertype} has a value of \texttt{0x86dd}.
 When \texttt{vlan\_d} sends the packet to \texttt{ethtable}, it will
@@ -606,7 +572,6 @@ is used. The following example bridges the Ethernet and IPv4 decoders
 declared in earlier examples. Extract declarations are elided for
 brevity.
 
-\begin{codepage}
 \begin{lstlisting}
 decoder start eth_d(ethernet) {
 	// ...
@@ -618,7 +583,6 @@ decoder start eth_d(ethernet) {
 
 decoder ipv4_d(ipv4) { ... }
 \end{lstlisting}
-\end{codepage}
 
 The \texttt{match} statement is used to check if \texttt{ethernet.type} is equal to
 \texttt{0x800}. If it is, then it confirms the next header is IPv4 and the \texttt{decode} action moves the packet to the IPv4 decoder.
@@ -626,7 +590,6 @@ The \texttt{match} statement is used to check if \texttt{ethernet.type} is equal
 To transition to a table matching stage, a \texttt{goto} action (see \ref{tut:goto_action}) (not
 to be confused with a C-like \texttt{goto}) is used.
 
-\begin{codepage}
 \begin{lstlisting}
 decoder ipv4_d(ipv4) {
   // ...
@@ -635,7 +598,6 @@ decoder ipv4_d(ipv4) {
   goto tcp_filter advance ihl; // tcp_filter names a table.
 }
 \end{lstlisting}
-\end{codepage}
 
 In this example, the \texttt{goto} action sends the packet to a hypothetical table
 named \texttt{tcp\_filter}. Details about writing tables follows in Section \ref{tut:table}. 
@@ -679,13 +641,11 @@ The following example presents the basic form of a table which
 groups TCP packets by destination port. The definition of the TCP
 layout has been elided here, but may be found in Section \ref{tut:firewall}.
 
-\begin{codepage}
 \begin{lstlisting}
 exact_table tcp_filter(tcp.dst) {
 	// Flow entries...
 }
 \end{lstlisting}
-\end{codepage}
 
 Each flow table is comprised of three parts: 
 1) a name (\texttt{tcp\_filter}), 
@@ -712,7 +672,6 @@ To write a flow entry, a \textit{flow entry declaration}
 The following example presents three flow entries:
 two regular ones followed by a special one known as the \emph{miss case}.
 
-\begin{codepage}
 \begin{lstlisting}
 exact_table tcp_filter(tcp.dst) {
 	{ 80 } -> { goto forward; }
@@ -720,7 +679,6 @@ exact_table tcp_filter(tcp.dst) {
 	miss -> { drop; }
 }
 \end{lstlisting}
-\end{codepage}
 
 A flow entry declaration has two parts: 1) \textit{match
 fields} and 2) an \textit{action sequence} (also called the body of the entry). 
@@ -763,14 +721,12 @@ Flow tables can have more complicated use cases.
 Not all flow tables will match on a single field. In fact, most flow tables will
 match on many fields. The following table declaration demonstrates this.
 
-\begin{codepage}
 \begin{lstlisting}
 exact_table ip_proto(ipv4.fragment, ipv4.protocol) {
   { 0x0, 0x11 } -> { decode udp_d; }
   // And so on...
 }
 \end{lstlisting}
-\end{codepage}
 
 This table classifies packets into flows based on their fragment value
 and the IP encapsulated transport layer protocol. This flow entry
@@ -781,7 +737,6 @@ information stored alongside flow entries.
 Steve currently supports two properties: timeout and egress.
 The following example extends the previous \texttt{ip\_proto} table with a new flow entry using the timeout property.
 
-\begin{codepage}
 \begin{lstlisting}
 exact_table ip_proto(ipv4.fragment, ipv4.protocol) {
   { 0x0, 0x06 } ->
@@ -789,7 +744,6 @@ exact_table ip_proto(ipv4.fragment, ipv4.protocol) {
   // And so on...
 }
 \end{lstlisting}
-\end{codepage}
 
 Properties are given in a comma-separated list within the block (\texttt{[ ]}) 
 immediately following the \texttt{->}. 
@@ -801,12 +755,10 @@ The reason this is needed is not immediately obvious without context.
 Suppose a flow entry is being inserted into a table using an
 \texttt{insert} action.
 
-\begin{codepage}
 \begin{lstlisting}
 insert into tcp_filter
 { 22 } -> { output in_port; }
 \end{lstlisting}
-\end{codepage}
 
 Within the inserted flow entry, there is the \texttt{output in\_port} action.
 The problem is that the meaning of \texttt{in\_port} is ambiguous. 
@@ -818,12 +770,10 @@ arise.
 To solve this problem, flow entries may capture the current packet's ingress
 port (or any port name in scope) with a new name (\texttt{egress}). So for example:
 
-\begin{codepage}
 \begin{lstlisting}
 insert into tcp_filter
 { 22 } -> [egress = in_port] { output egress; }
 \end{lstlisting}
-\end{codepage}
 
 The \texttt{output egress} action now unambiguously says to forward all future
 matched packets to the current packet's ingress port.
@@ -845,7 +795,6 @@ For these cases, there is the \texttt{requires} specifier.
 The following example is a table which matches on one field and also requires
 \texttt{ipv6.next\_hop}.
 
-\begin{codepage}
 \begin{lstlisting}
 exact_table ipv6_proto(ipv6.next_header)
   requires (ipv6.hop_limit) 
@@ -856,7 +805,6 @@ exact_table ipv6_proto(ipv6.next_header)
   }
 }
 \end{lstlisting}
-\end{codepage}
 
 The \texttt{requires} specifier is a comma-separated sequence of field names
 which must be extracted before the table may match the packet.
@@ -887,12 +835,10 @@ decoders, tables have access to all extractions. The only limitation is that
 field access in the table's flow entries only works on key fields or required fields. For example, the
 following is a valid table.
 
-\begin{codepage}
 \begin{lstlisting}
 exact_table T(in_port, in_phys_port, ethernet.dst, ipv4.dst)
 { ... }
 \end{lstlisting}
-\end{codepage}
 
 \textit{Flow entries can be added and removed from tables using the appropriate
 actions.} This allows decision making on packets to change dynamically during
@@ -918,22 +864,17 @@ The \texttt{decode} action is used to move a packet from the current stage to a
 decoding stage. This action was present throughout a number of examples so far.
 For example:
 
-\begin{codepage}
 \begin{lstlisting}
 decode ipv4_d; // ipv4_d names a decoder
 \end{lstlisting}
-\end{codepage}
-
 
 There is also an optional \texttt{advance} specifier which is used if
 the \textit{view} of the packet must be explicitly shifted by some special
 number of bytes. For example:
 
-\begin{codepage}
 \begin{lstlisting}
 decode udp_d advance (ipv4.version_ihl & 0x0f) * 4;
 \end{lstlisting}
-\end{codepage}
 
 The \texttt{advance} specifier may only be attached if the action is executed by a
 decoder. Only decoders are responsible for view shifts.
@@ -943,21 +884,17 @@ decoder. Only decoders are responsible for view shifts.
 The \texttt{goto} action is used to move a packet from the current stage to a
 table matching stage. For example:
 
-\begin{codepage}
 \begin{lstlisting}
 goto t1; // t1 names a table
 \end{lstlisting}
-\end{codepage}
 
 Similar to the \texttt{decode} action, the \texttt{goto} action also supports an
 optional advance specifier. For example, if the current decoder is for IPv4, and
 the table is named \texttt{t1}, the action would be written as:
 
-\begin{codepage}
 \begin{lstlisting}
 goto t1 advance (ipv4.version_ihl & 0x0f) * 4;
 \end{lstlisting}
-\end{codepage}
 
 The \texttt{advance} specifier may only be attached if the action is executed by a
 decoder. Only decoders are responsible for view shifts.
@@ -967,11 +904,9 @@ decoder. Only decoders are responsible for view shifts.
 Output actions forward a \textit{copy} of the current packet to a port. 
 For example, the following forwards to the reserved flood port. 
 
-\begin{codepage}
 \begin{lstlisting}
 output flood;
 \end{lstlisting}
-\end{codepage}
 
 More on ports and how to use the \texttt{output} action with them can
 be found in Section \ref{tut:ports}. The flood port is only one
@@ -995,11 +930,9 @@ This field determines where the original packet gets forwarded.
 A packet can be dropped by the Steve application using the \texttt{drop} action.
 The \texttt{drop} action terminates the pipeline processing of a packet.
 
-\begin{codepage}
 \begin{lstlisting}
 drop;
 \end{lstlisting}
-\end{codepage}
 
 \subsection{Insert Flow Action} \label{tut:insert_flow_action}
 
@@ -1010,34 +943,28 @@ Flow entries can be inserted with constant key values and no properties. Here,
 a flow entry is inserted into the table presented in Section
 \ref{tut:complex_table}.
 
-\begin{codepage}
 \begin{lstlisting}
 insert into ip_proto
 { 0x0, 0x89 } -> { decode mpls_d; };
 \end{lstlisting}
-\end{codepage}
 
 They can also be inserted with recent extraction values and with
 optional properties.
 
-\begin{codepage}
 \begin{lstlisting}
 insert into ip_proto
 { ipv4.fragment, ipv4.protocol } ->
 [timeout = 1000] { ... };
 \end{lstlisting}
-\end{codepage}
 
 If a new flow entry's match fields already exist in the table, the old flow
 entry is replaced by the new flow entry. A miss case may be inserted into a
 table as well.
 
-\begin{codepage}
 \begin{lstlisting}
 insert into ip_proto
 miss -> { output flood; };
 \end{lstlisting}
-\end{codepage}
 
 \subsection{Remove Flow Action} \label{tut:remove_flow_action}
 
@@ -1046,22 +973,19 @@ name of the table to remove the flow entry from. This can be done with constant
 values or extraction values of the current packet. If the flow entry with
 those match field values does not exist, nothing is done.
 
-\begin{codepage}
+
 \begin{lstlisting}
 remove from ip_proto { 0x0, 0x89 };
 
 remove from ip_proto {ipv4.fragment, ipv4.protocol};
 \end{lstlisting}
-\end{codepage}
 
 Miss cases can also be removed from tables. When a miss case is removed, it is
 replaced by the default miss case (which drops the packet).
 
-\begin{codepage}
 \begin{lstlisting}
 remove from ip_proto miss;
 \end{lstlisting}
-\end{codepage}
 
 \subsection{Set Action} \label{tut:set_action}
 
@@ -1074,11 +998,9 @@ To enforce this, the value being written must have the same integer type (specif
 
 The time-to-live field from an IPv4 header may be set as follows.
 
-\begin{codepage}
 \begin{lstlisting}
 set ipv4.ttl = ipv4.ttl - 1;
 \end{lstlisting}
-\end{codepage}
 
 The \texttt{set} action is only valid if the field access expression is valid in
 that stage. For decoders, this means the field has to have been extracted first.
@@ -1095,13 +1017,11 @@ The context data structure described in Section \ref{context_desc} keeps an
 completes and the packet enters egress processing (described in Section \ref{egress_desc}).
 Only two actions may be written to a packet right now: \texttt{output} and \texttt{set}.
 
-\begin{codepage}
 \begin{lstlisting}
 write set ipv4.ttl = ipv4.ttl - 1;
 
 write output reflow;
 \end{lstlisting}
-\end{codepage}
 
 The written \texttt{output} action has a slightly different semantic from the immediately
 applied \texttt{output} action. When immediately applied, the \texttt{output} action forwards a
@@ -1111,13 +1031,11 @@ in the packet context when executed. This field ultimately decides where to forw
 
 \subsection{Clear Action} \label{tut:clear_action}
 
-The \texttt{clear} action removes all actions from the context's action list. If the list is empty, nothing is done.
+The \texttt{clear} action removes all actions from the context's action list.
 
-\begin{codepage}
 \begin{lstlisting}
 clear;
 \end{lstlisting}
-\end{codepage}
 
 \subsection{Raise Action} \label{tut:raise_action}
 
@@ -1130,11 +1048,10 @@ A \texttt{raise} action sends a copy of the context to a reserved port called th
 The controller port then offloads the context to the appropriate event handler.
 For example:
 
-\begin{codepage}
+
 \begin{lstlisting}
 raise log_tcp_port;
 \end{lstlisting}
-\end{codepage}
 
 
 Here, \texttt{log\_tcp\_event} names the event handler which will be executed. Its definition can be found in Section \ref{tut:event}. The execution is asynchronous to the pipeline, meaning the pipeline will not wait for it to complete before executing the next action.
@@ -1153,7 +1070,6 @@ There are two categories of ports to consider when working with Steve:
 Reserved ports are named ports which are always present on the system. Some ports may
 be directly forwarded to using the \texttt{output} action. Other reserved ports 
 are forwarded to implicitly by other actions.
-
 The following reserved ports may be forwarded to by the \texttt{output} action.
 
 \begin{itemize}
@@ -1172,13 +1088,11 @@ Each of these reserved ports can be accessed using a reserved keyword. In the
 following, the \texttt{output} action is used to send a packet to these three
 ports.
 
-\begin{codepage}
 \begin{lstlisting}
 output all;
 output reflow;
 output flood;
 \end{lstlisting}
-\end{codepage}
 
 The following reserved ports are forwarded to implicitly by other actions.
 
@@ -1207,12 +1121,10 @@ about these ports by observing the ingress ports of packets passing
 through the pipeline.
 There are two reserved keywords for getting the logical ingress port and physical ingress port of a packet.
 
-\begin{codepage}
 \begin{lstlisting}
 in_port; // The logical ingress port.
 in_phys_port; // The physical ingress port.
 \end{lstlisting}
-\end{codepage}
 
 \subsection{Port Variables} \label{tut:declared_ports}
 
@@ -1220,17 +1132,14 @@ Port variables can be used to \textit{remember} ports for later usage. They are
 written using \textit{port declarations} (see \ref{guide:port}).
 They work as port variables.
 
-\begin{codepage}
 \begin{lstlisting}
 Port p1;
 Port p2;
 \end{lstlisting}
-\end{codepage}
 
 Other ports can be assigned to them. This does not copy the port. It just saves
 a handle to that port inside the port variable.
 
-\begin{codepage}
 \begin{lstlisting}
 p1 = in_port; 
 p2 = in_phys_port;
@@ -1238,7 +1147,6 @@ p2 = in_phys_port;
 output p1; // Forward to these ports.
 output p2;
 \end{lstlisting}
-\end{codepage}
 
 Here, the ingress ports of a packet are saved to port variables \texttt{p1} and \texttt{p2}. An \texttt{output} action may specify a port variable, in which case the packet is forwarded to the port whose handle is stored by the port variable.
 
@@ -1263,7 +1171,6 @@ well as execute actions.
 To write an event handler, an \textit{event declaration}
 (see \ref{guide:event}) is used. The following is a simple example.
 
-\begin{codepage}
 \begin{lstlisting}
 event log_tcp_port requires(ipv4.dst, tcp.dst) {
 	var file : uint(8)& = fopen("blocked.txt", "a");
@@ -1272,7 +1179,6 @@ event log_tcp_port requires(ipv4.dst, tcp.dst) {
 	fclose(file);
 }
 \end{lstlisting}
-\end{codepage}
 
 This event handler is used to log IP destination addresses and
 TCP destination ports. It is useful for firewall applications.

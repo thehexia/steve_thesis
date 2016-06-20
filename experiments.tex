@@ -155,12 +155,13 @@ The timeout property for flow entries in all examples were removed so flow entri
 The Freeflow emulator was configured to have a fixed number of ports. The ingress port for each packet was randomly assigned amongst these ports. For each experiment, there were five ingress ports. 
 Table \ref{tbl:firewall_cmp} summarizes these results. The table also includes the percentage of TCP and UDP packets per sample. The full decoding firewall extracts four additional fields on UDP packets and nine additional fields on TCP packets. 
 
+
 \begin{table}[ht]
 \caption{Comparing firewall performance (in Mpps) with partial header decodes versus full header decodes.}
 \begin{center}
 \begin{tabularx}{\linewidth}{| c || c | c | c | c | c | X | c |}
 \hline
-Sample & Iter. & Partial (Mpps) & Full (Mpps) & \% TCP & \% UDP & Approx. Difference (\# packets) & Percentage Diff. \\
+Sample & Iter. & Partial (Mpps) & Full (Mpps) & \% TCP & \% UDP & Approx. Diff. (\# packets) & Percentage Diff. \\
 \hline
 1 & 6380 & 1.64 & 1.56 & 96.12\% & 3.67\% & 80,000 & 5.00\% \\
 \hline
@@ -180,6 +181,11 @@ A partial decode produces a non-negligible difference in performance with the av
 \section{Performance of Operations} \label{exp:action_performance}
 
 This section presents the typical performance of certain common operations performed by a Steve pipeline. Each operation is executed approximately 10 million times per experiment. This experiment is repeated ten times and the timings are given as an average. Table \ref{tbl:action_stats} summarizes the timed performance of each action. The output action is intentionally excluded as the results vary based on a number of factors including Freeflow implementation, threading models, and specialized forwarding hardware.
+
+To reiterate the conclusion of Section \ref{exp:decode_comparison}, the average time it takes to decode a field is about 23 nanoseconds (ns). This translates to approximately 0.23 seconds of processing time per extra field extracted every 10 million packets. This is a non-negligible difference as many networking devices do expect such heavy traffic.
+
+As mentioned in earlier sections, inserting and removing flow entries are the most expensive operations a pipeline can perform. They do notably bottleneck the pipeline and are best performed asynchronously.
+It is also worth noting that writing actions to an action list is more expensive than one might anticipate (being only slightly faster than table matching). This may be a result of the current implementation dynamically allocating memory to store the action.
 
 \begin{table}[ht]
 \caption{Average wall clock time for executing certain operations. Output action has been excluded as it varies with the threading model implementation of Freeflow.}
@@ -208,10 +214,5 @@ Write output action & 108.92 \\
 \end{center}
 \label{tbl:action_stats}
 \end{table}
-
-To reiterate the conclusion of Section \ref{exp:decode_comparison}, the average time it takes to decode a field is about 23 nanoseconds (ns). This translates to approximately 0.23 seconds of processing time per extra field extracted every 10 million packets. This is a non-negligible difference as many networking devices do expect such heavy traffic.
-
-As mentioned in earlier sections, inserting and removing flow entries are the most expensive operations a pipeline can perform. They do notably bottleneck the pipeline and are best performed asynchronously.
-It is also worth noting that writing actions to an action list is more expensive than one might anticipate (being only slightly faster than table matching). This may be a result of the current implementation dynamically allocating memory to store the action.
 
 The goto action (which also invokes table matching) is also relatively expensive compared to other operations. It is for this reason that users should strive to reduce table matches as much as possible. The developers of POF came to a similar conclusion \cite{pof_impl}. They suggest using as few tables as possible. Multiple tables can be combined into a single table. When appropriate, a user should also consider replacing a table with a conditional statement.
