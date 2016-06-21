@@ -109,7 +109,6 @@ Scopes can be nested. In this case, the inner scope is said to be the \textit{en
 
 For example, in the following example, the name \texttt{i} is declared twice. The scope of the first \texttt{i} is global scope and includes the entire example excluding the block between the first left-brace (\texttt{\{}) and the closing right-brace (\texttt{\}}). The scope of the second \texttt{i} begins at its declaration and ends at the the closing right-brace (\texttt{\}})
 
-\begin{minip}
 \begin{lstlisting}
 var i : int = 0;
 def f() -> int {
@@ -118,7 +117,6 @@ def f() -> int {
 	return j; // Result here shall be 3.
 }
 \end{lstlisting}
-\end{minip}
 
 The body of \texttt{if}, \texttt{while}, and \texttt{match} statements all implicitly introduce a block.
 
@@ -142,7 +140,6 @@ Names found in the \grd{properties}{block} of an inserted flow entry follow regu
 
 In the following example, the name \texttt{x} is valid in the properties block, but not in the body of the flow.
 
-\begin{minip}
 \begin{lstlisting}
 event e1 {
 	var x : int = 100;
@@ -162,7 +159,6 @@ event e1 {
 
 exact_table t1(eth.type) { }
 \end{lstlisting}
-\end{minip}
 
 \subsection{Event Scope} \label{guide:event_scope}
 
@@ -190,7 +186,6 @@ If the name refers to one or more function declarations, and is being used as a 
 
 Global names used at any point are considered valid regardless of the order with which they are declared in the program text. For example, the following usage of the name \texttt{i} in function \texttt{foo} refers to a variable declaration made after the function declaration. This is considered valid.
 
-\begin{minip}
 \begin{lstlisting}
 // The name 'i' is used even though it is declared later
 // in global scope.
@@ -198,7 +193,6 @@ def foo() -> int { return 3 + i; }
 // The name 'i' is declared here.
 var i : int = 0;
 \end{lstlisting}
-\end{minip}
 
 \subsection{Qualified Name Lookup} \label{guide:qlfd_lookup}
 
@@ -211,7 +205,6 @@ If qualified lookup fails to find a corresponding declaration, the result is a c
 \section{Objects} \label{guide:object}
 
 An \textit{object} in a Steve program is an area of memory that has size, lifetime, type, and value. An object may also be given a name.
-
 Variables, extractions, ports, tables, and temporaries are objects. Objects are created in Steve by variable, extract, port, and table declarations (see \ref{guide:variables}, \ref{guide:extract}, \ref{guide:port}, \ref{guide:tables}). Objects may be created where temporary values are required. For example, the evaluation of expressions such as addition (see \ref{guide:add_expr}) produce temporary objects.
 
 \subsection{Storage Duration and Lifetime} \label{guide:storage}
@@ -224,7 +217,7 @@ The \textit{storage duration} of an object describes the point where an object's
 \item \textit{Pipeline automatic}. Pipeline automatic storage duration is a property of the context object (see \ref{guide:context}). Upon packet ingress, the context is allocated, upon egress the context is deallocated. The memory associated with extracted fields, which are part of the packet, exist before they have actually been extracted, and thus have the same storage duration.
 \end{itemize}
 
-The \textit{lifetime} of an object is either equivalent or a subset of its storage duration.
+The \textit{lifetime} of an object is less than or equal to its storage duration.
 
 \begin{itemize}
 \item \textit{Automatic}. Automatic lifetime begins at the point where an object is \textit{initialized} and ends at the point where an object is de-initialized (which is currently equivalent to the end of the block).
@@ -248,10 +241,9 @@ A user is never given direct access to a context. Context objects are implicit, 
 
 \section{Type} \label{guide:type}
 
-Types are a way of describing objects, references, expressions, fields, and functions. Types can describe size, structure, and limitations on possible values and legal operations for these entities. By giving types to these things, it allows the compiler to reason about limitations on where terms may appear. This process is known as \textit{type checking}. Steve is a strongly-typed language. Therefore, the types of all things are known during compile time. 
+Types are a way of describing objects, references, expressions, fields, and functions. Types can describe size, structure, and limitations on possible values and legal operations for these entities. By giving types to these things, it allows the compiler to reason about limitations on where terms may appear. Steve is a strongly-typed language. Therefore, the types of all things are known during compile time. 
 
 Steve supports scalar types (see \ref{guide:scalar_type}), reference types (see \ref{guide:ref_type}), layout type (see \ref{guide:layout_type}), port type (see \ref{guide:port_type}), and function type (see \ref{guide:function_type}). Types may appear as terms in language to specify the type of variables, parameters, return values, and layout fields. At other points, the type of an entity may be implicit. For example, the type of an additive expression (see \ref{guide:add_expr}) is implicitly integer.
-
 Types have the form:
 
 \begin{minip}
@@ -311,7 +303,7 @@ If \grd{precision}{specifier} is not given, the default precision and effective 
 
 \subsection{Character Type} \label{guide:char_type}
 
-Single characters have character type. Character type has the form: 
+Single characters have character type. Objects of this type have a size of 8 bits. It has the form: 
 
 \begin{minip}
 \begin{grammar}
@@ -335,15 +327,13 @@ Identifier expressions referring to variables have reference type. Field access 
 
 For example, in the following, the variable \texttt{x} has type \texttt{int} and the identifier expression \texttt{x} would have type \texttt{T\&}.
 
-\begin{minip}
 \begin{lstlisting}
-var x : int = 0; // Variable x
+
 x; // This identifier expression has type ref T
 // Used as a value, reference-to-value conversion
 // is applied to x
 var y : int = x + 10;
 \end{lstlisting}
-\end{minip}
 
 When an expression of type \texttt{T\&} appears on the right-hand side of an
 assignment statement (see \ref{guide:assign_stmt}), a reference-to-value
@@ -351,13 +341,11 @@ conversion (see \ref{guide:reftoval_conv}) is applied to recover the value of th
 
 Variables of reference type may be created. Assignment to that variable modifies the original object as well. For example:
 
-\begin{minip}
+
 \begin{lstlisting}
-var x : int = 0; // Variable x
 var y : int& = x; // y is a reference to x.
 y = 5; // This modifies x as well, so now both are 5.
 \end{lstlisting}
-\end{minip}
 
 Here, any modifications to \texttt{y} have the same affect on \texttt{x}, because y only stores an address to the original object.
 
@@ -367,9 +355,11 @@ An array type, \texttt{T[N]}, describes a region of contiguous memory containing
 
 \begin{minip}
 \begin{grammar}
-<array-type> ::= <type> "["<integer-literal>"]"
+<array-type> ::= <type> "["<expression>"]"
 \end{grammar}
 \end{minip}
+
+The type of \gr{expression} shall be integer. The evaluated value shall be a positive integer, otherwise behavior is undefined.
 
 \subsection{Block Type} \label{guide:block_type}
 
@@ -383,11 +373,9 @@ A block type describes a region of contiguous memory containing an unknown numbe
 
 Block type may be used when the length of an array is unknown during compile time. Block type is most frequently given to variables used to hold strings. For example:
 
-\begin{minip}
 \begin{lstlisting}
 var str : char[] = "Hello, world";
 \end{lstlisting}
-\end{minip}
 
 \subsection{Layout Type} \label{guide:layout_type}
 
@@ -401,14 +389,12 @@ Layout types are declared via layout declarations (see \ref{guide:layout}). Layo
 
 Objects of layout type shall not exist. The \grd{layout}{type} may only appear as the type of a field declaration within a layout declaration (see \ref{guide:layout}). It may not appear in variable declarations or function declarations as such:
 
-\begin{minip}
 \begin{lstlisting}
 layout L1 { f1 : uint; f2 : uint(16); }
 var x : L1 = 0; // Invalid
 // Invalid parameter type and return type.
 def foo(y : L1) -> L1 { ... }
 \end{lstlisting}
-\end{minip}
 
 The size of a layout is equal to the sum of the sizes of each of its field types. This is only knowable at compile time if the layout contains only scalar typed fields. For example, the layout \texttt{L1} has a size of 48 bits or 6 bytes.
 
@@ -418,15 +404,12 @@ All port declarations have port type. Port type is not a type that appears expli
 
 In certain cases, namely ordering and equality operators (see \ref{guide:ordering_expr}), an object of port type may be converted to an object of integer type. The value of the converted port object is equal to its system assigned integer identifier. This allows for the comparison of ports to integers as follows:
 
-\begin{minip}
 \begin{lstlisting}
 Port p1;
-// ...
 // Comparison against 0 checks if the port is valid.
 // The 0 port is the invalid port.
 if (p1 == 0) { ... }
 \end{lstlisting}
-\end{minip}
 
 \subsection{Function Type} \label{guide:function_type}
 
@@ -451,7 +434,6 @@ an expression of type \texttt{T\&} which can appear as \texttt{E1} or in \texttt
 
 When an lvalue of type \texttt{T\&} appears in \texttt{E2}, it must go through implicit reference to value conversion (also known as lvalue to rvalue conversion). The reference is replaced with the object it refers.
 
-\begin{minip}
 \begin{lstlisting}
 var x : uint = 10;
 // The reference to value conversion is
@@ -459,7 +441,6 @@ var x : uint = 10;
 // 'x' here.
 var y : uint = x + 5;
 \end{lstlisting}
-\end{minip}
 
 \subsection{Integer Conversions} \label{guide:int_conv}
 
@@ -475,12 +456,12 @@ Steve will convert the precision and signed/unsigned-ness of integers where nece
 
 \subsection{Arithmetic Conversions} \label{guide:arith_conv}
 
-In an arithmetic expression (see \ref{guide:mult_expr}, \ref{guide:add_expr}, \ref{guide:bitshift_expr}, \ref{guide:bitwise_expr}), the resulting integer type is decided based on the rules below. Given two operands, \texttt{E1} of type \texttt{T1} and \texttt{E2} of type \texttt{T2}:
+In an arithmetic expression (see \ref{guide:mult_expr}, \ref{guide:add_expr}, \ref{guide:bitshift_expr}, \ref{guide:bitwise_expr}), the resulting integer type is decided based on the rules below. Given two operands, \texttt{E1} of type \texttt{T1} and \texttt{E2} of type \texttt{T2}, the resulting integer type:
 
 \begin{enumerate}
-\item the resulting integer type has the same precision as the largest precision between \texttt{E1} and \texttt{E2}.
+\item has the same precision as the largest precision between \texttt{E1} and \texttt{E2}.
 
-\item the resulting integer type is unsigned if either \texttt{T1} or \texttt{T2} are unsigned. Otherwise, it is signed.
+\item is unsigned if either \texttt{T1} or \texttt{T2} are unsigned. Otherwise, it is signed.
 \end{enumerate}
 
 \subsection{Port to Integer Conversions} \label{guide:port_conv}
@@ -489,7 +470,6 @@ In some cases, namely comparison and equality operators, a port expression (see 
 
 For example, in the following case, a port to integer conversion is applied to expression \texttt{p1} to allow it to be compared with \texttt{0} (note that a reference-to-value conversion is actually applied first since \texttt{p1} is an identifier expression with reference-to-port type).
 
-\begin{minip}
 \begin{lstlisting}
 Port p1; // Uninitialized port object.
 def foo() -> bool {
@@ -498,7 +478,6 @@ def foo() -> bool {
 		return true;
 }
 \end{lstlisting}
-\end{minip}
 
 
 \section{Declarations} \label{guide:declarations}
@@ -508,7 +487,6 @@ Declarations, generally speaking, introduce an entity and a name for that entity
 For example, a variable declaration (see \ref{guide:variables}) introduces a variable and a name for that variable. When the name for that variable is used in program text, it is used to mean the variable itself.
 
 A \textit{definition} in Steve is equivalent to a declaration in all but one case. The only case where a definition is distinct from a definition is when the \texttt{foreign} specifier (see \ref{guide:foreign_spec}) is attached to an incomplete function declaration.
-
 Declarations have the form:
 
 \begin{minip}
@@ -564,13 +542,11 @@ Field declarations must occur in the order with which they appear in the an actu
 
 Though layout declarations declare layout types, objects of layout type can never be created and functions cannot have parameters or returns of layout type (see \ref{guide:layout_type}, \ref{guide:no_dst}). The following is not legal in Steve. 
 
-\begin{minip}
 \begin{lstlisting}
 layout l1 { ... }
 var x : l1; // Illegal.
 def foo(x : l1) -> l1 { ... } // Illegal.
 \end{lstlisting}
-\end{minip}
 
 A layout type may only appear as the type of a field declaration in layout scope. This is to allow for handling of nested header structures.
 
@@ -609,27 +585,22 @@ The execution of a decoder is similar to that of a function. Each statement with
 
 \subsection{Extract Declaration} \label{guide:extract}
 
-Extract declarations have the following form:
+An extract declaration causes a field with the specified field name (see \ref{guide:field_name}) to be extracted by the decoder. Extract declarations have the following form:
 
 \begin{grammar}
 <extract-declaration> ::=
-\textit{extract} <field-name> \textit{;}
+"extract" <field-name> \textit{;}
 \end{grammar}
 
-An extract declaration causes a field with the specified \grd{field}{name} (see \ref{guide:field_name}) to be extracted by the decoder. After this declaration, the name and value of that field may be used in a \grdd{field}{access}{expression} (see \ref{guide:field_access_expr}).
-
+After this declaration, the name and value of that field may be used in a \grdd{field}{access}{expression} (see \ref{guide:field_access_expr}).
 An extract declaration must be in decoder scope. Attempting to put an extract declaration in any other context shall result in a compiler error.
 
 The root layout identifier of \grd{field}{name} (see \ref{guide:field_name}) shall be the same layout as the decoder's \textit{layout rule} (see \ref{guide:decoder}). A decoder shall not extract fields from layouts which are not it's layout rule. For example, the following is illegal:
 
-\begin{minip}
 \begin{lstlisting}
-decoder eth_d(eth) {
-	// Error: Illegal, this decoder does not extract ipv4.
-	extract ipv4.dst; 
-}
+// Error: Decoder does not extract ipv4.
+decoder eth_d(eth) { extract ipv4.dst; }
 \end{lstlisting}
-\end{minip}
 
 \subsection{Rebind Declaration} \label{guide:rebind}
 
@@ -738,15 +709,11 @@ An event declaration has the following form:
 An event declaration defines a special function, known as an \textit{event handler}, which has access to extractions (see \ref{guide:extract}) and can use actions (see \ref{guide:action}). They implicitly take a context (see \ref{guide:context}) as a parameter. These are used when an exceptional event has occurred and certain slower actions need to be applied outside of the fast path, e.g. adding and removing flow entries.
 
 An event handler can only be invoked via the raise action. At this time, a \textit{copy} of the context is passed to the runtime. The runtime shall forward this context and event handler packaged together to the controller port. The controller port waits to receive these contexts and event handlers. It dispatches these contexts to be executed by the event handler in the control plane.
-
 Any modifications to the copied context shall not apply to the original. For example, in the following, it is demonstrated that a field modified via \texttt{set} action only affects a copy and never the original packet.
 
-\begin{minip}
 \begin{lstlisting}
-exact_table t1(eth.dst)
-{
-	{ 0x12_34_56_78_90_ab } ->
-	{
+exact_table t1(eth.dst) {
+	{ 0x12_34_56_78_90_ab } -> {
 		// event1 tries to set eth.dst to 0x0
 		raise event1;
 		// eth.dst will still be 0x12_34_56_78_90_ab
@@ -755,16 +722,13 @@ exact_table t1(eth.dst)
 	}
 }
 
-event event1
-	requires(eth.dst)
-{
+event event1 requires(eth.dst) {
 	// This will not modify the original.
 	// Only a copy of the context and packet are
 	// operated on.
 	set eth.dst = 0x0;
 }
 \end{lstlisting}
-\end{minip}
 
 Event declarations are subject to meeting the \textit{requirements satisfaction} property (see \ref{guide:requirements}) of pipelines, even though they are not pipeline stages.
 
@@ -839,17 +803,16 @@ Specifiers have the following form:
 
 \subsection{Foreign Specifier} \label{guide:foreign_spec}
 
-The \texttt{foreign} specifier can only appear before a \grd{function}{declaration}. This specifier says that a function has foreign linkage, that is, the function is not defined in this scope but rather in a different program. This function is said to be a \textit{foreign function}. The name of a foreign function is not mangled. Foreign functions cannot have a definition, that is, the \grd{function}{declaration} cannot have a \grd{block}{statement}. This is the only case where a declaration varies from a definition.
+The \texttt{foreign} specifier can only appear before a \grd{function}{declaration}. This specifier says that a function has foreign linkage, that is, the function is not defined in this scope but rather in a different program. This function is said to be a \textit{foreign function}. The name of a foreign function is not mangled. 
 
-\begin{minip}
+Foreign functions cannot have a definition, that is, the \grd{function}{declaration} cannot have a \grd{block}{statement}. This is the only case where a declaration varies from a definition.
+
 \begin{lstlisting}
 foreign def puts(char[]) -> int;
-
 def f() -> int {
 	puts("Hello world.");
 }
 \end{lstlisting}
-\end{minip}
 
 Foreign linkage is most often used to link against the C runtime library. For example, the following introduces the \texttt{puts} C-function into global scope. Function calls to \texttt{puts} will call the C-function with the same name.
 
@@ -902,7 +865,7 @@ When a field name (see \ref{guide:field_name}) is used where an \gr{expression} 
 \end{grammar}
 \end{minip}
 
-Field access expressions refer to fields extracted by a decoder. Field access expressions are similar to identifier expressions (see \ref{guide:id_expr}), except they specifically refer to extractions.
+Field access expressions refer to fields extracted by a decoder.They are similar to identifier expressions (see \ref{guide:id_expr}), except they specifically refer to extractions.
 
 A field access expression may only occur within the body of a decoder declaration (see \ref{guide:decoder}), a flow declaration (see \ref{guide:tables}), or an event declaration (see \ref{guide:event}). In addition to these limitations, a field access expression may only occur:
 
@@ -984,7 +947,6 @@ Decimal, binary and hexadecimal literals have the following form:
 
 Hexadecimal, binary, and decimal integer literals may be used interchangeably to represent the same integer value. The type of an integer literal is by default 32 bit signed integer (see \ref{guide:integer_type}). Hexadecimal and binary literals may optionally use the underscore(\_) as an organizational separator. This is purely lexical and has no effect on the value of the literal. For example:
 
-\begin{minip}
 \begin{lstlisting}
 10 // Integer literal 10
 0b1010 // Binary literal 10
@@ -992,11 +954,10 @@ Hexadecimal, binary, and decimal integer literals may be used interchangeably to
 0x0A  // Hexadecimal literal 10
 0x00_0A // Hexadecimal literal 10 w/ underscore  
 \end{lstlisting}
-\end{minip}
 
 \subsection{Boolean Literals}
 
-Boolean literals have boolean type (see \ref{guide:bool_type}) and have the following form:
+Boolean literals have boolean type (see \ref{guide:bool_type}) and have the values \texttt{true} or \texttt{false}. They have the following form:
 
 \begin{minip}
 \begin{grammar}
@@ -1028,14 +989,10 @@ Character and string literals are rarely if ever used in Steve at the moment. It
 A character literal has character type (see \ref{guide:char_type}). A string literal has character block type (see \ref{guide:block_type}).
 For example:
 
-\begin{minip}
 \begin{lstlisting}
-// A single character literal.
 var c1 : char = 'a';
-// A string literal.
 var s1 : char[] = "Hello, world."; 
 \end{lstlisting}
-\end{minip}
 
 \subsection{Postfix Expressions} \label{guide:postfix_expr}
 
@@ -1073,7 +1030,7 @@ Array subscript expressions return the value of the element in a given position 
 \end{minip}
 
 The \gr{expression} must have integer type.
-The type of the object referred to by \grd{variable}{id} must be array or block. If \gr{expression} is larger than the extend of the array or block, behavior is undefined.
+The type of the object referred to by \grd{variable}{id} must be array or block. If the evaluation of \gr{expression} is larger than the extent of the array or block, or it is negative, then behavior is undefined.
 
 \subsection{Unary Expressions} \label{guide:unary_expr}
 
@@ -1151,7 +1108,7 @@ The precedence of each operator is enforced by the grammar. The operators with t
 
 \subsection{Multiplicative Expression} \label{guide:mult_expr}
 
-Multiplicative expressions are multiplication, division, and modulo operations. They have the following form:
+Multiplicative expressions perform multiplication, division, and modulo operations. They have the following form:
 
 \begin{minip}
 \begin{grammar}
@@ -1163,11 +1120,11 @@ Multiplicative expressions are multiplication, division, and modulo operations. 
 \end{grammar}
 \end{minip}
 
-Both operands must be of integer type. Integer conversion (see \ref{guide:int_conv}) is applied to both operands so that they both have type \texttt{T}, where T is the smallest integer type capable of representing both operands. The type of result shall be \texttt{T}. 
+Both operands must be of integer type. Arithmetic conversion (see \ref{guide:arith_conv}) is applied to both operands so that they both have type \texttt{T}, where T is the smallest integer type capable of representing both operands. The result shall have type \texttt{T}.
 
 \subsection{Additive Expression} \label{guide:add_expr}
 
-Additive expressions are addition and subtraction. They have the form: 
+Additive expressions perform addition and subtraction operations. They have the following form: 
 
 \begin{minip}
 \begin{grammar}
@@ -1179,7 +1136,7 @@ Additive expressions are addition and subtraction. They have the form:
 \end{grammar}
 \end{minip}
 
-Both operands must be of integer type. Integer conversion (see \ref{guide:int_conv}) is applied to both operands so that they both have type \texttt{T}, where \texttt{T} is the smallest integer type capable of representing both operands. The type of result shall be \texttt{T}.
+Both operands must be of integer type. Arithmetic conversion (see \ref{guide:arith_conv}) is applied to both operands so that they both have type \texttt{T}, where \texttt{T} is the smallest integer type capable of representing both operands. The result shall have type \texttt{T}.
 
 \subsection{Bit-shift Expression} \label{guide:bitshift_expr}
 
@@ -1219,9 +1176,10 @@ Ordering expressions check whether or not the value of two operands are: less th
 
 Given a type \texttt{T}, assuming the type of the first operand is \texttt{T1}, and the type of the second is \texttt{T2}, there must exist a sequence of conversions from \texttt{T1} to \texttt{T} and from \texttt{T2} to \texttt{T}. In other words, the types of both operands must be convertible to some common type. The type of the result shall be boolean type.
 
-\subsection{Bitwise And, Xor, and Or Expressions} \label{guide:bitwise_expr}
+\subsection{Bitwise Expressions} \label{guide:bitwise_expr}
 
-The bitwise expressions have the form:
+The bitwise expressions perform bitwise AND, XOR, or OR operations.
+They have the form:
 
 \begin{minip}
 \begin{grammar}
@@ -1236,23 +1194,23 @@ The bitwise expressions have the form:
 \end{grammar}
 \end{minip}
 
-Given a type \texttt{T}, assuming the type of the first operand is \texttt{T1}, and the type of the second is \texttt{T2}, there must exist a sequence of conversions from \texttt{T1} to \texttt{T} and from \texttt{T2} to \texttt{T}. In other words, the types of both operands must be convertible to some common type. The type of the result shall be \texttt{T}.
+Both operands must be of integer type. Arithmetic conversion (see \ref{guide:arith_conv}) is applied to both operands so that they both have type \texttt{T}, where T is the smallest integer type capable of representing both operands. The type of the result shall be \texttt{T}.
 
 \subsection{Logical And and Logical Or Expression} \label{guide:logical_expr}
 
-Logical-and and logical-or expressions have the following form:
+The type of both operands in logical-and and logical-or expressions shall be boolean type. The result shall have boolean type. They have the following form:
 
 \begin{minip}
 \begin{grammar}
 <logical-and-expression> ::= <logical-and-expression> "\&\&" <bitwise-or-expression>
 \alt <bitwise-or-expression>
 
-<logical-or-expression> ::= <logical-and-expression> "||" <logical-and-expression>
+<logical-or-expression> ::= <logical-or-expression> "||" <logical-and-expression>
 \alt <logical-and-expression> 
 \end{grammar}
 \end{minip}
 
-The type of both operands shall be boolean type. The result of shall have boolean type.
+
 
 \section{Statements} \label{guide:statements}
 
@@ -1279,20 +1237,18 @@ Statements are pieces of code which are executed in sequence, and have some side
 
 \subsection{Block Statement} \label{guide:block_stmt}
 
-A block statement is a compound statement which contains a sequence of statements that are executed in order. Block statements also introduce block scope (see \ref{guide:block_scope}).
+A block statement is a compound statement which contains a sequence of statements that are executed in order. A block statement introduces block scope (see \ref{guide:block_scope}). Block statements may be nested within each other. A block statement may contain no statements It has the form: 
 
 \begin{minip}
 \begin{grammar}
 <block-statement> ::=
 "{" [<statement>] "}"
 \end{grammar}
-\end{minip}
-
-Block statements may be nested within each other. A block statement may contain no statements. 
+\end{minip} 
 
 \subsection{Expression Statement} \label{guide:expr_stmt}
 
-An expression statement is a statement which executes a single expression. Expression statements have the following form:
+An expression statement executes an expression. It has the form:
 
 \begin{minip}
 \begin{grammar}
@@ -1333,7 +1289,7 @@ Given an assignment statement \texttt{E1 = E2}, \texttt{E1} must have type \text
 
 \subsection{If and If-else}
 
-If and if-else statements have the form:
+If and if-else statements have the same semantics as almost all other languages. They have the form:
 
 \begin{minip}
 \begin{grammar}
@@ -1349,7 +1305,7 @@ For an if-else statement of the form \texttt{if (E1) S1 else S2}, the type of \t
 
 \subsection{Match}
 
-Match statements are similar to C-like switch statements. They have the form:
+Match statements are similar to C-like switch statements with some minor differences. They have the form:
 
 \begin{minip}
 \begin{grammar}
@@ -1369,7 +1325,7 @@ Match statements are similar to C-like switch statements. They have the form:
 
 Match statements do \textit{not} have fall-through behavior like switch statements. The condition \gr{expression} is evaluated; if the value is equal to the value of a \grd{case}{label}, then the corresponding \grd{case}{body} is executed. The match statement then completes.
 
-The type, \texttt{T}, of \gr{expression} in \grd{match}{statement} shall be integer. The type of \grd{literal}{expression} in all \grd{case}{statements} shall also be \texttt{T}.
+The type of \gr{expression} in \grd{match}{statement} shall be integer type \texttt{T}. The type of \grd{literal}{expression} in all \grd{case}{statements} shall also be \texttt{T}.
 
 \subsection{While Loops} \label{guide:while_stmt}
 
@@ -1390,7 +1346,6 @@ Break and continue may only appear in certain contexts. As of now, they may only
 A break statement can be used to exit a loop prematurely. When a break statement is executed, the program branches to and executes the statement immediately following the while statement.
 
 A continue statement can be used to branch to the first statement in the while loop if \gr{statement} is a block statement. 
-
 These have the form:
 
 \begin{minip}
@@ -1403,11 +1358,11 @@ These have the form:
 
 \subsection{Return Statement} \label{guide:return_stmt}
 
-A return statement returns a value from a function. It has the form:
+A return statement returns a value from a function and terminates the execution of that function. It has the form:
 
 \begin{minip}
 \begin{grammar}
-<return-statement> ::= "return" <expression>
+<return-statement> ::= "return" <expression> ";"
 \end{grammar}
 \end{minip}
 
@@ -1485,7 +1440,7 @@ If destination is the \texttt{all} port, copies of the packet are sent on all kn
 
 The output semantics here are a little unintuitive. Some may have the expectation that outputting a packet terminates pipeline processing and immediately forwards the original. This is not the case. Pipeline processing only terminates on the original packet if a stage does not send it to another stage, and does not apply any more actions to it. 
 
-At this point egress processing (see \ref{egress_desc}) would begin. Any actions written to the action set would be executed. Written output actions modify the egress port field in the context. The original packet is forwarded to the port saved in this field.
+At this point egress processing (see \ref{egress_desc}) would begin. Any actions written to the action list would be executed. Written output actions modify the egress port field in the context. The original packet is forwarded to the port saved in this field.
 
 \subsection{Drop Action} \label{guide:drop}
 
@@ -1497,11 +1452,11 @@ The drop action is used to delete the packet and immediately terminate pipeline 
 \end{grammar}
 \end{minip}
 
-The drop action is implicitly applied to any packet who has reached egress processing (see \ref{egress_desc}), but which does not have an output action (see \ref{guide:output}) written to its action set.
+The drop action is implicitly applied to any packet who has reached egress processing (see \ref{egress_desc}), but which does not have an output action (see \ref{guide:output}) written to its action list.
 
 \subsection{Clear Action} \label{guide:clear}
 
-A clear action removes all actions from the context's action set. If the action set is empty, nothing is done. The clear action has the following form:
+A clear action removes all actions from the context's action list. If the action list is empty, nothing is done. The clear action has the following form:
 
 \begin{minip}
 \begin{grammar}
@@ -1562,7 +1517,7 @@ When a miss case is removed, it is replaced by the default miss case. The defaul
 
 \subsection{Write Action} \label{guide:write}
 
-A write action writes another action to a context's action set. They have the form:
+A write action writes another action to a context's action list. They have the form:
 
 \begin{minip}
 \begin{grammar}
@@ -1575,7 +1530,7 @@ All actions written to the context's are executed upon egress processing (see \r
 \begin{itemize}
 \item \textit{Set}. The set action works same as it would if executed immediately (see \ref{guide:write}). 
 
-\item \textit{Output}. The output action sets the egress port field in the context. It does not immediately forward the packet upon execution. When every action in the action set is completed, the original packet is forwarded (not a copy).
+\item \textit{Output}. The output action lists the egress port field in the context. It does not immediately forward the packet upon execution. When every action in the action list is completed, the original packet is forwarded (not a copy).
 \end{itemize}
 
 \subsection{Raise Action} \label{guide:raise}
