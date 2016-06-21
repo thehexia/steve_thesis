@@ -53,7 +53,6 @@ To check this, simply generate a topological ordering of vertices in the stage t
 \subsection{Memory Safety} \label{guide:requirements}
 
 The \emph{memory safety} property ensures that memory locations that are not declared or allocated by the program are not accessed. For packets, this means that packet memory must be checked to guarantee existence and valid construction. This work focuses on existence; previous Steve work focused on construction \cite{wripe}.
-
 For a Steve program to be memory safe entails two properties:
 
 \begin{enumerate}
@@ -223,6 +222,7 @@ of another member in the object. In order to produce an object of type \texttt{I
 first the memory for the object must be allocated. Then the value of \texttt{ihl}
 has to be evaluated. Then the memory for \texttt{options} can be allocated
 using \texttt{alloca}. This is possible because \texttt{options} is the last member in the class. Though tricky, this is still possible and roughly what the Rust does.
+
 However, now consider what happens when the DST member is \emph{not} at the end
 of the class, but rather the middle. For example:
 
