@@ -431,8 +431,8 @@ Port p2;
 \end{lstlisting}
 
 The Ethernet layout from prior examples can be used to write a starting decoder. The
-special thing about this decoder is that it does not care about any of the fields.
-It only needs the ingress port.
+special thing about this decoder is that it does not care about nor extract any of the fields.
+It only needs the ingress port. The decoder would look like the following:
 
 \begin{lstlisting}
 decoder start eth_d(ethernet) {
