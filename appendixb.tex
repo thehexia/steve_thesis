@@ -324,7 +324,8 @@ decoder ipv4_d(ipv4) {
   set ipv4.checksum =
     ipv4_checksum(ipv4.version_ihl, ipv4.dscp_ecn, 
                   ipv4.len, ipv4.id, ipv4.fragment, 
-                  ipv4.ttl, ipv4.protocol, ipv4.src, ipv4.dst);
+                  ipv4.ttl, ipv4.protocol, 
+                  ipv4.src, ipv4.dst);
   var hdr_len : uint(8) =  (ipv4.version_ihl & 0x0f) * 4;
   // Only care about udp and tcp requests,
   match (ipv4.protocol) {

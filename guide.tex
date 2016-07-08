@@ -805,7 +805,7 @@ Specifiers have the following form:
 
 The \texttt{foreign} specifier can only appear before a \grd{function}{declaration}. This specifier says that a function has foreign linkage, that is, the function is not defined in this scope but rather in a different program. This function is said to be a \textit{foreign function}. The name of a foreign function is not mangled. 
 
-Foreign functions cannot have a definition, that is, the \grd{function}{declaration} cannot have a \grd{block}{statement}. This is the only case where a declaration varies from a definition.
+Foreign functions cannot have a definition, that is, the function declaration cannot have a \grd{block}{statement}. This is the only case where a declaration varies from a definition.
 
 \begin{lstlisting}
 foreign def puts(char[]) -> int;
